@@ -1,0 +1,4 @@
+patching file config/provider_registry.py
+Hunk #1 FAILED at 6.
+patch: **** malformed patch at line 26:  
+

@@ -1,0 +1,3 @@
+"""
+Frame extraction infrastructure providers.
+"""

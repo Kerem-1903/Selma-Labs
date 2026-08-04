@@ -1,0 +1,4 @@
+patching file README.md
+Hunk #1 FAILED at 21.
+patch: **** malformed patch at line 21: This project strictly adheres to **Ports & Adapters (Hexagonal Architecture)**.
+

@@ -1,0 +1,4 @@
+patching file core/domain/value_objects/__init__.py
+Hunk #1 FAILED at 5.
+Hunk #2 FAILED at 14.
+2 out of 2 hunks FAILED -- saving rejects to file core/domain/value_objects/__init__.py.rej

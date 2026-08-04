@@ -1,0 +1,4 @@
+patching file core/application/services/timeline_service.py
+Hunk #1 FAILED at 4.
+patch: **** malformed patch at line 32:                      break
+

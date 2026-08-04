@@ -1,0 +1,4 @@
+patching file tests/unit/test_timeline_service.py
+Hunk #1 FAILED at 308.
+Hunk #2 FAILED at 328.
+2 out of 2 hunks FAILED -- saving rejects to file tests/unit/test_timeline_service.py.rej
