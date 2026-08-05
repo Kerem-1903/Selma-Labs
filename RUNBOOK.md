@@ -4,11 +4,30 @@ This runbook provides step-by-step instructions to set up, validate, test, and r
 
 ---
 
-## 1. Prerequisites & Environment Setup
+## 1. Operational Integration Overview (Sprint 1–17)
+
+The repository provides a unified end-to-end execution path ([`scripts/run_pipeline.py`](file:///c:/Users/LOQ/Desktop/selma-labs-master/scripts/run_pipeline.py)) connecting all Sprint 1–17 capabilities into a single command for producing vertical video Shorts.
+
+### Intended User Flow:
+1. User provides a topic.
+2. Generate short-form script.
+3. Generate narration audio.
+4. Plan scenes from narration timing.
+5. Search visual media for each scene.
+6. Match & rank candidates to scenes.
+7. Build clip timeline.
+8. Render vertical video (1080x1920 MP4).
+9. Generate & format subtitles (SRT/WebVTT).
+10. Optionally translate subtitles to additional languages.
+11. Save all outputs in an organized run directory with `metadata.json` & `run.log`.
+
+---
+
+## 2. Environment Setup
 
 - **Python Version**: Python 3.10 or higher.
-- **FFmpeg (Optional for Video Rendering)**: Ensure `ffmpeg` and `ffprobe` binaries are installed and accessible on your system `PATH`.
-- **Usage Model**: This repository is a source repository designed to be run directly from its root.
+- **FFmpeg (Required for Live Video Rendering)**: Ensure `ffmpeg` and `ffprobe` binaries are on system `PATH`.
+- **Usage Model**: Source repository executed directly from its root.
 
 ```bash
 python -m venv .venv
@@ -16,28 +35,13 @@ python -m venv .venv
 .venv\Scripts\Activate.ps1
 # On Linux/macOS:
 source .venv/bin/activate
-```
 
----
-
-## 2. Dependency Installation
-
-Install all required Python dependencies declared in `requirements.txt`:
-```bash
 pip install -r requirements.txt
 ```
 
-Declared dependencies:
-- `anthropic>=0.40.0`
-- `pydantic-settings>=2.5.0`
-- `pytest>=8.0.0`
-- `pytest-asyncio>=0.24.0`
-- `httpx>=0.27.0`
-- `mutagen>=1.47.0`
-
 ---
 
-## 3. Environment Variables Configuration
+## 3. Environment Variables & Credentials (.env)
 
 Copy `.env.example` to `.env` in the repository root:
 ```bash
@@ -78,65 +82,94 @@ RENDER_OUTPUT_HEIGHT=1920
 RENDER_FPS=30
 ```
 
-*Note: All 210 unit and performance tests run fully offline using fake/mock adapters without requiring live credentials.*
+---
+
+## 4. Running the End-to-End Pipeline
+
+### A. Local Dry-Run Mode (100% Offline, No API Keys Required)
+Exercises the full user-facing pipeline using in-memory mock adapters without network calls or credentials:
+```bash
+python scripts/run_pipeline.py "The mystery of the Mariana Trench" --dry-run --output output/mariana-trench-dry --target-languages es fr
+```
+
+### B. Live Pipeline Mode (Requires API Credentials & FFmpeg)
+Executes against live Claude, ElevenLabs, Pexels, and local FFmpeg:
+```bash
+python scripts/run_pipeline.py "The mystery of the Mariana Trench" --output output/mariana-trench --target-languages es fr
+```
+
+### Options & Flags (`python scripts/run_pipeline.py --help`):
+- `topic`: Positional argument or `--topic` flag.
+- `--output / -o`: Custom run directory path (defaults to `output/<sanitized_topic>_<run_id>`).
+- `--duration`: Target spoken duration in seconds (15–90).
+- `--voice-id`: Override default ElevenLabs voice ID.
+- `--language`: Primary subtitle language code (default `en`).
+- `--target-languages`: Additional target languages for subtitle translation (e.g. `--target-languages es fr de`).
+- `--candidates-per-scene`: Max candidates evaluated per scene before ranking (default 10).
+- `--dry-run`: Run offline using mock adapters without network or credentials.
 
 ---
 
-## 4. Running Tests
+## 5. Run Directory Structure & Metadata
 
-Execute the complete test suite (210 tests across unit and performance suites):
+Every pipeline execution generates a self-contained output directory:
+
+```
+output/<run-dir>/
+├── script/
+│   ├── script.json         # Raw Script entity JSON metadata
+│   └── script.txt          # Plain narration text
+├── audio/
+│   └── narration.mp3       # Generated voice audio track
+├── scenes/
+│   └── scene_plan.json     # Timed scenes with keywords, mood & priority
+├── assets/
+│   └── asset_match_plan.json # Candidate media asset matches per scene
+├── timeline/
+│   └── timeline.json       # Ordered clips with selection scores
+├── subtitles/
+│   ├── subtitles_en.srt    # Primary SRT subtitles
+│   ├── subtitles_en.vtt    # Primary WebVTT subtitles
+│   ├── subtitles_es.srt    # Translated SRT subtitles (if requested)
+│   └── subtitles_es.vtt    # Translated WebVTT subtitles (if requested)
+├── video/
+│   └── output.mp4          # Final vertical rendered MP4 video
+├── metadata.json           # Execution status, stage metrics & relative file paths
+└── run.log                 # Human-readable pipeline execution log
+```
+
+---
+
+## 6. Offline vs. External Requirements & Failure Handling
+
+| Stage | Offline (Dry-Run) Adapter | Live Provider Adapter | External Requirement |
+|---|---|---|---|
+| Script Generation | `DryRunScriptGenerator` | `ClaudeScriptProvider` | `ANTHROPIC_API_KEY` |
+| Voice Generation | `DryRunVoiceGenerator` | `ElevenLabsVoiceProvider` | `ELEVENLABS_API_KEY` |
+| Scene Planning | `DryRunScenePlanner` | `ClaudeScenePlanningProvider` | `ANTHROPIC_API_KEY` |
+| Video Search & Download | `DryRunVideoSource` | `PexelsProvider` | `PEXELS_API_KEY` |
+| Asset Matching | Deterministic heuristic | Deterministic heuristic | None (In-process) |
+| Timeline Assembly | Deterministic mapping | Deterministic mapping | None (In-process) |
+| Video Rendering | `DryRunRenderProvider` | `FfmpegRenderProvider` | Local `ffmpeg` binary |
+| Subtitle Generation | `SubtitleService` | `SubtitleService` | None (In-process) |
+| Subtitle Translation | `DryRunTranslationProvider` | `ClaudeTranslationProvider` | `ANTHROPIC_API_KEY` |
+
+### Common Failure Messages & Recovery:
+- **`ProviderAuthError: API key is required`**: Missing credential in `.env`. Add key or run with `--dry-run`.
+- **`ScriptGenerationError: Generated script has X words...`**: Model output violated spoken word count range. Re-run or adjust `--duration`.
+- **`RenderError: ffmpeg binary not found`**: FFmpeg not installed on PATH. Install FFmpeg or run with `--dry-run`.
+- **`SubtitleTranslationError: Cue count mismatch`**: Provider returned unexpected cue count during translation. Re-run or check model settings.
+
+On any stage failure, `run_pipeline.py` logs the exact error to `run.log`, prints an actionable error message, writes partial `metadata.json` with status `"FAILED"`, and exits with code 1 without corrupting earlier stage outputs.
+
+---
+
+## 7. Running Tests & Validation
+
 ```bash
+# Run full unit and performance test suite (213 tests)
 pytest
-```
 
-To run test collection only:
-```bash
-pytest --collect-only
-```
-
----
-
-## 5. Offline Pipeline Smoke Test
-
-Run the permanent repository smoke test from the project root:
-```bash
+# Run repository internal pipeline smoke test
 python scripts/verify_pipeline.py
-```
-This verifies `ScriptService` -> `VoiceService` -> `ScenePlanningService` -> `SceneAssetMatchingService` -> `TimelineService` -> `SubtitleService` using in-memory/fake providers.
-
----
-
-## 6. CLI Commands Execution
-
-All capabilities are accessible via CLI entry points under `scripts/`.
-
-### Display Help Output for All Commands
-```bash
-python scripts/generate_script_test.py --help
-python scripts/generate_voice.py --help
-python scripts/search_assets.py --help
-python scripts/plan_scenes.py --help
-python scripts/match_assets.py --help
-python scripts/create_timeline.py --help
-python scripts/render_video.py --help
-python scripts/generate_subtitles.py --help
-python scripts/translate_subtitles.py --help
-```
-
-### Running Pipeline Scripts Live (Requires API Keys)
-```bash
-# Generate Script
-python scripts/generate_script_test.py "The History of Quantum Computing"
-
-# Generate Voice Narration
-python scripts/generate_voice.py "The History of Quantum Computing"
-
-# Build Video Timeline
-python scripts/create_timeline.py "The History of Quantum Computing"
-
-# Render Full Video with Subtitles
-python scripts/render_video.py "The History of Quantum Computing" --subtitle
-
-# Translate Subtitles
-python scripts/translate_subtitles.py --track-id "sub-1" --target-languages es fr de
 ```
