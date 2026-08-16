@@ -266,6 +266,33 @@ async def test_empty_downloaded_content_raises_asset_download_error():
 
 
 @pytest.mark.asyncio
+async def test_falls_back_to_next_candidate_on_asset_download_error():
+    first = _asset("pexels:broken")
+    second = _asset("pexels:working")
+    plan = _asset_match_plan(
+        [SceneAssetMatch(scene=_scene(), assets=[first, second])]
+    )
+
+    class FallbackDownloadPort(FakeVideoSourcePort):
+        async def download(self, asset: MediaAsset) -> bytes:
+            self.downloaded_asset_ids.append(asset.id)
+            if asset.id == first.id:
+                raise AssetDownloadError("broken asset")
+            return b"fake-video-bytes"
+
+    video_source = FallbackDownloadPort()
+    video_search_service = VideoSearchService(video_source, FakeStorage())
+    service = TimelineService(
+        video_search_service, fallback_on_download_error=True
+    )
+
+    timeline = await service.create(plan)
+
+    assert video_source.downloaded_asset_ids == [first.id, second.id]
+    assert timeline.clips[0].asset.id == second.id
+
+
+@pytest.mark.asyncio
 async def test_timeline_to_dict_includes_clips_and_metadata():
     matches = [SceneAssetMatch(scene=_scene(index=0), assets=[_asset("pexels:a")])]
     plan = _asset_match_plan(matches)

@@ -1,0 +1,24 @@
+{
+  "name": "strange-things-motion",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render:demo": "remotion render src/index.ts StrangeThingsShort ../output/remotion_demo.mp4 --props=src/demo-props.json",
+    "smoke:still": "remotion still src/index.ts StrangeThingsShort remotion-smoke.png --props=src/demo-props.json --frame=30 --log=error",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.507",
+    "@remotion/media": "4.0.507",
+    "@remotion/transitions": "4.0.507",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "remotion": "4.0.507"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}

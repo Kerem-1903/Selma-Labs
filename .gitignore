@@ -4,4 +4,12 @@ __pycache__/
 .venv/
 .env
 output/
-cache/
+/cache/
+.selma_runs*/
+.codex_video_review/
+reference/
+motion/node_modules/
+motion/out/
+motion/remotion-smoke.png
+*.tmp
+*.partial

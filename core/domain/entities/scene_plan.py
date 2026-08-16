@@ -72,6 +72,14 @@ class ScenePlan:
                     "location": scene.location,
                     "mood": scene.mood,
                     "visual_priority": scene.visual_priority,
+                    "visual_job": scene.visual_job,
+                    "required_subjects": list(scene.required_subjects),
+                    "required_actions": list(scene.required_actions),
+                    "required_relations": list(scene.required_relations),
+                    "forbidden_dominant_subjects": list(scene.forbidden_dominant_subjects),
+                    "explanation_mode": scene.explanation_mode,
+                    "overlay_labels": list(scene.overlay_labels),
+                    "explanatory_required": scene.explanatory_required,
                 }
                 for scene in self.scenes
             ],

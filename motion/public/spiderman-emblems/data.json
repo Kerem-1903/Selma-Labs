@@ -1,0 +1,527 @@
+{
+  "script": "Yüzünü görmeden hangi Spider-Man'e baktığını anlayabilir misin? Sadece göğsündeki örümceğe bak. Tobey Maguire'ın kostümünde örümcek kalın, metalik ve neredeyse zırh gibi duruyor. Andrew Garfield'da bacaklar iyice uzuyor; logo daha ince ve keskin. Tom Holland'ın ilk kostümünde örümcek küçülüyor ve çok daha teknolojik görünüyor. Iron Spider geldiğinde küçük siyah logo gidiyor, yerine göğsü saran altın bir örümcek geliyor. Miles Morales'te örümcek kırmızı, büyük ve kendi tarzını hemen belli ediyor. Siyah Symbiote kostümündeyse dev beyaz örümcek neredeyse bütün gövdeyi kaplıyor. Yani bu sadece bir logo değil; Spider-Man'in hangi evrende ve hangi dönemde olduğunu gösteren kimlik kartı. Sen hangisini tek bakışta tanıdın?",
+  "durationMs": 41424,
+  "words": [
+    {
+      "text": "Yüzünü",
+      "startMs": 0,
+      "endMs": 466
+    },
+    {
+      "text": "görmeden",
+      "startMs": 466,
+      "endMs": 1000
+    },
+    {
+      "text": "hangi",
+      "startMs": 1000,
+      "endMs": 1307
+    },
+    {
+      "text": "Spider-Man'e",
+      "startMs": 1307,
+      "endMs": 1989
+    },
+    {
+      "text": "baktığını",
+      "startMs": 1989,
+      "endMs": 2398
+    },
+    {
+      "text": "anlayabilir",
+      "startMs": 2398,
+      "endMs": 2943
+    },
+    {
+      "text": "misin",
+      "startMs": 2944,
+      "endMs": 3319
+    },
+    {
+      "text": "Sadece",
+      "startMs": 3499,
+      "endMs": 4090
+    },
+    {
+      "text": "göğsündeki",
+      "startMs": 4090,
+      "endMs": 4647
+    },
+    {
+      "text": "örümceğe",
+      "startMs": 4647,
+      "endMs": 5056
+    },
+    {
+      "text": "bak",
+      "startMs": 5056,
+      "endMs": 5329
+    },
+    {
+      "text": "Tobey",
+      "startMs": 5509,
+      "endMs": 5986
+    },
+    {
+      "text": "Maguire'ın",
+      "startMs": 5987,
+      "endMs": 6419
+    },
+    {
+      "text": "kostümünde",
+      "startMs": 6419,
+      "endMs": 6987
+    },
+    {
+      "text": "örümcek",
+      "startMs": 6987,
+      "endMs": 7407
+    },
+    {
+      "text": "kalın",
+      "startMs": 7407,
+      "endMs": 7793
+    },
+    {
+      "text": "metalik",
+      "startMs": 7953,
+      "endMs": 8373
+    },
+    {
+      "text": "ve",
+      "startMs": 8396,
+      "endMs": 8532
+    },
+    {
+      "text": "neredeyse",
+      "startMs": 8532,
+      "endMs": 9100
+    },
+    {
+      "text": "zırh",
+      "startMs": 9100,
+      "endMs": 9327
+    },
+    {
+      "text": "gibi",
+      "startMs": 9328,
+      "endMs": 9521
+    },
+    {
+      "text": "duruyor",
+      "startMs": 9521,
+      "endMs": 9873
+    },
+    {
+      "text": "Andrew",
+      "startMs": 10053,
+      "endMs": 10553
+    },
+    {
+      "text": "Garfield'da",
+      "startMs": 10565,
+      "endMs": 11099
+    },
+    {
+      "text": "bacaklar",
+      "startMs": 11099,
+      "endMs": 11588
+    },
+    {
+      "text": "iyice",
+      "startMs": 11588,
+      "endMs": 11872
+    },
+    {
+      "text": "uzuyor",
+      "startMs": 11872,
+      "endMs": 12304
+    },
+    {
+      "text": "logo",
+      "startMs": 12508,
+      "endMs": 12792
+    },
+    {
+      "text": "daha",
+      "startMs": 12792,
+      "endMs": 13019
+    },
+    {
+      "text": "ince",
+      "startMs": 13019,
+      "endMs": 13269
+    },
+    {
+      "text": "ve",
+      "startMs": 13269,
+      "endMs": 13371
+    },
+    {
+      "text": "keskin",
+      "startMs": 13372,
+      "endMs": 13838
+    },
+    {
+      "text": "Tom",
+      "startMs": 14018,
+      "endMs": 14177
+    },
+    {
+      "text": "Holland'ın",
+      "startMs": 14416,
+      "endMs": 14973
+    },
+    {
+      "text": "ilk",
+      "startMs": 15030,
+      "endMs": 15212
+    },
+    {
+      "text": "kostümünde",
+      "startMs": 15212,
+      "endMs": 15769
+    },
+    {
+      "text": "örümcek",
+      "startMs": 15780,
+      "endMs": 16189
+    },
+    {
+      "text": "küçülüyor",
+      "startMs": 16189,
+      "endMs": 16700
+    },
+    {
+      "text": "ve",
+      "startMs": 16916,
+      "endMs": 17041
+    },
+    {
+      "text": "çok",
+      "startMs": 17053,
+      "endMs": 17292
+    },
+    {
+      "text": "daha",
+      "startMs": 17303,
+      "endMs": 17519
+    },
+    {
+      "text": "teknolojik",
+      "startMs": 17518,
+      "endMs": 18041
+    },
+    {
+      "text": "görünüyor",
+      "startMs": 18041,
+      "endMs": 18507
+    },
+    {
+      "text": "Iron",
+      "startMs": 18687,
+      "endMs": 19232
+    },
+    {
+      "text": "Spider",
+      "startMs": 19233,
+      "endMs": 19710
+    },
+    {
+      "text": "geldiğinde",
+      "startMs": 19710,
+      "endMs": 20210
+    },
+    {
+      "text": "küçük",
+      "startMs": 20210,
+      "endMs": 20540
+    },
+    {
+      "text": "siyah",
+      "startMs": 20540,
+      "endMs": 20847
+    },
+    {
+      "text": "logo",
+      "startMs": 20847,
+      "endMs": 21063
+    },
+    {
+      "text": "gidiyor",
+      "startMs": 21062,
+      "endMs": 21471
+    },
+    {
+      "text": "yerine",
+      "startMs": 21642,
+      "endMs": 22017
+    },
+    {
+      "text": "göğsü",
+      "startMs": 22017,
+      "endMs": 22335
+    },
+    {
+      "text": "saran",
+      "startMs": 22335,
+      "endMs": 22676
+    },
+    {
+      "text": "altın",
+      "startMs": 22699,
+      "endMs": 22983
+    },
+    {
+      "text": "bir",
+      "startMs": 22983,
+      "endMs": 23131
+    },
+    {
+      "text": "örümcek",
+      "startMs": 23131,
+      "endMs": 23495
+    },
+    {
+      "text": "geliyor",
+      "startMs": 23494,
+      "endMs": 23869
+    },
+    {
+      "text": "Miles",
+      "startMs": 24049,
+      "endMs": 24629
+    },
+    {
+      "text": "Morales'te",
+      "startMs": 24629,
+      "endMs": 25118
+    },
+    {
+      "text": "örümcek",
+      "startMs": 25118,
+      "endMs": 25504
+    },
+    {
+      "text": "kırmızı",
+      "startMs": 25504,
+      "endMs": 26038
+    },
+    {
+      "text": "büyük",
+      "startMs": 26220,
+      "endMs": 26538
+    },
+    {
+      "text": "ve",
+      "startMs": 26549,
+      "endMs": 26674
+    },
+    {
+      "text": "kendi",
+      "startMs": 26686,
+      "endMs": 26970
+    },
+    {
+      "text": "tarzını",
+      "startMs": 26970,
+      "endMs": 27425
+    },
+    {
+      "text": "hemen",
+      "startMs": 27424,
+      "endMs": 27765
+    },
+    {
+      "text": "belli",
+      "startMs": 27777,
+      "endMs": 28038
+    },
+    {
+      "text": "ediyor",
+      "startMs": 28038,
+      "endMs": 28390
+    },
+    {
+      "text": "Siyah",
+      "startMs": 28570,
+      "endMs": 29013
+    },
+    {
+      "text": "Symbiote",
+      "startMs": 29014,
+      "endMs": 29446
+    },
+    {
+      "text": "kostümündeyse",
+      "startMs": 29445,
+      "endMs": 30195
+    },
+    {
+      "text": "dev",
+      "startMs": 30195,
+      "endMs": 30422
+    },
+    {
+      "text": "beyaz",
+      "startMs": 30423,
+      "endMs": 30753
+    },
+    {
+      "text": "örümcek",
+      "startMs": 30752,
+      "endMs": 31150
+    },
+    {
+      "text": "neredeyse",
+      "startMs": 31218,
+      "endMs": 31809
+    },
+    {
+      "text": "bütün",
+      "startMs": 31809,
+      "endMs": 32082
+    },
+    {
+      "text": "gövdeyi",
+      "startMs": 32093,
+      "endMs": 32468
+    },
+    {
+      "text": "kaplıyor",
+      "startMs": 32468,
+      "endMs": 32945
+    },
+    {
+      "text": "Yani",
+      "startMs": 33125,
+      "endMs": 33670
+    },
+    {
+      "text": "bu",
+      "startMs": 33671,
+      "endMs": 33819
+    },
+    {
+      "text": "sadece",
+      "startMs": 33819,
+      "endMs": 34285
+    },
+    {
+      "text": "bir",
+      "startMs": 34285,
+      "endMs": 34433
+    },
+    {
+      "text": "logo",
+      "startMs": 34432,
+      "endMs": 34671
+    },
+    {
+      "text": "değil",
+      "startMs": 34671,
+      "endMs": 35023
+    },
+    {
+      "text": "Spider-Man'in",
+      "startMs": 35160,
+      "endMs": 35933
+    },
+    {
+      "text": "hangi",
+      "startMs": 35932,
+      "endMs": 36239
+    },
+    {
+      "text": "evrende",
+      "startMs": 36239,
+      "endMs": 36694
+    },
+    {
+      "text": "ve",
+      "startMs": 36705,
+      "endMs": 36819
+    },
+    {
+      "text": "hangi",
+      "startMs": 36819,
+      "endMs": 37149
+    },
+    {
+      "text": "dönemde",
+      "startMs": 37148,
+      "endMs": 37500
+    },
+    {
+      "text": "olduğunu",
+      "startMs": 37500,
+      "endMs": 37830
+    },
+    {
+      "text": "gösteren",
+      "startMs": 37830,
+      "endMs": 38330
+    },
+    {
+      "text": "kimlik",
+      "startMs": 38341,
+      "endMs": 38636
+    },
+    {
+      "text": "kartı",
+      "startMs": 38637,
+      "endMs": 39023
+    },
+    {
+      "text": "Sen",
+      "startMs": 39203,
+      "endMs": 39487
+    },
+    {
+      "text": "hangisini",
+      "startMs": 39578,
+      "endMs": 40112
+    },
+    {
+      "text": "tek",
+      "startMs": 40113,
+      "endMs": 40329
+    },
+    {
+      "text": "bakışta",
+      "startMs": 40328,
+      "endMs": 40726
+    },
+    {
+      "text": "tanıdın",
+      "startMs": 40726,
+      "endMs": 41192
+    }
+  ],
+  "sources": [
+    {
+      "name": "Tobey Maguire suit emblem reference",
+      "url": "https://x.com/KornArt3/status/1506306833232900116"
+    },
+    {
+      "name": "The Amazing Spider-Man 2 production suit chest",
+      "url": "https://www.icollector.com/SPIDERMAN-THE-AMAZING-2-SUIT-CHEST-WITH-SPIDER-AND-WEBBING-NO-RESERVE_i21641151"
+    },
+    {
+      "name": "Spider-Man: Homecoming official suit auction",
+      "url": "https://www.originalprop.com/blog/2017/12/11/screenbids-the-official-spider-man-homecoming-suit-auction-benefiting-toys-for-tots/"
+    },
+    {
+      "name": "Iron Spider suit reference",
+      "url": "https://logodix.com/iron-spider"
+    },
+    {
+      "name": "Miles Morales costume reference",
+      "url": "https://accosplay.com/products/spider-man-miles-morales-cosplay-costume-spiderman-2-ps5-suit-halloween-black-jumpsuit"
+    },
+    {
+      "name": "Spider-Man black suit history",
+      "url": "https://www.marvel.com/articles/comics/spider-man-black-suit-history-explained"
+    }
+  ]
+}

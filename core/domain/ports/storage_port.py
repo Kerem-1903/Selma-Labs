@@ -10,6 +10,7 @@ depends on StoragePort needs to change when that swap happens.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterable
 
 from core.domain.value_objects.storage_reference import StorageReference
 
@@ -36,3 +37,15 @@ class StoragePort(ABC):
             StorageError: The write failed.
         """
         raise NotImplementedError
+
+    async def save_stream(
+        self,
+        key: str,
+        chunks: AsyncIterable[bytes],
+        content_type: str,
+    ) -> StorageReference:
+        """Persist streamed bytes; non-streaming adapters retain compatibility."""
+        data = bytearray()
+        async for chunk in chunks:
+            data.extend(chunk)
+        return await self.save(key, bytes(data), content_type)

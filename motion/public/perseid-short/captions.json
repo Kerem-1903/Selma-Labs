@@ -1,0 +1,583 @@
+[
+  {
+    "text": " Bu",
+    "startMs": 93,
+    "endMs": 202,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " gece",
+    "startMs": 213,
+    "endMs": 474,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " gökyüzünde",
+    "startMs": 474,
+    "endMs": 1050,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " kayan",
+    "startMs": 1061,
+    "endMs": 1354,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " ışıklar",
+    "startMs": 1354,
+    "endMs": 1778,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " görebilirsin",
+    "startMs": 1778,
+    "endMs": 2452,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Ama",
+    "startMs": 3315,
+    "endMs": 3554,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " onlar",
+    "startMs": 3554,
+    "endMs": 3913,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " yıldız",
+    "startMs": 3913,
+    "endMs": 4250,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " değil",
+    "startMs": 4250,
+    "endMs": 4576,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Bunlar",
+    "startMs": 5457,
+    "endMs": 5848,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Swift",
+    "startMs": 5924,
+    "endMs": 6250,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Tuttle",
+    "startMs": 6250,
+    "endMs": 6500,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " kuyruklu",
+    "startMs": 6511,
+    "endMs": 6902,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " yıldızının",
+    "startMs": 6902,
+    "endMs": 7359,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " geride",
+    "startMs": 7370,
+    "endMs": 7653,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " bıraktığı",
+    "startMs": 7652,
+    "endMs": 8032,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " küçücük",
+    "startMs": 8043,
+    "endMs": 8380,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " parçalar",
+    "startMs": 8391,
+    "endMs": 8891,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Dünya",
+    "startMs": 9880,
+    "endMs": 10173,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " bu",
+    "startMs": 10185,
+    "endMs": 10294,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " toz",
+    "startMs": 10293,
+    "endMs": 10489,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " bulutunun",
+    "startMs": 10489,
+    "endMs": 10891,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " içinden",
+    "startMs": 10891,
+    "endMs": 11271,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " geçerken",
+    "startMs": 11272,
+    "endMs": 11783,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " parçalar",
+    "startMs": 11859,
+    "endMs": 12294,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " atmosfere",
+    "startMs": 12304,
+    "endMs": 12847,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " yaklaşık",
+    "startMs": 12935,
+    "endMs": 13337,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " saniyede",
+    "startMs": 13337,
+    "endMs": 13848,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " elli",
+    "startMs": 13870,
+    "endMs": 14142,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " dokuz",
+    "startMs": 14141,
+    "endMs": 14424,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " kilometre",
+    "startMs": 14424,
+    "endMs": 14837,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " hızla",
+    "startMs": 14837,
+    "endMs": 15109,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " giriyor",
+    "startMs": 15109,
+    "endMs": 15468,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Havayı",
+    "startMs": 16576,
+    "endMs": 16891,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " sıkıştırıp",
+    "startMs": 16891,
+    "endMs": 17391,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " ısıttıkları",
+    "startMs": 17413,
+    "endMs": 17913,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " için",
+    "startMs": 17913,
+    "endMs": 18196,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " bir",
+    "startMs": 18196,
+    "endMs": 18348,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " anlığına",
+    "startMs": 18348,
+    "endMs": 18728,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " parlıyorlar",
+    "startMs": 18728,
+    "endMs": 19380,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Çoğu",
+    "startMs": 20315,
+    "endMs": 20554,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " kum",
+    "startMs": 20565,
+    "endMs": 20772,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " tanesi",
+    "startMs": 20793,
+    "endMs": 21217,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " kadar",
+    "startMs": 21217,
+    "endMs": 21510,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " küçük",
+    "startMs": 21511,
+    "endMs": 21826,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Perseidlerin",
+    "startMs": 22750,
+    "endMs": 23359,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " zirvesi",
+    "startMs": 23359,
+    "endMs": 23805,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " on",
+    "startMs": 23837,
+    "endMs": 24033,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " iki",
+    "startMs": 24043,
+    "endMs": 24260,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " on",
+    "startMs": 24489,
+    "endMs": 24630,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " üç",
+    "startMs": 24663,
+    "endMs": 24772,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Ağustos",
+    "startMs": 24815,
+    "endMs": 25239,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " gecesiydi",
+    "startMs": 25239,
+    "endMs": 25804,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " ama",
+    "startMs": 26087,
+    "endMs": 26250,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " karanlık",
+    "startMs": 26250,
+    "endMs": 26630,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " bir",
+    "startMs": 26630,
+    "endMs": 26728,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " yerde",
+    "startMs": 26728,
+    "endMs": 27043,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " birkaç",
+    "startMs": 27043,
+    "endMs": 27358,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " gece",
+    "startMs": 27391,
+    "endMs": 27598,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " daha",
+    "startMs": 27598,
+    "endMs": 27815,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " meteor",
+    "startMs": 27815,
+    "endMs": 28141,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " yakalama",
+    "startMs": 28141,
+    "endMs": 28500,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " şansın",
+    "startMs": 28500,
+    "endMs": 28870,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " var",
+    "startMs": 28870,
+    "endMs": 29087,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Şehir",
+    "startMs": 30228,
+    "endMs": 30532,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " ışıklarından",
+    "startMs": 30533,
+    "endMs": 31131,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " uzaklaş",
+    "startMs": 31130,
+    "endMs": 31641,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " gökyüzünün",
+    "startMs": 31728,
+    "endMs": 32239,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " geniş",
+    "startMs": 32250,
+    "endMs": 32522,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " bir",
+    "startMs": 32533,
+    "endMs": 32603,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " bölümünü",
+    "startMs": 32609,
+    "endMs": 32968,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " izle",
+    "startMs": 32967,
+    "endMs": 33337,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " ve",
+    "startMs": 33348,
+    "endMs": 33457,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " gözlerinin",
+    "startMs": 33467,
+    "endMs": 33978,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " karanlığa",
+    "startMs": 33978,
+    "endMs": 34391,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " alışması",
+    "startMs": 34391,
+    "endMs": 34771,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " için",
+    "startMs": 34772,
+    "endMs": 35055,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " yirmi",
+    "startMs": 35076,
+    "endMs": 35315,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " dakika",
+    "startMs": 35315,
+    "endMs": 35652,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " bekle",
+    "startMs": 35652,
+    "endMs": 36000,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Teleskop",
+    "startMs": 36946,
+    "endMs": 37435,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " gerekmiyor",
+    "startMs": 37446,
+    "endMs": 38011,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

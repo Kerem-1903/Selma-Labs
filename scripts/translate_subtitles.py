@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from config.provider_registry import get_translation_provider
+from config.settings import get_settings
 from core.application.services.subtitle_translation_service import SubtitleTranslationService
 from core.domain.entities.subtitle_track import SubtitleTrack
 from core.domain.value_objects.subtitle_cue import SubtitleCue
@@ -38,8 +39,9 @@ async def main() -> None:
         total_duration_seconds=8.0,
     )
 
-    provider = get_translation_provider()
-    storage = LocalFsStorage()
+    settings = get_settings()
+    provider = get_translation_provider(settings)
+    storage = LocalFsStorage(root_dir=".")
     service = SubtitleTranslationService(translation_provider=provider, storage=storage)
 
     logger.info(f"Translating track {args.track_id} to {args.target_languages}")

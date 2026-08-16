@@ -1,0 +1,38 @@
+{
+  "tomatoes": {
+    "query": "ripe red tomatoes close up",
+    "pexelsId": 7929000,
+    "page": "https://www.pexels.com/video/tomatoes-on-a-ceramic-plate-7929000/",
+    "creator": "Nicola Barts",
+    "creatorUrl": "https://www.pexels.com/@nicola-barts",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 10,
+    "width": 1080,
+    "height": 1920,
+    "file": "tomatoes.mp4"
+  },
+  "restaurant": {
+    "query": "friends dinner restaurant table",
+    "pexelsId": 6222188,
+    "page": "https://www.pexels.com/video/fork-rolling-tagliatelle-6222188/",
+    "creator": "Antonius Ferret",
+    "creatorUrl": "https://www.pexels.com/@antonius-ferret",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 10,
+    "width": 1080,
+    "height": 1920,
+    "file": "restaurant.mp4"
+  },
+  "airport_luggage": {
+    "query": "airport luggage trolley terminal",
+    "pexelsId": 30641139,
+    "page": "https://www.pexels.com/video/morning-airport-terminal-view-with-airplane-30641139/",
+    "creator": "Chapialinskaya Hanna",
+    "creatorUrl": "https://www.pexels.com/@chapialinskaya-hanna-990304426",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 10,
+    "width": 1080,
+    "height": 1920,
+    "file": "airport_luggage.mp4"
+  }
+}

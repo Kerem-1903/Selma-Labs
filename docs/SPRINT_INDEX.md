@@ -22,4 +22,18 @@
 | 16 | search cache |
 | 17 | search orchestration and resilience |
 
-Sprint 18 is intentionally pending.
+## Planned creative-quality sequence
+
+| Sprint | Status | Scope |
+|---|---|---|
+| 18 | complete | narrative contract, hook, answer completeness, and script density |
+| 19 | complete | semantic storyboard, explanatory overlays, and visual-evidence gates |
+| 20 | complete | perceptual asset diversity, reuse budgets, and editorial rhythm |
+| 21 | complete | mobile caption UX, safe-zone gate, and preview artifacts |
+| 22 | planned | voice direction and purposeful sound design |
+| 23 | planned | delivery, color, and packaging polish |
+| 24 | planned | creative quality gate and analytics learning loop |
+| 25 | planned | multi-topic benchmark cohort and final validation |
+
+The complete plan and acceptance criteria are documented in
+[`CREATIVE_QUALITY_ROADMAP.md`](CREATIVE_QUALITY_ROADMAP.md).

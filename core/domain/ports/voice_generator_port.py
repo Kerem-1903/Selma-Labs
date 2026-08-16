@@ -11,13 +11,20 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 
 from core.domain.value_objects.generated_audio import GeneratedAudio
+from core.domain.value_objects.voice_direction import VoiceDirection
 
 
 class VoiceGeneratorPort(ABC):
     """Synthesizes narration audio for a block of text."""
 
     @abstractmethod
-    async def generate_voice(self, text: str, voice_name: str) -> GeneratedAudio:
+    async def generate_voice(
+        self,
+        text: str,
+        voice_name: str,
+        *,
+        direction: VoiceDirection | None = None,
+    ) -> GeneratedAudio:
         """Synthesize ``text`` as spoken narration audio.
 
         Args:
@@ -26,6 +33,7 @@ class VoiceGeneratorPort(ABC):
                 voice. Depending on the provider this may be a human-
                 readable name or an opaque voice id — the port does not
                 standardize this, since providers differ.
+            direction: Optional provider-neutral tone, tempo, and pause plan.
 
         Returns:
             A GeneratedAudio value object with raw audio bytes and

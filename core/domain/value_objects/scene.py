@@ -17,7 +17,7 @@ moment the provider returns it.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Optional
 
 
@@ -34,6 +34,14 @@ class Scene:
     # model returns into one of these three; the domain layer just carries
     # the already-normalized value through.
     visual_priority: str
+    visual_job: str = "support_context"
+    required_subjects: list[str] = field(default_factory=list)
+    required_actions: list[str] = field(default_factory=list)
+    required_relations: list[str] = field(default_factory=list)
+    forbidden_dominant_subjects: list[str] = field(default_factory=list)
+    explanation_mode: str = "stock"
+    overlay_labels: list[str] = field(default_factory=list)
+    explanatory_required: bool = False
     start_time: float = 0.0
     end_time: float = 0.0
 

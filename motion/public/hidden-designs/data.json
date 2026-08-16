@@ -1,0 +1,2540 @@
+{
+  "durationMs": 219888,
+  "chapters": [
+    {
+      "id": "hook",
+      "kicker": "GÖRDÜN. AMA FARK ETMEDİN.",
+      "title": "Bunların hiçbiri süs değil",
+      "image": "fuel-gauge.jpg",
+      "sentences": [
+        "Arabanızdaki bu küçük ok, benzinliğe yanlış taraftan girmenizi engelleyebilir.",
+        "Kalem kapağındaki delik süs değil.",
+        "Yürüyen merdivendeki fırça da ayakkabınızı temizlemiyor.",
+        "Her gün gördüğünüz sekiz küçük tasarım detayı var; ama gerçek amaçları gözünüzün önünde saklanıyor.",
+        "Sonuncusunu öğrendiğinizde mezuraya bir daha aynı gözle bakmayacaksınız."
+      ],
+      "startMs": 0,
+      "endMs": 20661
+    },
+    {
+      "id": "fuel",
+      "kicker": "1 / 8 — ARABADAKİ KÜÇÜK OK",
+      "title": "Depo kapağı hangi tarafta?",
+      "image": "fuel-gauge.jpg",
+      "sentences": [
+        "Birinci detay, yakıt göstergesinin yanındaki minicik ok.",
+        "Kiralık bir arabayla benzinliğe girdiniz ve depo kapağının hangi tarafta olduğunu unuttunuz diyelim.",
+        "Camdan sarkmaya gerek yok.",
+        "Ok hangi yönü gösteriyorsa yakıt kapağı o tarafta.",
+        "Küçücük bir işaret, istasyonda arabanın çevresinde atacağınız utanç turunu önlüyor."
+      ],
+      "startMs": 20661,
+      "endMs": 40255
+    },
+    {
+      "id": "pen",
+      "kicker": "2 / 8 — KALEM KAPAĞINDAKİ DELİK",
+      "title": "Mürekkep kurusun diye değil",
+      "image": "pen-caps.jpg",
+      "sentences": [
+        "İkinci detay, tükenmez kalem kapağının tepesindeki delik.",
+        "Çoğu kişi bunun mürekkebi havalandırdığını sanıyor.",
+        "Asıl fikir güvenlik.",
+        "Kapak yanlışlıkla boğaza kaçarsa, bu açıklık bir miktar hava geçişine yardımcı olabiliyor.",
+        "Elbette boğulma riskini ortadan kaldırmıyor; ama ufacık bir delik kritik birkaç saniye kazandırabilir."
+      ],
+      "startMs": 40255,
+      "endMs": 59909
+    },
+    {
+      "id": "keyboard",
+      "kicker": "3 / 8 — F VE J TUŞLARI",
+      "title": "Parmaklarınızın pusulası",
+      "image": "keyboard.jpg",
+      "sentences": [
+        "Şimdi klavyenizde F ve J tuşlarına dokunun.",
+        "İkisinde de küçük bir kabartı var.",
+        "Bunlar, klavyeye bakmadan ellerinizi ana sıraya yerleştirmeniz için yapılmış dokunsal işaretler.",
+        "Sol işaret parmağı F'yi, sağ işaret parmağı J'yi bulduğunda diğer parmaklar da doğru konuma geliyor.",
+        "Yani o iki çizgi, parmaklarınızın pusulası."
+      ],
+      "startMs": 59909,
+      "endMs": 80874
+    },
+    {
+      "id": "escalator",
+      "kicker": "4 / 8 — YÜRÜYEN MERDİVEN FIRÇASI",
+      "title": "Ayakkabı temizlemiyor",
+      "image": "escalator.jpg",
+      "sentences": [
+        "Yürüyen merdivenin kenarındaki uzun fırçaya ayakkabınızı sürttünüz mü?",
+        "Kötü haber: o bir ayakkabı fırçası değil.",
+        "Basamağın hareketli kısmıyla sabit yan panel arasında dar bir boşluk bulunuyor.",
+        "Bazı modellerde bulunan kenar fırçaları ayağınızı, bağcığınızı ve kıyafetinizi bu boşluktan uzak tutan dokunsal bir uyarı oluşturuyor.",
+        "Kısacası böyle bir fırçaya değdiğinizde mesaj şu: biraz ortaya geç."
+      ],
+      "startMs": 80874,
+      "endMs": 104945
+    },
+    {
+      "id": "airplane",
+      "kicker": "5 / 8 — UÇAK CAMINDAKİ DELİK",
+      "title": "Basıncın görünmez bekçisi",
+      "image": "airplane-window.jpg",
+      "sentences": [
+        "Uçak camının alt kısmındaki o iğne ucu kadar deliğe gelelim.",
+        "Pencere aslında birden fazla katmandan oluşuyor.",
+        "Bu küçük açıklık, katmanlar arasındaki basıncın kontrollü biçimde dengelenmesini sağlıyor; böylece kabin basıncının asıl yükünü dış katman taşıyor.",
+        "Ayrıca katmanlar arasındaki nemin kaçmasına yardım ederek buğulanmayı azaltıyor.",
+        "Gökyüzünde görmek isteyeceğiniz delik tam olarak bu."
+      ],
+      "startMs": 104945,
+      "endMs": 128531
+    },
+    {
+      "id": "microwave",
+      "kicker": "6 / 8 — MİKRODALGA KAPAĞINDAKİ AĞ",
+      "title": "Işığı geçirir, dalgayı tutar",
+      "image": "microwave-door.jpg",
+      "sentences": [
+        "Mikrodalga kapağındaki siyah noktalı metal ağ neden var?",
+        "Delikler görünür ışığın dalga boyuna göre yeterince büyük; bu yüzden yemeği görebiliyorsunuz.",
+        "Mikrodalgaların dalga boyuysa bu deliklerden çok daha büyük.",
+        "Metal ağ, fırının içini küçük bir Faraday kafesi gibi çevreleyerek enerjinin dışarı kaçmasını engelliyor.",
+        "Yani o desen görüşünüzü biraz bozuyor ama mutfağın görünmez güvenlik duvarı olarak çalışıyor."
+      ],
+      "startMs": 128531,
+      "endMs": 153282
+    },
+    {
+      "id": "knife",
+      "kicker": "7 / 8 — MAKET BIÇAĞINDAKİ ÇİZGİLER",
+      "title": "Bıçak körelmedi; sıradaki hazır",
+      "image": "knife.jpg",
+      "sentences": [
+        "Maket bıçağının üzerindeki çapraz çizgiler süs ya da ölçü işareti değil.",
+        "Her çizgi, bıçağın güvenli biçimde kırılabileceği zayıflatılmış bir bölüm.",
+        "Uç köreldiğinde yalnızca en öndeki parçayı uygun bir aparatta kırıyorsunuz ve alttan yeni, keskin bir uç çıkıyor.",
+        "Tek bıçak gövdesinin içinde sıraya girmiş birçok yedek uç var.",
+        "Ama penseyle gelişigüzel denemeyin; kopan parça beklenmedik şekilde fırlayabilir."
+      ],
+      "startMs": 153282,
+      "endMs": 178119
+    },
+    {
+      "id": "tape",
+      "kicker": "8 / 8 — MEZURADAKİ SİYAH ELMAS",
+      "title": "Her 48,8 santimetrede bir gizli işaret",
+      "image": "tape.jpg",
+      "sentences": [
+        "Ve mezuralarda tekrar eden siyah elmaslar.",
+        "Bunlar rastgele basılmış logolar değil.",
+        "Amerikan tipi yapılarda kirişleri eşit aralıklarla yerleştirmek için her on dokuz nokta iki inçte, yani yaklaşık kırk sekiz virgül sekiz santimetrede bir görünürler.",
+        "Bu aralık sayesinde iki yüz kırk dört santimetrelik standart bir levhanın altına beş eşit bölüm yerleştirilebilir.",
+        "Bir dahaki sefere mezurayı açtığınızda yalnızca sayıları değil, marangozların gizli kısa yolunu da göreceksiniz."
+      ],
+      "startMs": 178119,
+      "endMs": 206512
+    },
+    {
+      "id": "outro",
+      "kicker": "ŞİMDİ SIRA SENDE",
+      "title": "Hangisini ilk kez duydun?",
+      "image": "airplane-window.jpg",
+      "sentences": [
+        "Günlük tasarımın en güzel tarafı bu: iyi çalıştığında varlığını fark etmiyoruz.",
+        "Bu sekiz detaydan hangisini ilk kez duydunuz?",
+        "Yorumlara numarasını yazın; devam videosunda evinizde saklanan sekiz ayrıntıya daha bakalım."
+      ],
+      "startMs": 206512,
+      "endMs": 219818
+    }
+  ],
+  "words": [
+    {
+      "text": "Arabanızdaki",
+      "startMs": 0,
+      "endMs": 1032
+    },
+    {
+      "text": "bu",
+      "startMs": 1031,
+      "endMs": 1177
+    },
+    {
+      "text": "küçük",
+      "startMs": 1177,
+      "endMs": 1517
+    },
+    {
+      "text": "ok",
+      "startMs": 1517,
+      "endMs": 1723
+    },
+    {
+      "text": "benzinliğe",
+      "startMs": 1893,
+      "endMs": 2500
+    },
+    {
+      "text": "yanlış",
+      "startMs": 2500,
+      "endMs": 2840
+    },
+    {
+      "text": "taraftan",
+      "startMs": 2839,
+      "endMs": 3337
+    },
+    {
+      "text": "girmenizi",
+      "startMs": 3337,
+      "endMs": 3822
+    },
+    {
+      "text": "engelleyebilir",
+      "startMs": 3822,
+      "endMs": 4696
+    },
+    {
+      "text": "Kalem",
+      "startMs": 4921,
+      "endMs": 5382
+    },
+    {
+      "text": "kapağındaki",
+      "startMs": 5382,
+      "endMs": 5989
+    },
+    {
+      "text": "delik",
+      "startMs": 5988,
+      "endMs": 6255
+    },
+    {
+      "text": "süs",
+      "startMs": 6256,
+      "endMs": 6499
+    },
+    {
+      "text": "değil",
+      "startMs": 6498,
+      "endMs": 6850
+    },
+    {
+      "text": "Yürüyen",
+      "startMs": 7075,
+      "endMs": 7658
+    },
+    {
+      "text": "merdivendeki",
+      "startMs": 7657,
+      "endMs": 8385
+    },
+    {
+      "text": "fırça",
+      "startMs": 8385,
+      "endMs": 8725
+    },
+    {
+      "text": "da",
+      "startMs": 8725,
+      "endMs": 8846
+    },
+    {
+      "text": "ayakkabınızı",
+      "startMs": 8846,
+      "endMs": 9611
+    },
+    {
+      "text": "temizlemiyor",
+      "startMs": 9611,
+      "endMs": 10303
+    },
+    {
+      "text": "Her",
+      "startMs": 10528,
+      "endMs": 10892
+    },
+    {
+      "text": "gün",
+      "startMs": 11037,
+      "endMs": 11171
+    },
+    {
+      "text": "gördüğünüz",
+      "startMs": 11195,
+      "endMs": 11705
+    },
+    {
+      "text": "sekiz",
+      "startMs": 11705,
+      "endMs": 12033
+    },
+    {
+      "text": "küçük",
+      "startMs": 12032,
+      "endMs": 12335
+    },
+    {
+      "text": "tasarım",
+      "startMs": 12336,
+      "endMs": 12761
+    },
+    {
+      "text": "detayı",
+      "startMs": 12761,
+      "endMs": 13113
+    },
+    {
+      "text": "var",
+      "startMs": 13113,
+      "endMs": 13356
+    },
+    {
+      "text": "ama",
+      "startMs": 13562,
+      "endMs": 13768
+    },
+    {
+      "text": "gerçek",
+      "startMs": 13768,
+      "endMs": 14181
+    },
+    {
+      "text": "amaçları",
+      "startMs": 14180,
+      "endMs": 14690
+    },
+    {
+      "text": "gözünüzün",
+      "startMs": 14690,
+      "endMs": 15200
+    },
+    {
+      "text": "önünde",
+      "startMs": 15200,
+      "endMs": 15503
+    },
+    {
+      "text": "saklanıyor",
+      "startMs": 15503,
+      "endMs": 16098
+    },
+    {
+      "text": "Sonuncusunu",
+      "startMs": 16323,
+      "endMs": 17112
+    },
+    {
+      "text": "öğrendiğinizde",
+      "startMs": 17111,
+      "endMs": 17827
+    },
+    {
+      "text": "mezuraya",
+      "startMs": 17827,
+      "endMs": 18325
+    },
+    {
+      "text": "bir",
+      "startMs": 18386,
+      "endMs": 18556
+    },
+    {
+      "text": "daha",
+      "startMs": 18556,
+      "endMs": 18799
+    },
+    {
+      "text": "aynı",
+      "startMs": 18798,
+      "endMs": 19077
+    },
+    {
+      "text": "gözle",
+      "startMs": 19077,
+      "endMs": 19441
+    },
+    {
+      "text": "bakmayacaksınız",
+      "startMs": 19441,
+      "endMs": 20436
+    },
+    {
+      "text": "Birinci",
+      "startMs": 20661,
+      "endMs": 21268
+    },
+    {
+      "text": "detay",
+      "startMs": 21267,
+      "endMs": 21716
+    },
+    {
+      "text": "yakıt",
+      "startMs": 21886,
+      "endMs": 22214
+    },
+    {
+      "text": "göstergesinin",
+      "startMs": 22226,
+      "endMs": 22978
+    },
+    {
+      "text": "yanındaki",
+      "startMs": 22978,
+      "endMs": 23476
+    },
+    {
+      "text": "minicik",
+      "startMs": 23476,
+      "endMs": 23864
+    },
+    {
+      "text": "ok",
+      "startMs": 23877,
+      "endMs": 24095
+    },
+    {
+      "text": "Kiralık",
+      "startMs": 24320,
+      "endMs": 24975
+    },
+    {
+      "text": "bir",
+      "startMs": 24987,
+      "endMs": 25145
+    },
+    {
+      "text": "arabayla",
+      "startMs": 25145,
+      "endMs": 25630
+    },
+    {
+      "text": "benzinliğe",
+      "startMs": 25630,
+      "endMs": 26164
+    },
+    {
+      "text": "girdiniz",
+      "startMs": 26164,
+      "endMs": 26698
+    },
+    {
+      "text": "ve",
+      "startMs": 26807,
+      "endMs": 26916
+    },
+    {
+      "text": "depo",
+      "startMs": 26917,
+      "endMs": 27184
+    },
+    {
+      "text": "kapağının",
+      "startMs": 27184,
+      "endMs": 27730
+    },
+    {
+      "text": "hangi",
+      "startMs": 27730,
+      "endMs": 28058
+    },
+    {
+      "text": "tarafta",
+      "startMs": 28070,
+      "endMs": 28495
+    },
+    {
+      "text": "olduğunu",
+      "startMs": 28494,
+      "endMs": 28870
+    },
+    {
+      "text": "unuttunuz",
+      "startMs": 28871,
+      "endMs": 29356
+    },
+    {
+      "text": "diyelim",
+      "startMs": 29356,
+      "endMs": 29769
+    },
+    {
+      "text": "Camdan",
+      "startMs": 29994,
+      "endMs": 30625
+    },
+    {
+      "text": "sarkmaya",
+      "startMs": 30625,
+      "endMs": 31147
+    },
+    {
+      "text": "gerek",
+      "startMs": 31146,
+      "endMs": 31462
+    },
+    {
+      "text": "yok",
+      "startMs": 31462,
+      "endMs": 31729
+    },
+    {
+      "text": "Ok",
+      "startMs": 31954,
+      "endMs": 32112
+    },
+    {
+      "text": "hangi",
+      "startMs": 32378,
+      "endMs": 32706
+    },
+    {
+      "text": "yönü",
+      "startMs": 32718,
+      "endMs": 32900
+    },
+    {
+      "text": "gösteriyorsa",
+      "startMs": 32900,
+      "endMs": 33665
+    },
+    {
+      "text": "yakıt",
+      "startMs": 33665,
+      "endMs": 33968
+    },
+    {
+      "text": "kapağı",
+      "startMs": 33980,
+      "endMs": 34308
+    },
+    {
+      "text": "o",
+      "startMs": 34308,
+      "endMs": 34417
+    },
+    {
+      "text": "tarafta",
+      "startMs": 34417,
+      "endMs": 34939
+    },
+    {
+      "text": "Küçücük",
+      "startMs": 35164,
+      "endMs": 35698
+    },
+    {
+      "text": "bir",
+      "startMs": 35698,
+      "endMs": 35880
+    },
+    {
+      "text": "işaret",
+      "startMs": 35880,
+      "endMs": 36390
+    },
+    {
+      "text": "istasyonda",
+      "startMs": 36608,
+      "endMs": 37312
+    },
+    {
+      "text": "arabanın",
+      "startMs": 37312,
+      "endMs": 37785
+    },
+    {
+      "text": "çevresinde",
+      "startMs": 37785,
+      "endMs": 38368
+    },
+    {
+      "text": "atacağınız",
+      "startMs": 38380,
+      "endMs": 38987
+    },
+    {
+      "text": "utanç",
+      "startMs": 38999,
+      "endMs": 39290
+    },
+    {
+      "text": "turunu",
+      "startMs": 39290,
+      "endMs": 39606
+    },
+    {
+      "text": "önlüyor",
+      "startMs": 39605,
+      "endMs": 40030
+    },
+    {
+      "text": "İkinci",
+      "startMs": 40255,
+      "endMs": 40765
+    },
+    {
+      "text": "detay",
+      "startMs": 40764,
+      "endMs": 41201
+    },
+    {
+      "text": "tükenmez",
+      "startMs": 41359,
+      "endMs": 41941
+    },
+    {
+      "text": "kalem",
+      "startMs": 41941,
+      "endMs": 42244
+    },
+    {
+      "text": "kapağının",
+      "startMs": 42245,
+      "endMs": 42730
+    },
+    {
+      "text": "tepesindeki",
+      "startMs": 42730,
+      "endMs": 43361
+    },
+    {
+      "text": "delik",
+      "startMs": 43361,
+      "endMs": 43677
+    },
+    {
+      "text": "Çoğu",
+      "startMs": 43902,
+      "endMs": 44145
+    },
+    {
+      "text": "kişi",
+      "startMs": 44156,
+      "endMs": 44472
+    },
+    {
+      "text": "bunun",
+      "startMs": 44472,
+      "endMs": 44763
+    },
+    {
+      "text": "mürekkebi",
+      "startMs": 44763,
+      "endMs": 45236
+    },
+    {
+      "text": "havalandırdığını",
+      "startMs": 45237,
+      "endMs": 46062
+    },
+    {
+      "text": "sanıyor",
+      "startMs": 46062,
+      "endMs": 46499
+    },
+    {
+      "text": "Asıl",
+      "startMs": 46724,
+      "endMs": 47258
+    },
+    {
+      "text": "fikir",
+      "startMs": 47258,
+      "endMs": 47586
+    },
+    {
+      "text": "güvenlik",
+      "startMs": 47585,
+      "endMs": 48107
+    },
+    {
+      "text": "Kapak",
+      "startMs": 48332,
+      "endMs": 48902
+    },
+    {
+      "text": "yanlışlıkla",
+      "startMs": 48914,
+      "endMs": 49545
+    },
+    {
+      "text": "boğaza",
+      "startMs": 49545,
+      "endMs": 49873
+    },
+    {
+      "text": "kaçarsa",
+      "startMs": 49873,
+      "endMs": 50504
+    },
+    {
+      "text": "bu",
+      "startMs": 50747,
+      "endMs": 50881
+    },
+    {
+      "text": "açıklık",
+      "startMs": 50880,
+      "endMs": 51317
+    },
+    {
+      "text": "bir",
+      "startMs": 51317,
+      "endMs": 51499
+    },
+    {
+      "text": "miktar",
+      "startMs": 51499,
+      "endMs": 51887
+    },
+    {
+      "text": "hava",
+      "startMs": 51887,
+      "endMs": 52105
+    },
+    {
+      "text": "geçişine",
+      "startMs": 52106,
+      "endMs": 52591
+    },
+    {
+      "text": "yardımcı",
+      "startMs": 52591,
+      "endMs": 53016
+    },
+    {
+      "text": "olabiliyor",
+      "startMs": 53016,
+      "endMs": 53586
+    },
+    {
+      "text": "Elbette",
+      "startMs": 53811,
+      "endMs": 54515
+    },
+    {
+      "text": "boğulma",
+      "startMs": 54514,
+      "endMs": 54854
+    },
+    {
+      "text": "riskini",
+      "startMs": 54854,
+      "endMs": 55254
+    },
+    {
+      "text": "ortadan",
+      "startMs": 55255,
+      "endMs": 55765
+    },
+    {
+      "text": "kaldırmıyor",
+      "startMs": 55764,
+      "endMs": 56419
+    },
+    {
+      "text": "ama",
+      "startMs": 56650,
+      "endMs": 56856
+    },
+    {
+      "text": "ufacık",
+      "startMs": 56857,
+      "endMs": 57245
+    },
+    {
+      "text": "bir",
+      "startMs": 57245,
+      "endMs": 57439
+    },
+    {
+      "text": "delik",
+      "startMs": 57439,
+      "endMs": 57718
+    },
+    {
+      "text": "kritik",
+      "startMs": 57718,
+      "endMs": 58082
+    },
+    {
+      "text": "birkaç",
+      "startMs": 58082,
+      "endMs": 58458
+    },
+    {
+      "text": "saniye",
+      "startMs": 58459,
+      "endMs": 58847
+    },
+    {
+      "text": "kazandırabilir",
+      "startMs": 58847,
+      "endMs": 59684
+    },
+    {
+      "text": "Şimdi",
+      "startMs": 59909,
+      "endMs": 60237
+    },
+    {
+      "text": "klavyenizde",
+      "startMs": 60248,
+      "endMs": 61037
+    },
+    {
+      "text": "F",
+      "startMs": 61037,
+      "endMs": 61268
+    },
+    {
+      "text": "ve",
+      "startMs": 61268,
+      "endMs": 61402
+    },
+    {
+      "text": "J",
+      "startMs": 61401,
+      "endMs": 61619
+    },
+    {
+      "text": "tuşlarına",
+      "startMs": 61632,
+      "endMs": 62130
+    },
+    {
+      "text": "dokunun",
+      "startMs": 62129,
+      "endMs": 62614
+    },
+    {
+      "text": "İkisinde",
+      "startMs": 62839,
+      "endMs": 63482
+    },
+    {
+      "text": "de",
+      "startMs": 63482,
+      "endMs": 63603
+    },
+    {
+      "text": "küçük",
+      "startMs": 63603,
+      "endMs": 63943
+    },
+    {
+      "text": "bir",
+      "startMs": 63943,
+      "endMs": 64125
+    },
+    {
+      "text": "kabartı",
+      "startMs": 64125,
+      "endMs": 64598
+    },
+    {
+      "text": "var",
+      "startMs": 64598,
+      "endMs": 64865
+    },
+    {
+      "text": "Bunlar",
+      "startMs": 65090,
+      "endMs": 65782
+    },
+    {
+      "text": "klavyeye",
+      "startMs": 65939,
+      "endMs": 66522
+    },
+    {
+      "text": "bakmadan",
+      "startMs": 66522,
+      "endMs": 67056
+    },
+    {
+      "text": "ellerinizi",
+      "startMs": 67068,
+      "endMs": 67663
+    },
+    {
+      "text": "ana",
+      "startMs": 67675,
+      "endMs": 67930
+    },
+    {
+      "text": "sıraya",
+      "startMs": 67929,
+      "endMs": 68281
+    },
+    {
+      "text": "yerleştirmeniz",
+      "startMs": 68281,
+      "endMs": 69094
+    },
+    {
+      "text": "için",
+      "startMs": 69107,
+      "endMs": 69362
+    },
+    {
+      "text": "yapılmış",
+      "startMs": 69361,
+      "endMs": 69786
+    },
+    {
+      "text": "dokunsal",
+      "startMs": 69786,
+      "endMs": 70271
+    },
+    {
+      "text": "işaretler",
+      "startMs": 70272,
+      "endMs": 70964
+    },
+    {
+      "text": "Sol",
+      "startMs": 71189,
+      "endMs": 71480
+    },
+    {
+      "text": "işaret",
+      "startMs": 71698,
+      "endMs": 72183
+    },
+    {
+      "text": "parmağı",
+      "startMs": 72196,
+      "endMs": 72633
+    },
+    {
+      "text": "F'yi",
+      "startMs": 72633,
+      "endMs": 73070
+    },
+    {
+      "text": "sağ",
+      "startMs": 73227,
+      "endMs": 73506
+    },
+    {
+      "text": "işaret",
+      "startMs": 73519,
+      "endMs": 73992
+    },
+    {
+      "text": "parmağı",
+      "startMs": 74004,
+      "endMs": 74441
+    },
+    {
+      "text": "J'yi",
+      "startMs": 74441,
+      "endMs": 74744
+    },
+    {
+      "text": "bulduğunda",
+      "startMs": 74744,
+      "endMs": 75254
+    },
+    {
+      "text": "diğer",
+      "startMs": 75266,
+      "endMs": 75594
+    },
+    {
+      "text": "parmaklar",
+      "startMs": 75594,
+      "endMs": 76201
+    },
+    {
+      "text": "da",
+      "startMs": 76201,
+      "endMs": 76298
+    },
+    {
+      "text": "doğru",
+      "startMs": 76310,
+      "endMs": 76601
+    },
+    {
+      "text": "konuma",
+      "startMs": 76601,
+      "endMs": 76941
+    },
+    {
+      "text": "geliyor",
+      "startMs": 76941,
+      "endMs": 77354
+    },
+    {
+      "text": "Yani",
+      "startMs": 77579,
+      "endMs": 78198
+    },
+    {
+      "text": "o",
+      "startMs": 78197,
+      "endMs": 78355
+    },
+    {
+      "text": "iki",
+      "startMs": 78404,
+      "endMs": 78586
+    },
+    {
+      "text": "çizgi",
+      "startMs": 78598,
+      "endMs": 79059
+    },
+    {
+      "text": "parmaklarınızın",
+      "startMs": 79205,
+      "endMs": 80055
+    },
+    {
+      "text": "pusulası",
+      "startMs": 80054,
+      "endMs": 80649
+    },
+    {
+      "text": "Yürüyen",
+      "startMs": 80874,
+      "endMs": 81432
+    },
+    {
+      "text": "merdivenin",
+      "startMs": 81432,
+      "endMs": 81954
+    },
+    {
+      "text": "kenarındaki",
+      "startMs": 81954,
+      "endMs": 82585
+    },
+    {
+      "text": "uzun",
+      "startMs": 82585,
+      "endMs": 82888
+    },
+    {
+      "text": "fırçaya",
+      "startMs": 82888,
+      "endMs": 83337
+    },
+    {
+      "text": "ayakkabınızı",
+      "startMs": 83337,
+      "endMs": 84065
+    },
+    {
+      "text": "sürttünüz",
+      "startMs": 84065,
+      "endMs": 84623
+    },
+    {
+      "text": "mü",
+      "startMs": 84624,
+      "endMs": 84782
+    },
+    {
+      "text": "Kötü",
+      "startMs": 85007,
+      "endMs": 85323
+    },
+    {
+      "text": "haber",
+      "startMs": 85346,
+      "endMs": 85734
+    },
+    {
+      "text": "o",
+      "startMs": 85917,
+      "endMs": 86038
+    },
+    {
+      "text": "bir",
+      "startMs": 86062,
+      "endMs": 86208
+    },
+    {
+      "text": "ayakkabı",
+      "startMs": 86208,
+      "endMs": 86669
+    },
+    {
+      "text": "fırçası",
+      "startMs": 86669,
+      "endMs": 87142
+    },
+    {
+      "text": "değil",
+      "startMs": 87142,
+      "endMs": 87494
+    },
+    {
+      "text": "Basamağın",
+      "startMs": 87719,
+      "endMs": 88508
+    },
+    {
+      "text": "hareketli",
+      "startMs": 88507,
+      "endMs": 89029
+    },
+    {
+      "text": "kısmıyla",
+      "startMs": 89029,
+      "endMs": 89551
+    },
+    {
+      "text": "sabit",
+      "startMs": 89563,
+      "endMs": 89976
+    },
+    {
+      "text": "yan",
+      "startMs": 89988,
+      "endMs": 90206
+    },
+    {
+      "text": "panel",
+      "startMs": 90219,
+      "endMs": 90510
+    },
+    {
+      "text": "arasında",
+      "startMs": 90510,
+      "endMs": 90935
+    },
+    {
+      "text": "dar",
+      "startMs": 90935,
+      "endMs": 91178
+    },
+    {
+      "text": "bir",
+      "startMs": 91177,
+      "endMs": 91335
+    },
+    {
+      "text": "boşluk",
+      "startMs": 91335,
+      "endMs": 91699
+    },
+    {
+      "text": "bulunuyor",
+      "startMs": 91699,
+      "endMs": 92184
+    },
+    {
+      "text": "Bazı",
+      "startMs": 92409,
+      "endMs": 93040
+    },
+    {
+      "text": "modellerde",
+      "startMs": 93040,
+      "endMs": 93659
+    },
+    {
+      "text": "bulunan",
+      "startMs": 93659,
+      "endMs": 94047
+    },
+    {
+      "text": "kenar",
+      "startMs": 94047,
+      "endMs": 94411
+    },
+    {
+      "text": "fırçaları",
+      "startMs": 94411,
+      "endMs": 94896
+    },
+    {
+      "text": "ayağınızı",
+      "startMs": 94896,
+      "endMs": 95576
+    },
+    {
+      "text": "bağcığınızı",
+      "startMs": 95807,
+      "endMs": 96474
+    },
+    {
+      "text": "ve",
+      "startMs": 96474,
+      "endMs": 96583
+    },
+    {
+      "text": "kıyafetinizi",
+      "startMs": 96583,
+      "endMs": 97396
+    },
+    {
+      "text": "bu",
+      "startMs": 97445,
+      "endMs": 97579
+    },
+    {
+      "text": "boşluktan",
+      "startMs": 97578,
+      "endMs": 98136
+    },
+    {
+      "text": "uzak",
+      "startMs": 98137,
+      "endMs": 98453
+    },
+    {
+      "text": "tutan",
+      "startMs": 98452,
+      "endMs": 98792
+    },
+    {
+      "text": "dokunsal",
+      "startMs": 98792,
+      "endMs": 99314
+    },
+    {
+      "text": "bir",
+      "startMs": 99314,
+      "endMs": 99448
+    },
+    {
+      "text": "uyarı",
+      "startMs": 99447,
+      "endMs": 99714
+    },
+    {
+      "text": "oluşturuyor",
+      "startMs": 99714,
+      "endMs": 100333
+    },
+    {
+      "text": "Kısacası",
+      "startMs": 100558,
+      "endMs": 101238
+    },
+    {
+      "text": "böyle",
+      "startMs": 101237,
+      "endMs": 101577
+    },
+    {
+      "text": "bir",
+      "startMs": 101577,
+      "endMs": 101735
+    },
+    {
+      "text": "fırçaya",
+      "startMs": 101735,
+      "endMs": 102160
+    },
+    {
+      "text": "değdiğinizde",
+      "startMs": 102159,
+      "endMs": 102754
+    },
+    {
+      "text": "mesaj",
+      "startMs": 102754,
+      "endMs": 103191
+    },
+    {
+      "text": "şu",
+      "startMs": 103191,
+      "endMs": 103458
+    },
+    {
+      "text": "biraz",
+      "startMs": 103664,
+      "endMs": 104064
+    },
+    {
+      "text": "ortaya",
+      "startMs": 104065,
+      "endMs": 104429
+    },
+    {
+      "text": "geç",
+      "startMs": 104429,
+      "endMs": 104720
+    },
+    {
+      "text": "Uçak",
+      "startMs": 104945,
+      "endMs": 105503
+    },
+    {
+      "text": "camının",
+      "startMs": 105503,
+      "endMs": 105916
+    },
+    {
+      "text": "alt",
+      "startMs": 105940,
+      "endMs": 106183
+    },
+    {
+      "text": "kısmındaki",
+      "startMs": 106219,
+      "endMs": 106814
+    },
+    {
+      "text": "o",
+      "startMs": 106813,
+      "endMs": 106983
+    },
+    {
+      "text": "iğne",
+      "startMs": 106996,
+      "endMs": 107190
+    },
+    {
+      "text": "ucu",
+      "startMs": 107190,
+      "endMs": 107433
+    },
+    {
+      "text": "kadar",
+      "startMs": 107432,
+      "endMs": 107784
+    },
+    {
+      "text": "deliğe",
+      "startMs": 107784,
+      "endMs": 108075
+    },
+    {
+      "text": "gelelim",
+      "startMs": 108076,
+      "endMs": 108525
+    },
+    {
+      "text": "Pencere",
+      "startMs": 108750,
+      "endMs": 109417
+    },
+    {
+      "text": "aslında",
+      "startMs": 109417,
+      "endMs": 109915
+    },
+    {
+      "text": "birden",
+      "startMs": 109927,
+      "endMs": 110327
+    },
+    {
+      "text": "fazla",
+      "startMs": 110327,
+      "endMs": 110667
+    },
+    {
+      "text": "katmandan",
+      "startMs": 110667,
+      "endMs": 111225
+    },
+    {
+      "text": "oluşuyor",
+      "startMs": 111225,
+      "endMs": 111710
+    },
+    {
+      "text": "Bu",
+      "startMs": 111935,
+      "endMs": 112069
+    },
+    {
+      "text": "küçük",
+      "startMs": 112323,
+      "endMs": 112626
+    },
+    {
+      "text": "açıklık",
+      "startMs": 112626,
+      "endMs": 113087
+    },
+    {
+      "text": "katmanlar",
+      "startMs": 113245,
+      "endMs": 113767
+    },
+    {
+      "text": "arasındaki",
+      "startMs": 113767,
+      "endMs": 114301
+    },
+    {
+      "text": "basıncın",
+      "startMs": 114301,
+      "endMs": 114786
+    },
+    {
+      "text": "kontrollü",
+      "startMs": 114786,
+      "endMs": 115332
+    },
+    {
+      "text": "biçimde",
+      "startMs": 115333,
+      "endMs": 115733
+    },
+    {
+      "text": "dengelenmesini",
+      "startMs": 115733,
+      "endMs": 116522
+    },
+    {
+      "text": "sağlıyor",
+      "startMs": 116522,
+      "endMs": 117068
+    },
+    {
+      "text": "böylece",
+      "startMs": 117311,
+      "endMs": 117796
+    },
+    {
+      "text": "kabin",
+      "startMs": 117796,
+      "endMs": 118087
+    },
+    {
+      "text": "basıncının",
+      "startMs": 118087,
+      "endMs": 118682
+    },
+    {
+      "text": "asıl",
+      "startMs": 118694,
+      "endMs": 119046
+    },
+    {
+      "text": "yükünü",
+      "startMs": 119046,
+      "endMs": 119374
+    },
+    {
+      "text": "dış",
+      "startMs": 119374,
+      "endMs": 119592
+    },
+    {
+      "text": "katman",
+      "startMs": 119592,
+      "endMs": 119992
+    },
+    {
+      "text": "taşıyor",
+      "startMs": 119993,
+      "endMs": 120430
+    },
+    {
+      "text": "Ayrıca",
+      "startMs": 120655,
+      "endMs": 121225
+    },
+    {
+      "text": "katmanlar",
+      "startMs": 121225,
+      "endMs": 121783
+    },
+    {
+      "text": "arasındaki",
+      "startMs": 121783,
+      "endMs": 122341
+    },
+    {
+      "text": "nemin",
+      "startMs": 122341,
+      "endMs": 122584
+    },
+    {
+      "text": "kaçmasına",
+      "startMs": 122584,
+      "endMs": 123215
+    },
+    {
+      "text": "yardım",
+      "startMs": 123215,
+      "endMs": 123628
+    },
+    {
+      "text": "ederek",
+      "startMs": 123628,
+      "endMs": 123931
+    },
+    {
+      "text": "buğulanmayı",
+      "startMs": 123943,
+      "endMs": 124453
+    },
+    {
+      "text": "azaltıyor",
+      "startMs": 124453,
+      "endMs": 125072
+    },
+    {
+      "text": "Gökyüzünde",
+      "startMs": 125297,
+      "endMs": 126207
+    },
+    {
+      "text": "görmek",
+      "startMs": 126207,
+      "endMs": 126607
+    },
+    {
+      "text": "isteyeceğiniz",
+      "startMs": 126607,
+      "endMs": 127287
+    },
+    {
+      "text": "delik",
+      "startMs": 127287,
+      "endMs": 127554
+    },
+    {
+      "text": "tam",
+      "startMs": 127554,
+      "endMs": 127785
+    },
+    {
+      "text": "olarak",
+      "startMs": 127784,
+      "endMs": 128124
+    },
+    {
+      "text": "bu",
+      "startMs": 128136,
+      "endMs": 128306
+    },
+    {
+      "text": "Mikrodalga",
+      "startMs": 128531,
+      "endMs": 129296
+    },
+    {
+      "text": "kapağındaki",
+      "startMs": 129295,
+      "endMs": 129938
+    },
+    {
+      "text": "siyah",
+      "startMs": 129938,
+      "endMs": 130302
+    },
+    {
+      "text": "noktalı",
+      "startMs": 130302,
+      "endMs": 130715
+    },
+    {
+      "text": "metal",
+      "startMs": 130715,
+      "endMs": 131091
+    },
+    {
+      "text": "ağ",
+      "startMs": 131116,
+      "endMs": 131250
+    },
+    {
+      "text": "neden",
+      "startMs": 131261,
+      "endMs": 131589
+    },
+    {
+      "text": "var",
+      "startMs": 131589,
+      "endMs": 131832
+    },
+    {
+      "text": "Delikler",
+      "startMs": 132057,
+      "endMs": 132894
+    },
+    {
+      "text": "görünür",
+      "startMs": 132894,
+      "endMs": 133246
+    },
+    {
+      "text": "ışığın",
+      "startMs": 133246,
+      "endMs": 133549
+    },
+    {
+      "text": "dalga",
+      "startMs": 133549,
+      "endMs": 133889
+    },
+    {
+      "text": "boyuna",
+      "startMs": 133889,
+      "endMs": 134180
+    },
+    {
+      "text": "göre",
+      "startMs": 134180,
+      "endMs": 134435
+    },
+    {
+      "text": "yeterince",
+      "startMs": 134435,
+      "endMs": 134945
+    },
+    {
+      "text": "büyük",
+      "startMs": 134945,
+      "endMs": 135285
+    },
+    {
+      "text": "bu",
+      "startMs": 135491,
+      "endMs": 135673
+    },
+    {
+      "text": "yüzden",
+      "startMs": 135685,
+      "endMs": 136061
+    },
+    {
+      "text": "yemeği",
+      "startMs": 136061,
+      "endMs": 136364
+    },
+    {
+      "text": "görebiliyorsunuz",
+      "startMs": 136365,
+      "endMs": 137336
+    },
+    {
+      "text": "Mikrodalgaların",
+      "startMs": 137561,
+      "endMs": 138629
+    },
+    {
+      "text": "dalga",
+      "startMs": 138628,
+      "endMs": 138980
+    },
+    {
+      "text": "boyuysa",
+      "startMs": 138980,
+      "endMs": 139465
+    },
+    {
+      "text": "bu",
+      "startMs": 139575,
+      "endMs": 139708
+    },
+    {
+      "text": "deliklerden",
+      "startMs": 139709,
+      "endMs": 140413
+    },
+    {
+      "text": "çok",
+      "startMs": 140425,
+      "endMs": 140631
+    },
+    {
+      "text": "daha",
+      "startMs": 140631,
+      "endMs": 140849
+    },
+    {
+      "text": "büyük",
+      "startMs": 140849,
+      "endMs": 141152
+    },
+    {
+      "text": "Metal",
+      "startMs": 141377,
+      "endMs": 142020
+    },
+    {
+      "text": "ağ",
+      "startMs": 142080,
+      "endMs": 142189
+    },
+    {
+      "text": "fırının",
+      "startMs": 142347,
+      "endMs": 142711
+    },
+    {
+      "text": "içini",
+      "startMs": 142712,
+      "endMs": 142991
+    },
+    {
+      "text": "küçük",
+      "startMs": 142991,
+      "endMs": 143331
+    },
+    {
+      "text": "bir",
+      "startMs": 143330,
+      "endMs": 143500
+    },
+    {
+      "text": "Faraday",
+      "startMs": 143500,
+      "endMs": 143949
+    },
+    {
+      "text": "kafesi",
+      "startMs": 143949,
+      "endMs": 144362
+    },
+    {
+      "text": "gibi",
+      "startMs": 144362,
+      "endMs": 144568
+    },
+    {
+      "text": "çevreleyerek",
+      "startMs": 144568,
+      "endMs": 145235
+    },
+    {
+      "text": "enerjinin",
+      "startMs": 145260,
+      "endMs": 145818
+    },
+    {
+      "text": "dışarı",
+      "startMs": 145818,
+      "endMs": 146146
+    },
+    {
+      "text": "kaçmasını",
+      "startMs": 146146,
+      "endMs": 146729
+    },
+    {
+      "text": "engelliyor",
+      "startMs": 146728,
+      "endMs": 147347
+    },
+    {
+      "text": "Yani",
+      "startMs": 147572,
+      "endMs": 148191
+    },
+    {
+      "text": "o",
+      "startMs": 148190,
+      "endMs": 148299
+    },
+    {
+      "text": "desen",
+      "startMs": 148312,
+      "endMs": 148676
+    },
+    {
+      "text": "görüşünüzü",
+      "startMs": 148676,
+      "endMs": 149271
+    },
+    {
+      "text": "biraz",
+      "startMs": 149271,
+      "endMs": 149623
+    },
+    {
+      "text": "bozuyor",
+      "startMs": 149623,
+      "endMs": 150096
+    },
+    {
+      "text": "ama",
+      "startMs": 150314,
+      "endMs": 150496
+    },
+    {
+      "text": "mutfağın",
+      "startMs": 150496,
+      "endMs": 150921
+    },
+    {
+      "text": "görünmez",
+      "startMs": 150921,
+      "endMs": 151443
+    },
+    {
+      "text": "güvenlik",
+      "startMs": 151443,
+      "endMs": 151856
+    },
+    {
+      "text": "duvarı",
+      "startMs": 151856,
+      "endMs": 152172
+    },
+    {
+      "text": "olarak",
+      "startMs": 152171,
+      "endMs": 152499
+    },
+    {
+      "text": "çalışıyor",
+      "startMs": 152511,
+      "endMs": 153057
+    },
+    {
+      "text": "Maket",
+      "startMs": 153282,
+      "endMs": 153877
+    },
+    {
+      "text": "bıçağının",
+      "startMs": 153900,
+      "endMs": 154422
+    },
+    {
+      "text": "üzerindeki",
+      "startMs": 154422,
+      "endMs": 154956
+    },
+    {
+      "text": "çapraz",
+      "startMs": 154956,
+      "endMs": 155429
+    },
+    {
+      "text": "çizgiler",
+      "startMs": 155430,
+      "endMs": 155952
+    },
+    {
+      "text": "süs",
+      "startMs": 155976,
+      "endMs": 156255
+    },
+    {
+      "text": "ya",
+      "startMs": 156267,
+      "endMs": 156376
+    },
+    {
+      "text": "da",
+      "startMs": 156376,
+      "endMs": 156510
+    },
+    {
+      "text": "ölçü",
+      "startMs": 156522,
+      "endMs": 156825
+    },
+    {
+      "text": "işareti",
+      "startMs": 156825,
+      "endMs": 157335
+    },
+    {
+      "text": "değil",
+      "startMs": 157335,
+      "endMs": 157687
+    },
+    {
+      "text": "Her",
+      "startMs": 157912,
+      "endMs": 158252
+    },
+    {
+      "text": "çizgi",
+      "startMs": 158312,
+      "endMs": 158773
+    },
+    {
+      "text": "bıçağın",
+      "startMs": 158931,
+      "endMs": 159356
+    },
+    {
+      "text": "güvenli",
+      "startMs": 159356,
+      "endMs": 159805
+    },
+    {
+      "text": "biçimde",
+      "startMs": 159805,
+      "endMs": 160181
+    },
+    {
+      "text": "kırılabileceği",
+      "startMs": 160181,
+      "endMs": 160921
+    },
+    {
+      "text": "zayıflatılmış",
+      "startMs": 160921,
+      "endMs": 161625
+    },
+    {
+      "text": "bir",
+      "startMs": 161625,
+      "endMs": 161795
+    },
+    {
+      "text": "bölüm",
+      "startMs": 161795,
+      "endMs": 162135
+    },
+    {
+      "text": "Uç",
+      "startMs": 162360,
+      "endMs": 162469
+    },
+    {
+      "text": "köreldiğinde",
+      "startMs": 162748,
+      "endMs": 163403
+    },
+    {
+      "text": "yalnızca",
+      "startMs": 163403,
+      "endMs": 163937
+    },
+    {
+      "text": "en",
+      "startMs": 163949,
+      "endMs": 164167
+    },
+    {
+      "text": "öndeki",
+      "startMs": 164168,
+      "endMs": 164484
+    },
+    {
+      "text": "parçayı",
+      "startMs": 164483,
+      "endMs": 164956
+    },
+    {
+      "text": "uygun",
+      "startMs": 164957,
+      "endMs": 165297
+    },
+    {
+      "text": "bir",
+      "startMs": 165296,
+      "endMs": 165430
+    },
+    {
+      "text": "aparatta",
+      "startMs": 165430,
+      "endMs": 165903
+    },
+    {
+      "text": "kırıyorsunuz",
+      "startMs": 165903,
+      "endMs": 166655
+    },
+    {
+      "text": "ve",
+      "startMs": 166826,
+      "endMs": 166935
+    },
+    {
+      "text": "alttan",
+      "startMs": 166959,
+      "endMs": 167408
+    },
+    {
+      "text": "yeni",
+      "startMs": 167408,
+      "endMs": 167711
+    },
+    {
+      "text": "keskin",
+      "startMs": 167845,
+      "endMs": 168245
+    },
+    {
+      "text": "bir",
+      "startMs": 168245,
+      "endMs": 168391
+    },
+    {
+      "text": "uç",
+      "startMs": 168391,
+      "endMs": 168549
+    },
+    {
+      "text": "çıkıyor",
+      "startMs": 168549,
+      "endMs": 168986
+    },
+    {
+      "text": "Tek",
+      "startMs": 169211,
+      "endMs": 169345
+    },
+    {
+      "text": "bıçak",
+      "startMs": 169599,
+      "endMs": 169975
+    },
+    {
+      "text": "gövdesinin",
+      "startMs": 169975,
+      "endMs": 170594
+    },
+    {
+      "text": "içinde",
+      "startMs": 170594,
+      "endMs": 170946
+    },
+    {
+      "text": "sıraya",
+      "startMs": 170958,
+      "endMs": 171298
+    },
+    {
+      "text": "girmiş",
+      "startMs": 171298,
+      "endMs": 171698
+    },
+    {
+      "text": "birçok",
+      "startMs": 171698,
+      "endMs": 172062
+    },
+    {
+      "text": "yedek",
+      "startMs": 172075,
+      "endMs": 172366
+    },
+    {
+      "text": "uç",
+      "startMs": 172378,
+      "endMs": 172560
+    },
+    {
+      "text": "var",
+      "startMs": 172572,
+      "endMs": 172839
+    },
+    {
+      "text": "Ama",
+      "startMs": 173064,
+      "endMs": 173295
+    },
+    {
+      "text": "penseyle",
+      "startMs": 173537,
+      "endMs": 174071
+    },
+    {
+      "text": "gelişigüzel",
+      "startMs": 174071,
+      "endMs": 174775
+    },
+    {
+      "text": "denemeyin",
+      "startMs": 174775,
+      "endMs": 175345
+    },
+    {
+      "text": "kopan",
+      "startMs": 175430,
+      "endMs": 175818
+    },
+    {
+      "text": "parça",
+      "startMs": 175831,
+      "endMs": 176183
+    },
+    {
+      "text": "beklenmedik",
+      "startMs": 176182,
+      "endMs": 176777
+    },
+    {
+      "text": "şekilde",
+      "startMs": 176777,
+      "endMs": 177214
+    },
+    {
+      "text": "fırlayabilir",
+      "startMs": 177214,
+      "endMs": 177894
+    },
+    {
+      "text": "Ve",
+      "startMs": 178119,
+      "endMs": 178325
+    },
+    {
+      "text": "mezuralarda",
+      "startMs": 178507,
+      "endMs": 179259
+    },
+    {
+      "text": "tekrar",
+      "startMs": 179259,
+      "endMs": 179672
+    },
+    {
+      "text": "eden",
+      "startMs": 179672,
+      "endMs": 179975
+    },
+    {
+      "text": "siyah",
+      "startMs": 179975,
+      "endMs": 180315
+    },
+    {
+      "text": "elmaslar",
+      "startMs": 180315,
+      "endMs": 180898
+    },
+    {
+      "text": "Bunlar",
+      "startMs": 181123,
+      "endMs": 181754
+    },
+    {
+      "text": "rastgele",
+      "startMs": 181754,
+      "endMs": 182252
+    },
+    {
+      "text": "basılmış",
+      "startMs": 182251,
+      "endMs": 182773
+    },
+    {
+      "text": "logolar",
+      "startMs": 182773,
+      "endMs": 183210
+    },
+    {
+      "text": "değil",
+      "startMs": 183210,
+      "endMs": 183562
+    },
+    {
+      "text": "Amerikan",
+      "startMs": 183787,
+      "endMs": 184576
+    },
+    {
+      "text": "tipi",
+      "startMs": 184588,
+      "endMs": 184806
+    },
+    {
+      "text": "yapılarda",
+      "startMs": 184806,
+      "endMs": 185316
+    },
+    {
+      "text": "kirişleri",
+      "startMs": 185316,
+      "endMs": 185838
+    },
+    {
+      "text": "eşit",
+      "startMs": 185838,
+      "endMs": 186141
+    },
+    {
+      "text": "aralıklarla",
+      "startMs": 186141,
+      "endMs": 186736
+    },
+    {
+      "text": "yerleştirmek",
+      "startMs": 186736,
+      "endMs": 187403
+    },
+    {
+      "text": "için",
+      "startMs": 187403,
+      "endMs": 187743
+    },
+    {
+      "text": "her",
+      "startMs": 187828,
+      "endMs": 187998
+    },
+    {
+      "text": "on",
+      "startMs": 187998,
+      "endMs": 188168
+    },
+    {
+      "text": "dokuz",
+      "startMs": 188168,
+      "endMs": 188459
+    },
+    {
+      "text": "nokta",
+      "startMs": 188459,
+      "endMs": 188799
+    },
+    {
+      "text": "iki",
+      "startMs": 188847,
+      "endMs": 189041
+    },
+    {
+      "text": "inçte",
+      "startMs": 189041,
+      "endMs": 189502
+    },
+    {
+      "text": "yani",
+      "startMs": 189697,
+      "endMs": 190134
+    },
+    {
+      "text": "yaklaşık",
+      "startMs": 190134,
+      "endMs": 190595
+    },
+    {
+      "text": "kırk",
+      "startMs": 190595,
+      "endMs": 190789
+    },
+    {
+      "text": "sekiz",
+      "startMs": 190789,
+      "endMs": 191141
+    },
+    {
+      "text": "virgül",
+      "startMs": 191141,
+      "endMs": 191481
+    },
+    {
+      "text": "sekiz",
+      "startMs": 191481,
+      "endMs": 191797
+    },
+    {
+      "text": "santimetrede",
+      "startMs": 191796,
+      "endMs": 192488
+    },
+    {
+      "text": "bir",
+      "startMs": 192488,
+      "endMs": 192646
+    },
+    {
+      "text": "görünürler",
+      "startMs": 192646,
+      "endMs": 193253
+    },
+    {
+      "text": "Bu",
+      "startMs": 193478,
+      "endMs": 193548
+    },
+    {
+      "text": "aralık",
+      "startMs": 193612,
+      "endMs": 194182
+    },
+    {
+      "text": "sayesinde",
+      "startMs": 194182,
+      "endMs": 194825
+    },
+    {
+      "text": "iki",
+      "startMs": 194862,
+      "endMs": 195080
+    },
+    {
+      "text": "yüz",
+      "startMs": 195092,
+      "endMs": 195262
+    },
+    {
+      "text": "kırk",
+      "startMs": 195262,
+      "endMs": 195456
+    },
+    {
+      "text": "dört",
+      "startMs": 195457,
+      "endMs": 195675
+    },
+    {
+      "text": "santimetrelik",
+      "startMs": 195675,
+      "endMs": 196379
+    },
+    {
+      "text": "standart",
+      "startMs": 196379,
+      "endMs": 196925
+    },
+    {
+      "text": "bir",
+      "startMs": 196937,
+      "endMs": 197095
+    },
+    {
+      "text": "levhanın",
+      "startMs": 197095,
+      "endMs": 197556
+    },
+    {
+      "text": "altına",
+      "startMs": 197556,
+      "endMs": 197956
+    },
+    {
+      "text": "beş",
+      "startMs": 197969,
+      "endMs": 198212
+    },
+    {
+      "text": "eşit",
+      "startMs": 198211,
+      "endMs": 198429
+    },
+    {
+      "text": "bölüm",
+      "startMs": 198442,
+      "endMs": 198733
+    },
+    {
+      "text": "yerleştirilebilir",
+      "startMs": 198733,
+      "endMs": 199655
+    },
+    {
+      "text": "Bir",
+      "startMs": 199880,
+      "endMs": 200123
+    },
+    {
+      "text": "dahaki",
+      "startMs": 200377,
+      "endMs": 200729
+    },
+    {
+      "text": "sefere",
+      "startMs": 200729,
+      "endMs": 201142
+    },
+    {
+      "text": "mezurayı",
+      "startMs": 201142,
+      "endMs": 201567
+    },
+    {
+      "text": "açtığınızda",
+      "startMs": 201566,
+      "endMs": 202197
+    },
+    {
+      "text": "yalnızca",
+      "startMs": 202197,
+      "endMs": 202707
+    },
+    {
+      "text": "sayıları",
+      "startMs": 202707,
+      "endMs": 203156
+    },
+    {
+      "text": "değil",
+      "startMs": 203156,
+      "endMs": 203569
+    },
+    {
+      "text": "marangozların",
+      "startMs": 203751,
+      "endMs": 204516
+    },
+    {
+      "text": "gizli",
+      "startMs": 204515,
+      "endMs": 204831
+    },
+    {
+      "text": "kısa",
+      "startMs": 204831,
+      "endMs": 205110
+    },
+    {
+      "text": "yolunu",
+      "startMs": 205110,
+      "endMs": 205389
+    },
+    {
+      "text": "da",
+      "startMs": 205389,
+      "endMs": 205498
+    },
+    {
+      "text": "göreceksiniz",
+      "startMs": 205498,
+      "endMs": 206287
+    },
+    {
+      "text": "Günlük",
+      "startMs": 206512,
+      "endMs": 207107
+    },
+    {
+      "text": "tasarımın",
+      "startMs": 207106,
+      "endMs": 207676
+    },
+    {
+      "text": "en",
+      "startMs": 207725,
+      "endMs": 207895
+    },
+    {
+      "text": "güzel",
+      "startMs": 207907,
+      "endMs": 208259
+    },
+    {
+      "text": "tarafı",
+      "startMs": 208259,
+      "endMs": 208611
+    },
+    {
+      "text": "bu",
+      "startMs": 208623,
+      "endMs": 208829
+    },
+    {
+      "text": "iyi",
+      "startMs": 209012,
+      "endMs": 209158
+    },
+    {
+      "text": "çalıştığında",
+      "startMs": 209157,
+      "endMs": 209752
+    },
+    {
+      "text": "varlığını",
+      "startMs": 209752,
+      "endMs": 210177
+    },
+    {
+      "text": "fark",
+      "startMs": 210177,
+      "endMs": 210480
+    },
+    {
+      "text": "etmiyoruz",
+      "startMs": 210492,
+      "endMs": 211135
+    },
+    {
+      "text": "Bu",
+      "startMs": 211360,
+      "endMs": 211591
+    },
+    {
+      "text": "sekiz",
+      "startMs": 211687,
+      "endMs": 212051
+    },
+    {
+      "text": "detaydan",
+      "startMs": 212051,
+      "endMs": 212609
+    },
+    {
+      "text": "hangisini",
+      "startMs": 212610,
+      "endMs": 213180
+    },
+    {
+      "text": "ilk",
+      "startMs": 213180,
+      "endMs": 213423
+    },
+    {
+      "text": "kez",
+      "startMs": 213435,
+      "endMs": 213641
+    },
+    {
+      "text": "duydunuz",
+      "startMs": 213641,
+      "endMs": 214199
+    },
+    {
+      "text": "Yorumlara",
+      "startMs": 214424,
+      "endMs": 215079
+    },
+    {
+      "text": "numarasını",
+      "startMs": 215079,
+      "endMs": 215613
+    },
+    {
+      "text": "yazın",
+      "startMs": 215613,
+      "endMs": 216026
+    },
+    {
+      "text": "devam",
+      "startMs": 216159,
+      "endMs": 216559
+    },
+    {
+      "text": "videosunda",
+      "startMs": 216559,
+      "endMs": 217129
+    },
+    {
+      "text": "evinizde",
+      "startMs": 217130,
+      "endMs": 217603
+    },
+    {
+      "text": "saklanan",
+      "startMs": 217603,
+      "endMs": 218113
+    },
+    {
+      "text": "sekiz",
+      "startMs": 218113,
+      "endMs": 218465
+    },
+    {
+      "text": "ayrıntıya",
+      "startMs": 218465,
+      "endMs": 218914
+    },
+    {
+      "text": "daha",
+      "startMs": 218914,
+      "endMs": 219120
+    },
+    {
+      "text": "bakalım",
+      "startMs": 219120,
+      "endMs": 219593
+    }
+  ]
+}

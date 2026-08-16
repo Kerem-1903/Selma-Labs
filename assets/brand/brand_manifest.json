@@ -1,0 +1,17 @@
+{
+  "brand_name": "Strange Things",
+  "spoken_signature": "Welcome to Strange Things.",
+  "logo": "strange_things_logo.svg",
+  "palette": {
+    "background": "#02040A",
+    "foreground": "#FFFFFF",
+    "active": "#FFD700",
+    "science": "#22D3EE",
+    "danger": "#FF3B5C"
+  },
+  "usage": {
+    "avatar": "Use the square portal monogram.",
+    "video_bug": "Use the portal monogram at low opacity after the spoken brand sting.",
+    "wordmark": "Use STRANGE THINGS in uppercase with generous tracking."
+  }
+}

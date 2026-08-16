@@ -42,6 +42,7 @@ metadata for a future scene-matching sprint.
 """
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from typing import Optional
 
 import httpx
@@ -57,8 +58,10 @@ from core.domain.exceptions import (
 )
 from core.domain.ports.video_source_port import VideoSourcePort
 
-API_BASE_URL = "https://api.pexels.com/videos"
+API_BASE_URL = "https://api.pexels.com/v1/videos"
 REQUEST_TIMEOUT_SECONDS = 30.0
+MIN_PREMIUM_WIDTH = 1080
+MIN_PREMIUM_HEIGHT = 1920
 
 # Preference order when a video offers multiple encoded files. Pexels
 # always offers at least one "sd" mp4; "hd" is preferred when present.
@@ -75,6 +78,10 @@ class PexelsProvider(VideoSourcePort):
             )
         self._api_key = api_key
 
+    @property
+    def name(self) -> str:
+        return "pexels"
+
     async def search(self, query: str, max_results: int) -> list[MediaAsset]:
         url = f"{API_BASE_URL}/search"
 
@@ -83,7 +90,12 @@ class PexelsProvider(VideoSourcePort):
                 response = await client.get(
                     url,
                     headers={"Authorization": self._api_key},
-                    params={"query": query, "per_page": max_results},
+                    params={
+                        "query": query,
+                        "per_page": max_results,
+                        "orientation": "portrait",
+                        "size": "large",
+                    },
                 )
         except httpx.TimeoutException as exc:
             raise ProviderTimeoutError(f"Pexels API timed out: {exc}") from exc
@@ -95,7 +107,16 @@ class PexelsProvider(VideoSourcePort):
         self._raise_for_status(response)
 
         payload = response.json()
-        return [self._map_video(item, query) for item in payload.get("videos", [])]
+        assets = [self._map_video(item, query) for item in payload.get("videos", [])]
+        return [
+            asset
+            for asset in assets
+            if asset.width is not None
+            and asset.height is not None
+            and asset.height > asset.width
+            and asset.width >= MIN_PREMIUM_WIDTH
+            and asset.height >= MIN_PREMIUM_HEIGHT
+        ]
 
     async def download(self, asset: MediaAsset) -> bytes:
         try:
@@ -117,6 +138,37 @@ class PexelsProvider(VideoSourcePort):
             )
 
         return response.content
+
+    async def download_stream(self, asset: MediaAsset) -> AsyncIterator[bytes]:
+        """Stream a remote video without materializing it in process memory."""
+        received_bytes = 0
+        try:
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
+                async with client.stream("GET", asset.original_url) as response:
+                    if response.status_code != 200:
+                        raise AssetDownloadError(
+                            f"Failed to download asset '{asset.id}' from "
+                            f"'{asset.original_url}' (status {response.status_code})."
+                        )
+                    async for chunk in response.aiter_bytes():
+                        if chunk:
+                            received_bytes += len(chunk)
+                            yield chunk
+        except httpx.TimeoutException as exc:
+            raise ProviderTimeoutError(f"Pexels download timed out: {exc}") from exc
+        except httpx.ConnectError as exc:
+            raise ProviderConnectionError(
+                f"Could not connect to download '{asset.original_url}': {exc}"
+            ) from exc
+        except httpx.RequestError as exc:
+            raise ProviderConnectionError(
+                f"Pexels download request failed: {exc}"
+            ) from exc
+        if received_bytes == 0:
+            raise AssetDownloadError(
+                f"Downloaded empty content for asset '{asset.id}' from "
+                f"'{asset.original_url}'."
+            )
 
     @staticmethod
     def _raise_for_status(response: httpx.Response) -> None:
@@ -173,6 +225,23 @@ class PexelsProvider(VideoSourcePort):
         candidates = mp4_files or video_files
         if not candidates:
             return None
+
+        premium_portrait = [
+            file
+            for file in candidates
+            if int(file.get("width") or 0) >= MIN_PREMIUM_WIDTH
+            and int(file.get("height") or 0) >= MIN_PREMIUM_HEIGHT
+            and int(file.get("height") or 0) > int(file.get("width") or 0)
+        ]
+        if premium_portrait:
+            return max(
+                premium_portrait,
+                key=lambda file: (
+                    int(file.get("width") or 0) * int(file.get("height") or 0),
+                    float(file.get("fps") or 0),
+                    int(file.get("file_size") or 0),
+                ),
+            )
 
         for quality in PREFERRED_QUALITY_ORDER:
             for f in candidates:

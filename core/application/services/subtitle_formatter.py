@@ -79,6 +79,14 @@ def _format_vtt_timecode(seconds: float) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d}.{ms:03d}"
 
 
+def _format_ass_timecode(seconds: float) -> str:
+    total_cs = round(seconds * 100)
+    hours, remainder_cs = divmod(total_cs, 360_000)
+    minutes, remainder_cs = divmod(remainder_cs, 6_000)
+    secs, centiseconds = divmod(remainder_cs, 100)
+    return f"{hours}:{minutes:02d}:{secs:02d}.{centiseconds:02d}"
+
+
 class SubtitleFormatter:
     """Formats a SubtitleTrack's cues as SRT or WebVTT text. Stateless --
     every method is a ``@staticmethod``; this class is never
@@ -135,3 +143,64 @@ class SubtitleFormatter:
                 f"{cue.text}"
             )
         return "\n\n".join(blocks) + "\n\n"
+
+    @staticmethod
+    def format_ass(track: SubtitleTrack) -> str:
+        header = """[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 2
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Premium,Arial,64,&H00FFFFFF,&H0000D7FF,&H00000000,&H80000000,-1,0,0,0,100,100,0,0,1,5,2,2,80,80,260,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"""
+        events = []
+        for cue in track.cues:
+            text = cue.text.replace("\n", " ").replace("{", r"\{").replace("}", r"\}")
+            words = text.split()
+            if not words:
+                continue
+            emoji = SubtitleFormatter._contextual_emoji(text)
+            word_duration = (cue.end_time - cue.start_time) / len(words)
+            for index in range(len(words)):
+                highlighted_words = list(words)
+                highlighted_words[index] = (
+                    r"{\c&H0000D7FF&\fscx112\fscy112}"
+                    + highlighted_words[index]
+                    + r"{\c&H00FFFFFF&\fscx100\fscy100}"
+                )
+                styled_text = (
+                    r"{\fad(45,45)}"
+                    + " ".join(highlighted_words)
+                    + (f" {emoji}" if emoji and index == len(words) - 1 else "")
+                )
+                start = cue.start_time + word_duration * index
+                end = cue.end_time if index == len(words) - 1 else start + word_duration
+                events.append(
+                    "Dialogue: 0,"
+                    f"{_format_ass_timecode(start)},"
+                    f"{_format_ass_timecode(end)},"
+                    f"Premium,,0,0,0,,{styled_text}"
+                )
+        return header + ("\n" + "\n".join(events) if events else "\n")
+
+    @staticmethod
+    def _contextual_emoji(text: str) -> str:
+        normalized = text.casefold()
+        mappings = (
+            (("ocean", "sea", "underwater"), "🌊"),
+            (("space", "planet", "star"), "🚀"),
+            (("fire", "heat", "volcano"), "🔥"),
+            (("ice", "cold", "frozen"), "❄️"),
+            (("kangaroo", "animal", "wildlife"), "🦘"),
+            (("brain", "intelligence", "learn"), "🧠"),
+            (("light", "glow", "bioluminescence"), "✨"),
+        )
+        for keywords, emoji in mappings:
+            if any(keyword in normalized for keyword in keywords):
+                return emoji
+        return ""

@@ -1,0 +1,54 @@
+{
+  "eating_chips": {
+    "pexelsId": 6547782,
+    "page": "https://www.pexels.com/video/a-woman-eating-chips-6547782/",
+    "creator": "Andres  Ayrton",
+    "creatorUrl": "https://www.pexels.com/@andres-ayrton",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 10,
+    "width": 1080,
+    "height": 1920,
+    "file": "eating_chips.mp4"
+  },
+  "chips_bowl": {
+    "pexelsId": 8751424,
+    "page": "https://www.pexels.com/video/potato-chips-on-a-clear-bowl-8751424/",
+    "creator": "Kevin  Malik",
+    "creatorUrl": "https://www.pexels.com/@kevin-malik",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 10,
+    "width": 1080,
+    "height": 1920,
+    "file": "chips_bowl.mp4"
+  },
+  "snack_aisle": {
+    "pexelsId": 28671127,
+    "page": "https://www.pexels.com/video/colorful-snack-aisle-in-a-convenience-store-28671127/",
+    "creator": "LayG Traveller",
+    "creatorUrl": "https://www.pexels.com/@layg-traveller-593127578",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 4,
+    "width": 960,
+    "height": 540,
+    "file": "snack_aisle.mp4"
+  },
+  "holding_chip_bag": {
+    "pexelsId": 6547807,
+    "page": "https://www.pexels.com/video/a-man-holding-a-bag-of-chips-and-fruits-6547807/",
+    "creator": "Andres  Ayrton",
+    "creatorUrl": "https://www.pexels.com/@andres-ayrton",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 10,
+    "width": 1080,
+    "height": 1920,
+    "file": "holding_chip_bag.mp4"
+  },
+  "open_chip_bag": {
+    "pexelsId": 13060695,
+    "page": "https://www.pexels.com/photo/close-up-shot-of-potato-chips-13060695/",
+    "creator": "Srattha Nualsate",
+    "creatorUrl": "https://www.pexels.com/@srattha-nualsate-2695613",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "file": "open_chip_bag.jpg"
+  }
+}

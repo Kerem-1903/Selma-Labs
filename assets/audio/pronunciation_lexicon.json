@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "tr": {
+    "LUFS": "lufs",
+    "YouTube": "Yu Tüp"
+  },
+  "en": {
+    "LUFS": "luffs"
+  }
+}

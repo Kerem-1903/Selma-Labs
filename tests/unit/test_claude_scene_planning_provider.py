@@ -39,6 +39,32 @@ def test_parse_response_maps_valid_json_to_scenes():
     assert scenes[1].index == 1
 
 
+def test_parse_response_maps_semantic_visual_grammar():
+    raw = """[{
+        "narration": "Two hearts pump blood to the gills.",
+        "search_keywords": ["octopus", "gills"],
+        "visual_job": "demonstrate_mechanism",
+        "required_subjects": ["octopus", "gills"],
+        "required_actions": ["pump blood"],
+        "required_relations": ["heart-to-gills"],
+        "forbidden_dominant_subjects": ["stingray"],
+        "explanation_mode": "hybrid",
+        "overlay_labels": ["2 HEARTS → GILLS"],
+        "explanatory_required": true
+    }]"""
+
+    scene = ClaudeScenePlanningProvider._parse_response(raw)[0]
+
+    assert scene.visual_job == "demonstrate_mechanism"
+    assert scene.required_subjects == ["octopus", "gills"]
+    assert scene.required_actions == ["pump blood"]
+    assert scene.required_relations == ["heart-to-gills"]
+    assert scene.forbidden_dominant_subjects == ["stingray"]
+    assert scene.explanation_mode == "hybrid"
+    assert scene.overlay_labels == ["2 HEARTS → GILLS"]
+    assert scene.explanatory_required is True
+
+
 def test_parse_response_strips_markdown_code_fence():
     fenced = f"```json\n{VALID_JSON}\n```"
     scenes = ClaudeScenePlanningProvider._parse_response(fenced)

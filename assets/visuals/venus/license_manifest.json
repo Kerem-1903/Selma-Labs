@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "operator_approved": true,
+  "collection": "Venus day versus year — original motion graphics",
+  "assets": [
+    {"id":"selma:venus-01","file":"bright/venus-beat-01.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["venus","planet","hook"]},
+    {"id":"selma:venus-02","file":"bright/venus-beat-02.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["venus","space","brand"]},
+    {"id":"selma:venus-03","file":"bright/venus-beat-03.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["venus","rotation"]},
+    {"id":"selma:venus-04","file":"bright/venus-beat-04.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["venus","axis"]},
+    {"id":"selma:venus-05","file":"bright/venus-beat-05.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["venus","243 days"]},
+    {"id":"selma:venus-06","file":"bright/venus-beat-06.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["venus","sidereal day"]},
+    {"id":"selma:venus-07","file":"bright/venus-beat-07.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["venus","year comparison"]},
+    {"id":"selma:venus-08","file":"bright/venus-beat-08.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["solar system","slow rotation"]},
+    {"id":"selma:venus-09","file":"bright/venus-beat-09.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["venus","rotation period"]},
+    {"id":"selma:venus-10","file":"bright/venus-beat-10.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["venus","surface observer"]},
+    {"id":"selma:venus-11","file":"bright/venus-beat-11.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["venus","sunrise"]},
+    {"id":"selma:venus-12","file":"bright/venus-beat-12.mp4","provider":"local-procedural","attribution":"SELMA Labs — original procedural motion graphic","license":"Original project asset; cleared for publication","motion_energy":0.62,"tags":["venus","116.75 days","payoff"]}
+  ]
+}

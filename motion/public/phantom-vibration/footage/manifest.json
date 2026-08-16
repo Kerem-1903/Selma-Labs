@@ -1,0 +1,50 @@
+{
+  "pocket_check": {
+    "query": "person checking smartphone pocket notification",
+    "pexelsId": 6473433,
+    "page": "https://www.pexels.com/video/girl-taking-out-condom-from-her-back-pocket-6473433/",
+    "creator": "cottonbro studio",
+    "creatorUrl": "https://www.pexels.com/@cottonbro",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 13,
+    "width": 1080,
+    "height": 2048,
+    "file": "pocket_check.mp4"
+  },
+  "phone_closeup": {
+    "query": "smartphone notification close up hand",
+    "pexelsId": 6586070,
+    "page": "https://www.pexels.com/video/close-up-video-of-a-person-using-cellphone-6586070/",
+    "creator": "Artem Podrez",
+    "creatorUrl": "https://www.pexels.com/@artempodrez",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 12,
+    "width": 1080,
+    "height": 1920,
+    "file": "phone_closeup.mp4"
+  },
+  "daily_scroll": {
+    "query": "person using smartphone street portrait",
+    "pexelsId": 5630365,
+    "page": "https://www.pexels.com/video/a-person-using-a-smartphone-5630365/",
+    "creator": "Ono  Kosuki",
+    "creatorUrl": "https://www.pexels.com/@ono-kosuki",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 10,
+    "width": 1080,
+    "height": 1920,
+    "file": "daily_scroll.mp4"
+  },
+  "confused_check": {
+    "query": "confused person checking phone notification",
+    "pexelsId": 4962723,
+    "page": "https://www.pexels.com/video/pretty-woman-checking-her-mobile-phone-4962723/",
+    "creator": "Tima Miroshnichenko",
+    "creatorUrl": "https://www.pexels.com/@tima-miroshnichenko",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 13,
+    "width": 1080,
+    "height": 1920,
+    "file": "confused_check.mp4"
+  }
+}

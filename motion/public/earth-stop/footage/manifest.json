@@ -1,0 +1,110 @@
+{
+  "earth": {
+    "query": "planet earth from space",
+    "pexelsId": 1851190,
+    "page": "https://www.pexels.com/video/the-sun-illuminating-earth-s-surface-1851190/",
+    "creator": "Ingrid",
+    "creatorUrl": "https://www.pexels.com/@spacetraveler",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 16,
+    "width": 1920,
+    "height": 1080,
+    "file": "earth.mp4"
+  },
+  "city": {
+    "query": "city skyline traffic aerial",
+    "pexelsId": 37165260,
+    "page": "https://www.pexels.com/video/nashville-cityscape-with-traffic-daytime-aerial-view-37165260/",
+    "creator": "K",
+    "creatorUrl": "https://www.pexels.com/@kelly",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 16,
+    "width": 1920,
+    "height": 1080,
+    "file": "city.mp4"
+  },
+  "storm": {
+    "query": "storm clouds over city",
+    "pexelsId": 16841436,
+    "page": "https://www.pexels.com/video/a-view-of-a-city-from-an-airplane-16841436/",
+    "creator": "K",
+    "creatorUrl": "https://www.pexels.com/@kelly",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 14,
+    "width": 1920,
+    "height": 1080,
+    "file": "storm.mp4"
+  },
+  "ocean": {
+    "query": "powerful ocean waves aerial",
+    "pexelsId": 30623330,
+    "page": "https://www.pexels.com/video/aerial-view-of-ocean-waves-crashing-30623330/",
+    "creator": "Maximiliano Piris",
+    "creatorUrl": "https://www.pexels.com/@maximiliano-piris-1333449178",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 15,
+    "width": 1920,
+    "height": 1080,
+    "file": "ocean.mp4"
+  },
+  "polar": {
+    "query": "arctic ice aerial",
+    "pexelsId": 36560908,
+    "page": "https://www.pexels.com/video/aerial-view-of-frozen-ice-sheets-and-cracks-36560908/",
+    "creator": "Efrem  Efre",
+    "creatorUrl": "https://www.pexels.com/@efrem-efre-2786187",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 15,
+    "width": 1920,
+    "height": 1080,
+    "file": "polar.mp4"
+  },
+  "satellite": {
+    "query": "satellite orbit earth space",
+    "pexelsId": 34707892,
+    "page": "https://www.pexels.com/video/futuristic-spacecraft-orbiting-earth-34707892/",
+    "creator": "Adis Resic",
+    "creatorUrl": "https://www.pexels.com/@adis-resic-297996969",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 16,
+    "width": 1920,
+    "height": 1080,
+    "file": "satellite.mp4"
+  },
+  "tunnel": {
+    "query": "underground tunnel bunker",
+    "pexelsId": 36436353,
+    "page": "https://www.pexels.com/video/exploring-mysterious-parisian-catacombs-underground-36436353/",
+    "creator": "Florian Delée",
+    "creatorUrl": "https://www.pexels.com/@florian-delee-209542985",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 15,
+    "width": 1920,
+    "height": 1080,
+    "file": "tunnel.mp4"
+  },
+  "flood": {
+    "query": "flooded city street",
+    "pexelsId": 38548785,
+    "page": "https://www.pexels.com/video/urban-street-flooding-after-heavy-rainfall-38548785/",
+    "creator": "Somogro Bangladesh",
+    "creatorUrl": "https://www.pexels.com/@somogrobangladesh",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 16,
+    "width": 1920,
+    "height": 1080,
+    "file": "flood.mp4"
+  },
+  "rubble": {
+    "query": "earthquake rubble city",
+    "pexelsId": 30992049,
+    "page": "https://www.pexels.com/video/piles-of-red-brick-debris-at-construction-site-30992049/",
+    "creator": "K",
+    "creatorUrl": "https://www.pexels.com/@kelly",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "durationSeconds": 15,
+    "width": 1920,
+    "height": 1080,
+    "file": "rubble.mp4"
+  }
+}

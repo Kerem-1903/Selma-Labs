@@ -64,7 +64,12 @@ class RenderService:
         self._render_port = render_port
         self._storage = storage
 
-    async def render(self, timeline: Timeline, narration_audio_path: str) -> RenderedVideo:
+    async def render(
+        self,
+        timeline: Timeline,
+        narration_audio_path: str,
+        subtitle_path: str | None = None,
+    ) -> RenderedVideo:
         """Render ``timeline`` with the narration audio at
         ``narration_audio_path`` and persist the result.
 
@@ -106,7 +111,12 @@ class RenderService:
             },
         )
 
-        result = await self._render_port.render(timeline, narration_audio_path)
+        if subtitle_path is None:
+            result = await self._render_port.render(timeline, narration_audio_path)
+        else:
+            result = await self._render_port.render(
+                timeline, narration_audio_path, subtitle_path
+            )
 
         try:
             with open(result.output_path, "rb") as f:

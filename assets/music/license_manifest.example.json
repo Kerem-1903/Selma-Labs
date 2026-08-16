@@ -1,0 +1,18 @@
+{
+  "schema_version": 2,
+  "tracks": [
+    {
+      "file": "science-ambient.mp3",
+      "title": "Science Ambient",
+      "themes": ["science", "nature", "space", "ocean"],
+      "attribution": "Replace with creator attribution",
+      "license": "Replace with commercial-use license",
+      "source_url": "https://official-source.example/track",
+      "sha256": "replace-with-lowercase-sha256",
+      "evidence_reference": "Receipt, license PDF, or dated download record",
+      "commercial_use": true,
+      "youtube_allowed": true,
+      "attribution_required": true
+    }
+  ]
+}

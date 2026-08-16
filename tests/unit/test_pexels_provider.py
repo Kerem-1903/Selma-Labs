@@ -89,6 +89,36 @@ def test_select_video_file_prefers_hd_over_sd():
     assert chosen["link"] == "hd.mp4"
 
 
+def test_select_video_file_prefers_highest_resolution_premium_portrait():
+    files = [
+        {
+            "quality": "hd",
+            "file_type": "video/mp4",
+            "width": 1080,
+            "height": 1920,
+            "fps": 30,
+            "link": "1080.mp4",
+        },
+        {
+            "quality": "hd",
+            "file_type": "video/mp4",
+            "width": 2160,
+            "height": 3840,
+            "fps": 30,
+            "link": "4k.mp4",
+        },
+        {
+            "quality": "hd",
+            "file_type": "video/mp4",
+            "width": 3840,
+            "height": 2160,
+            "fps": 60,
+            "link": "landscape.mp4",
+        },
+    ]
+    assert PexelsProvider._select_video_file(files)["link"] == "4k.mp4"
+
+
 def test_select_video_file_falls_back_to_first_when_no_preferred_quality():
     files = [{"quality": "4k", "file_type": "video/mp4", "link": "4k.mp4"}]
     chosen = PexelsProvider._select_video_file(files)

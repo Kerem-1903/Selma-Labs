@@ -117,6 +117,45 @@ async def test_multi_scene_timing_proportional_to_word_count():
 
 
 @pytest.mark.asyncio
+async def test_expands_long_scene_to_minimum_visual_density():
+    narration = (
+        "Kangaroo joeys develop in a pouch. Marsupials give birth early, "
+        "then newborns crawl upward and attach to a teat."
+    )
+    provider = FakeScenePlanningProvider(scenes=[_raw_scene(narration)])
+    service = ScenePlanningService(provider, minimum_scenes=3)
+
+    scene_plan = await service.plan(_script(narration), _voice_track(duration_seconds=12.0))
+
+    assert len(scene_plan.scenes) == 3
+    assert " ".join(scene.narration for scene in scene_plan.scenes) == narration
+    assert scene_plan.scenes[-1].end_time == 12.0
+
+
+@pytest.mark.asyncio
+async def test_expands_scenes_until_every_visual_beat_is_short_enough():
+    narration = (
+        "Flamingos eat algae and tiny crustaceans rich in carotenoids. "
+        "Their bodies transform those pigments and deposit them in feathers."
+    )
+    provider = FakeScenePlanningProvider(scenes=[_raw_scene(narration)])
+    service = ScenePlanningService(
+        provider,
+        minimum_scenes=2,
+        maximum_scene_seconds=3.0,
+    )
+
+    scene_plan = await service.plan(
+        _script(narration),
+        _voice_track(duration_seconds=12.0),
+    )
+
+    assert max(
+        scene.end_time - scene.start_time for scene in scene_plan.scenes
+    ) <= 3.0
+
+
+@pytest.mark.asyncio
 async def test_scenes_are_reindexed_regardless_of_provider_supplied_index():
     scenes = [_raw_scene("First scene.", index=7), _raw_scene("Second scene.", index=3)]
     provider = FakeScenePlanningProvider(scenes=scenes)

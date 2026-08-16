@@ -11,7 +11,9 @@ handful of lines.
 """
 from __future__ import annotations
 
+import base64
 from io import BytesIO
+import re
 
 import httpx
 from mutagen.mp3 import MP3
@@ -26,6 +28,8 @@ from core.domain.exceptions import (
 )
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.value_objects.generated_audio import GeneratedAudio
+from core.domain.value_objects.speech_segment import SpeechSegment
+from core.domain.value_objects.voice_direction import VoiceDirection
 
 API_BASE_URL = "https://api.elevenlabs.io/v1"
 REQUEST_TIMEOUT_SECONDS = 60.0
@@ -38,25 +42,57 @@ class ElevenLabsVoiceProvider(VoiceGeneratorPort):
     ElevenLabs voice id (e.g. "21m00Tcm4TlvDq8ikWAM") — ElevenLabs' API
     addresses voices by id, not free-text name.
 
-    Speech timing (Sprint 2.1): this implementation currently leaves
-    GeneratedAudio.segments empty. ElevenLabs does offer a
-    "with-timestamps" endpoint variant that returns character-level
-    alignment; wiring that in later means switching the request URL and
-    building SpeechSegment entries from the response here — no change to
-    VoiceGeneratorPort, VoiceService, or VoiceTrack is needed for that.
+    Uses ElevenLabs' timestamp endpoint and converts character alignment to
+    exact word segments. Downstream captions can therefore follow the
+    approved narration without a second transcription pass.
     """
 
-    def __init__(self, api_key: str, model_id: str = "eleven_multilingual_v2") -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model_id: str = "eleven_multilingual_v2",
+        stability: float = 0.35,
+        similarity_boost: float = 0.8,
+        style: float = 0.45,
+        speed: float = 1.05,
+        use_speaker_boost: bool = True,
+    ) -> None:
         if not api_key:
             raise ProviderAuthError(
                 "ElevenLabs API key is missing. Set ELEVENLABS_API_KEY in your .env file."
             )
         self._api_key = api_key
         self._model_id = model_id
+        for name, value in (
+            ("stability", stability),
+            ("similarity_boost", similarity_boost),
+            ("style", style),
+        ):
+            if not 0.0 <= value <= 1.0:
+                raise InvalidVoiceConfigurationError(
+                    f"ElevenLabs {name} must be between 0.0 and 1.0."
+                )
+        if not 0.7 <= speed <= 1.2:
+            raise InvalidVoiceConfigurationError(
+                "ElevenLabs speed must be between 0.7 and 1.2."
+            )
+        self._voice_settings = {
+            "stability": stability,
+            "similarity_boost": similarity_boost,
+            "style": style,
+            "speed": speed,
+            "use_speaker_boost": use_speaker_boost,
+        }
 
-    async def generate_voice(self, text: str, voice_name: str) -> GeneratedAudio:
+    async def generate_voice(
+        self,
+        text: str,
+        voice_name: str,
+        *,
+        direction: VoiceDirection | None = None,
+    ) -> GeneratedAudio:
         voice_id = voice_name
-        url = f"{API_BASE_URL}/text-to-speech/{voice_id}"
+        url = f"{API_BASE_URL}/text-to-speech/{voice_id}/with-timestamps"
 
         try:
             async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_SECONDS) as client:
@@ -65,11 +101,12 @@ class ElevenLabsVoiceProvider(VoiceGeneratorPort):
                     headers={
                         "xi-api-key": self._api_key,
                         "Content-Type": "application/json",
-                        "Accept": "audio/mpeg",
+                        "Accept": "application/json",
                     },
                     json={
                         "text": text,
                         "model_id": self._model_id,
+                        "voice_settings": self._settings_for_direction(direction),
                     },
                     params={"output_format": "mp3_44100_128"},
                 )
@@ -82,8 +119,15 @@ class ElevenLabsVoiceProvider(VoiceGeneratorPort):
 
         self._raise_for_status(response, voice_id)
 
-        audio_bytes = response.content
+        try:
+            payload = response.json()
+            audio_bytes = base64.b64decode(payload["audio_base64"], validate=True)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ProviderError(
+                f"ElevenLabs timestamp response was invalid: {exc}"
+            ) from exc
         duration_seconds, sample_rate = self._read_mp3_metadata(audio_bytes)
+        segments = self._word_segments(payload.get("alignment"))
 
         return GeneratedAudio(
             audio_bytes=audio_bytes,
@@ -91,7 +135,52 @@ class ElevenLabsVoiceProvider(VoiceGeneratorPort):
             sample_rate=sample_rate,
             provider=f"elevenlabs:{self._model_id}",
             voice_name=voice_id,
+            segments=segments,
         )
+
+    def _settings_for_direction(
+        self,
+        direction: VoiceDirection | None,
+    ) -> dict[str, float | bool]:
+        settings = dict(self._voice_settings)
+        if direction is not None:
+            settings.update(
+                {
+                    "stability": direction.stability,
+                    "style": direction.style,
+                    "speed": direction.speed,
+                }
+            )
+        return settings
+
+    @staticmethod
+    def _word_segments(alignment: object) -> list[SpeechSegment]:
+        if not isinstance(alignment, dict):
+            return []
+        characters = alignment.get("characters")
+        starts = alignment.get("character_start_times_seconds")
+        ends = alignment.get("character_end_times_seconds")
+        if not (
+            isinstance(characters, list)
+            and isinstance(starts, list)
+            and isinstance(ends, list)
+            and len(characters) == len(starts) == len(ends)
+        ):
+            return []
+        text = "".join(str(character) for character in characters)
+        segments: list[SpeechSegment] = []
+        for match in re.finditer(r"\S+", text):
+            first = match.start()
+            last = match.end() - 1
+            try:
+                start = float(starts[first])
+                end = float(ends[last])
+            except (TypeError, ValueError, IndexError):
+                continue
+            if end <= start:
+                continue
+            segments.append(SpeechSegment(match.group(0), start, end))
+        return segments
 
     @staticmethod
     def _raise_for_status(response: httpx.Response, voice_id: str) -> None:

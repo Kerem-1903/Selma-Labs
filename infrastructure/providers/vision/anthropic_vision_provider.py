@@ -51,6 +51,16 @@ class AnthropicVisionProvider(VisionAnalysisPort):
             f"  \"camera_motion\": str,\n"
             f"  \"people_present\": bool,\n"
             f"  \"vehicles_present\": bool,\n"
+            f"  \"text_present\": bool,\n"
+            f"  \"logo_present\": bool,\n"
+            f"  \"dominant_subject\": str,\n"
+            f"  \"observed_subjects\": list of str,\n"
+            f"  \"observed_actions\": list of str,\n"
+            f"  \"observed_relations\": list of str,\n"
+            f"  \"subject_pose\": str,\n"
+            f"  \"camera_angle\": str,\n"
+            f"  \"background_signature\": str,\n"
+            f"  \"motion_energy\": float (0.0 to 1.0),\n"
             f"  \"confidence\": float (0.0 to 1.0)\n"
             f"}}\n"
         )
@@ -80,6 +90,20 @@ class AnthropicVisionProvider(VisionAnalysisPort):
                 people_present=bool(data.get("people_present", False)),
                 vehicles_present=bool(data.get("vehicles_present", False)),
                 confidence=float(data.get("confidence", 0.0)),
+                text_present=bool(data.get("text_present", False)),
+                logo_present=bool(data.get("logo_present", False)),
+                dominant_subject=str(data.get("dominant_subject", "")),
+                observed_subjects=[str(value) for value in data.get("observed_subjects", [])],
+                observed_actions=[str(value) for value in data.get("observed_actions", [])],
+                observed_relations=[str(value) for value in data.get("observed_relations", [])],
+                subject_pose=str(data.get("subject_pose", "")),
+                camera_angle=str(data.get("camera_angle", "")),
+                background_signature=str(data.get("background_signature", "")),
+                motion_energy=(
+                    float(data["motion_energy"])
+                    if data.get("motion_energy") is not None
+                    else None
+                ),
             )
 
         except Exception as e:

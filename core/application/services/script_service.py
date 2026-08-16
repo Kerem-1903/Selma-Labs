@@ -37,7 +37,13 @@ class ScriptService:
     def __init__(self, provider: ScriptGeneratorPort) -> None:
         self._provider = provider
 
-    async def generate(self, topic: str, target_duration_seconds: int = 45) -> Script:
+    async def generate(
+        self,
+        topic: str,
+        target_duration_seconds: int = 45,
+        *,
+        language: str | None = None,
+    ) -> Script:
         """Generate a validated Script for ``topic``.
 
         Raises:
@@ -64,11 +70,19 @@ class ScriptService:
             extra={"topic": topic, "target_duration_seconds": target_duration_seconds},
         )
 
-        script = await self._provider.generate_script(
-            topic=topic, target_duration_seconds=target_duration_seconds
-        )
+        if language and language.strip():
+            script = await self._provider.generate_script(
+                topic=topic,
+                target_duration_seconds=target_duration_seconds,
+                language=language.strip(),
+            )
+        else:
+            script = await self._provider.generate_script(
+                topic=topic,
+                target_duration_seconds=target_duration_seconds,
+            )
 
-        self._validate_output(script, target_duration_seconds)
+        self.validate_output(script, target_duration_seconds)
 
         logger.info(
             "script_generation_completed",
@@ -77,7 +91,7 @@ class ScriptService:
         return script
 
     @staticmethod
-    def _validate_output(script: Script, target_duration_seconds: int) -> None:
+    def validate_output(script: Script, target_duration_seconds: int) -> None:
         if not script.full_text:
             raise ScriptGenerationError("Provider returned an empty script.")
 

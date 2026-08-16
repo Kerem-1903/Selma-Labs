@@ -41,13 +41,13 @@ logical VISUAL scenes that a later stage will use to search for matching stock \
 video footage.
 
 RULES:
-- Group related sentences into one scene when they describe the same visual \
-moment, idea, or beat. Do NOT create a new scene for every sentence \
-mechanically — only start a new scene when the narration genuinely moves to \
-a different visual moment, location, or beat.
+- Optimize for high-retention Shorts pacing: create a new visual beat roughly \
+every 2-3 spoken seconds. A 30-second narration should normally produce 8-12 scenes.
+- Split sentences at natural clauses when one sentence contains multiple filmable \
+actions or subjects. Do not place an entire narration into one scene.
 - Preserve the narration text verbatim inside each scene's "narration" field: \
-concatenate the original sentences belonging to that scene, do not paraphrase \
-or summarize them.
+preserve every word and its original order across the full scene list; do not \
+paraphrase, summarize, omit, or duplicate narration.
 - Every scene must have 2 to 5 concise search_keywords: short, concrete, \
 stock-footage-searchable phrases (e.g. "titanic ship", "harbor departure"), \
 never abstract ideas like "human ambition" or "the passage of time".
@@ -59,8 +59,25 @@ one (e.g. "harbor", "open ocean"), or null if none is implied. Never guess a \
 specific real-world location beyond what the narration actually supports.
 - mood: one simple word for the emotional tone if the scene has a clear one \
 (e.g. "hope", "tension", "tragedy"), or null if neutral or unclear.
+- Make adjacent scenes use visibly different search intent: wide shot, close-up, \
+specific action, anatomy, environment, or payoff whenever the narration allows it.
 - visual_priority: "high" for scenes central to the story's visual impact, \
 "medium" for standard supporting scenes, "low" for brief transitional ones.
+- visual_job: choose exactly one of "establish_subject", "locate_part", \
+"demonstrate_mechanism", "compare_states", "show_consequence", \
+"deliver_payoff", or "support_context". This states what the image must teach, \
+not merely what subject it contains.
+- required_subjects, required_actions, and required_relations: concrete visual \
+evidence that must be observable. Subject presence alone is not enough for anatomy, \
+mechanism, comparison, or causal claims.
+- forbidden_dominant_subjects: objects or species that would make the scene \
+misleading even if the environment matches.
+- explanatory_required: true for anatomy, internal mechanism, quantities, flows, \
+comparisons, or causal relations that ordinary stock footage cannot visibly prove.
+- explanation_mode: "stock" only when footage can show the claim; otherwise use \
+"overlay", "diagram", or "hybrid".
+- overlay_labels: one to three short viewer-facing labels when explanation_mode is \
+not stock. Never return explanatory_required=true with an empty label list.
 
 OUTPUT FORMAT:
 Return ONLY a JSON array, nothing else — no markdown code fences, no prose, \
@@ -68,7 +85,11 @@ no explanation before or after. Each array element must be an object with \
 exactly these keys:
 {"narration": "...", "search_keywords": ["...", "..."], "detected_objects": \
 ["...", "..."], "location": "..." or null, "mood": "..." or null, \
-"visual_priority": "high" | "medium" | "low"}
+"visual_priority": "high" | "medium" | "low", "visual_job": "...", \
+"required_subjects": ["..."], "required_actions": ["..."], \
+"required_relations": ["..."], "forbidden_dominant_subjects": ["..."], \
+"explanation_mode": "stock" | "overlay" | "diagram" | "hybrid", \
+"overlay_labels": ["..."], "explanatory_required": true | false}
 """
 
 VALID_PRIORITIES = {"high", "medium", "low"}
@@ -157,6 +178,25 @@ class ClaudeScenePlanningProvider(ScenePlanningPort):
                     location=item.get("location") or None,
                     mood=item.get("mood") or None,
                     visual_priority=cls._normalize_priority(item.get("visual_priority")),
+                    visual_job=str(item.get("visual_job") or "support_context"),
+                    required_subjects=[
+                        str(value) for value in (item.get("required_subjects") or [])
+                    ],
+                    required_actions=[
+                        str(value) for value in (item.get("required_actions") or [])
+                    ],
+                    required_relations=[
+                        str(value) for value in (item.get("required_relations") or [])
+                    ],
+                    forbidden_dominant_subjects=[
+                        str(value)
+                        for value in (item.get("forbidden_dominant_subjects") or [])
+                    ],
+                    explanation_mode=str(item.get("explanation_mode") or "stock"),
+                    overlay_labels=[
+                        str(value) for value in (item.get("overlay_labels") or [])
+                    ],
+                    explanatory_required=bool(item.get("explanatory_required", False)),
                 )
             )
         return scenes

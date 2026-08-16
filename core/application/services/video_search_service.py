@@ -179,18 +179,17 @@ class VideoSearchService:
         return assets
 
     async def _download_and_persist(self, asset: MediaAsset) -> MediaAsset:
-        data = await self._provider.download(asset)
-
-        if not data:
+        storage_key = self._build_storage_key(asset)
+        reference = await self._storage.save_stream(
+            key=storage_key,
+            chunks=self._provider.download_stream(asset),
+            content_type=VIDEO_CONTENT_TYPE,
+        )
+        if reference.size_bytes <= 0:
             raise AssetDownloadError(
                 f"Downloaded empty content for asset '{asset.id}' from "
                 f"'{asset.original_url}'."
             )
-
-        storage_key = self._build_storage_key(asset)
-        reference = await self._storage.save(
-            key=storage_key, data=data, content_type=VIDEO_CONTENT_TYPE
-        )
 
         logger.info(
             "asset_downloaded",

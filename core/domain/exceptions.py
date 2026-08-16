@@ -51,6 +51,70 @@ class ScriptGenerationError(SelmaError):
     inspect the message first."""
 
 
+class NarrativeQualityError(SelmaError):
+    """A fact-checked script broke its hook, answer, density, or payoff contract."""
+
+
+class FactCheckError(SelmaError):
+    """Script claims could not be sourced or failed factual verification."""
+
+
+class PremiumQualityError(SelmaError):
+    """A premium render failed the pre-render creative quality gate."""
+
+
+class BackgroundMusicError(SelmaError):
+    """No valid, licensed thematic background track could be selected."""
+
+
+class AudioMixError(SelmaError):
+    """Narration and background music could not be mixed safely."""
+
+
+class AudioSourceError(SelmaError):
+    """A local or remote audio source could not be acquired or inspected."""
+
+
+class UnsupportedAudioFormatError(AudioSourceError):
+    """The supplied audio source is not a supported, probeable audio file."""
+
+
+class AudioLicenseError(AudioSourceError):
+    """The source does not have the rights required for autonomous publishing."""
+
+
+class HighlightSelectionError(SelmaError):
+    """An audio asset could not produce a structurally valid highlight."""
+
+
+class LowConfidenceHighlightError(HighlightSelectionError):
+    """The selected highlight did not satisfy autonomous quality policy."""
+
+
+class WordAlignmentError(SelmaError):
+    """A transcription or forced-alignment adapter could not align words."""
+
+
+class AlignmentQualityError(SelmaError):
+    """Word-level timing failed a required premium subtitle quality policy."""
+
+
+class CuePartitioningError(SelmaError):
+    """Word timings cannot be partitioned into readable karaoke cues."""
+
+
+class KaraokeFormattingError(SelmaError):
+    """A word-timed subtitle cue cannot be represented safely as ASS."""
+
+
+class CaptionUxError(SelmaError):
+    """Caption layout or timing violates the configured mobile safe zone."""
+
+
+class TrendDiscoveryError(SelmaError):
+    """Trending video data could not produce a safe original topic."""
+
+
 class VoiceGenerationError(SelmaError):
     """The request to generate narration was invalid (e.g. empty script
     text), or the provider's output failed validation (e.g. zero-length
@@ -108,6 +172,10 @@ class RenderError(SelmaError):
     missing binary, not a transient condition."""
 
 
+class RenderExecutionError(RenderError):
+    """FFmpeg could not produce a valid Shorts render from supplied media."""
+
+
 class TimelineCreationError(SelmaError):
     """Raised when a Timeline cannot be created from an AssetMatchPlan --
     specifically: the plan has no scene matches at all, or one or more
@@ -122,6 +190,30 @@ class TimelineCreationError(SelmaError):
     attention. Do not retry blindly -- inspect the message first; the
     scenes it names need new/broader search keywords or a fallback asset
     before Timeline creation can succeed."""
+
+
+class VisualAssetNotFoundError(SelmaError):
+    """No visual candidate passed the autonomous visual-quality policy."""
+
+
+class LowVisionConfidenceError(VisualAssetNotFoundError):
+    """Vision analysis was too uncertain to safely choose a background asset."""
+
+
+class AssetDiversityError(VisualAssetNotFoundError):
+    """Every relevant candidate exceeded the perceptual reuse budget."""
+
+
+class EditorialRhythmError(SelmaError):
+    """A storyboard contains unresolved timing or low-motion rhythm defects."""
+
+
+class PipelineRunStateError(SelmaError):
+    """A durable pipeline run attempted an invalid lifecycle transition."""
+
+
+class PipelineRunNotFoundError(SelmaError):
+    """The requested durable pipeline run does not exist in the repository."""
 
 
 class SubtitleGenerationError(SelmaError):
@@ -140,3 +232,11 @@ class SubtitleGenerationError(SelmaError):
 
 class SubtitleTranslationError(SelmaError):
     """Raised when subtitle translation or cue synchronization fails."""
+
+
+class UploadPreparationError(SelmaError):
+    """Raised when a rendered video cannot become an upload-ready package."""
+
+
+class PerformanceDataError(SelmaError):
+    """Published-video metrics are corrupt, incompatible, or locked too long."""

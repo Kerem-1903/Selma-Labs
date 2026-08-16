@@ -1,0 +1,11 @@
+{
+  "schema_version": 2,
+  "assets": {
+    "sha256-of-your-licensed-mp3-or-wav": {
+      "license": "Your licence name or agreement ID",
+      "usage_rights": "youtube_shorts_commercial",
+      "source_url": "https://official-source.example/audio-item",
+      "evidence_reference": "Dated license screenshot, receipt, or speaker consent"
+    }
+  }
+}

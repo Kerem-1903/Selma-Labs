@@ -62,7 +62,9 @@ class FakeVoiceGenerator(VoiceGeneratorPort):
     def provider_identity(self) -> str:
         return "fake:voice"
 
-    async def generate_voice(self, text: str, voice_name: str) -> GeneratedAudio:
+    async def generate_voice(
+        self, text: str, voice_name: str, *, direction=None
+    ) -> GeneratedAudio:
         return GeneratedAudio(
             audio_bytes=b"FAKE_AUDIO_DATA_MP3",
             duration_seconds=15.0,

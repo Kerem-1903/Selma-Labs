@@ -1,0 +1,1 @@
+"""Fact-check provider adapters."""

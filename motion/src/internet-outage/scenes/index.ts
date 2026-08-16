@@ -1,0 +1,17 @@
+import type {SceneSpec} from "../types";
+import {hookScene} from "./HookScene";
+import {rulesScene} from "./RulesScene";
+import {firstMinutesScene} from "./FirstMinutesScene";
+import {insideScene} from "./InsideScene";
+import {paymentsScene} from "./PaymentsScene";
+import {mapsScene} from "./MapsScene";
+import {callsScene} from "./CallsScene";
+import {newsScene} from "./NewsScene";
+import {logisticsScene} from "./LogisticsScene";
+import {criticalScene} from "./CriticalScene";
+import {eveningScene} from "./EveningScene";
+import {nightScene} from "./NightScene";
+import {recoveryScene} from "./RecoveryScene";
+import {survivalScene} from "./SurvivalScene";
+import {outroScene} from "./OutroScene";
+export const sceneSpecs: Record<string, SceneSpec> = Object.fromEntries([hookScene,rulesScene,firstMinutesScene,insideScene,paymentsScene,mapsScene,callsScene,newsScene,logisticsScene,criticalScene,eveningScene,nightScene,recoveryScene,survivalScene,outroScene].map((s)=>[s.id,s]));

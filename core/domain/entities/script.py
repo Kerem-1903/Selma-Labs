@@ -9,8 +9,10 @@ layer must not know that a database or an API will ever exist.
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timezone
+
+from core.domain.value_objects.narrative_contract import NarrativeBeat, NarrativeContract
 
 
 @dataclass(frozen=True)
@@ -24,6 +26,8 @@ class Script:
     estimated_word_count: int
     provider_used: str
     created_at: datetime
+    narrative_contract: NarrativeContract | None = None
+    narrative_beats: tuple[NarrativeBeat, ...] = ()
 
     @staticmethod
     def create(
@@ -32,6 +36,8 @@ class Script:
         full_text: str,
         target_duration_seconds: int,
         provider_used: str,
+        narrative_contract: NarrativeContract | None = None,
+        narrative_beats: tuple[NarrativeBeat, ...] = (),
     ) -> "Script":
         """Factory that derives word count and stamps identity/creation time.
 
@@ -49,4 +55,18 @@ class Script:
             estimated_word_count=len(cleaned_text.split()),
             provider_used=provider_used,
             created_at=datetime.now(timezone.utc),
+            narrative_contract=narrative_contract,
+            narrative_beats=tuple(narrative_beats),
+        )
+
+    def with_narrative(
+        self,
+        contract: NarrativeContract,
+        beats: tuple[NarrativeBeat, ...],
+    ) -> "Script":
+        """Attach validated creative metadata without changing script identity."""
+        return replace(
+            self,
+            narrative_contract=contract,
+            narrative_beats=tuple(beats),
         )

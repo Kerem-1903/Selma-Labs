@@ -1,0 +1,38 @@
+{
+  "meteor": {
+    "query": "shooting star night sky timelapse",
+    "pexelsId": 28315077,
+    "page": "https://www.pexels.com/video/the-night-sky-with-stars-and-trees-in-the-foreground-28315077/",
+    "creator": "Alexey Chudin",
+    "creatorUrl": "https://www.pexels.com/@chudin-alexey",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "file": "meteor.mp4"
+  },
+  "stars": {
+    "query": "milky way stars night sky timelapse",
+    "pexelsId": 36124126,
+    "page": "https://www.pexels.com/video/stunning-star-trails-over-tropical-landscape-36124126/",
+    "creator": "Shrinidhi Holla",
+    "creatorUrl": "https://www.pexels.com/@shrinidhi-holla",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "file": "stars.mp4"
+  },
+  "stargazer": {
+    "query": "person watching stars night sky",
+    "pexelsId": 18184370,
+    "page": "https://www.pexels.com/video/meteor-at-night-18184370/",
+    "creator": "Sahand Gholizadeh",
+    "creatorUrl": "https://www.pexels.com/@sahand",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "file": "stargazer.mp4"
+  },
+  "comet": {
+    "query": "asteroid space animation",
+    "pexelsId": 35150779,
+    "page": "https://www.pexels.com/video/whimsical-spiral-staircase-in-fantasy-art-35150779/",
+    "creator": "Tommaso Raso",
+    "creatorUrl": "https://www.pexels.com/@tommaso-raso-245057484",
+    "license": "Pexels License — https://www.pexels.com/license/",
+    "file": "comet.mp4"
+  }
+}

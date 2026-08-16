@@ -1,0 +1,346 @@
+{
+  "script": "Bu siyah ağ olmasaydı, mikrodalganın dalgaları kapaktan dışarı çıkabilirdi. Ama gördüğün noktalar boya değil; ince bir metal ekran. Fırının içindeki magnetron, yaklaşık 2,45 gigahertzlik mikrodalgalar üretir. Bu dalgaların boyu yaklaşık 12 santimetredir. Ağdaki delikler ise yalnızca birkaç milimetre. Bu yüzden mikrodalgalar metalden geri yansır; çok daha kısa görünür ışık deliklerden geçer. Yani sen yemeği görürsün, mikrodalgalar içeride kalır. Küçük delikler, büyük bir güvenlik görevi yapıyor.",
+  "durationMs": 31200,
+  "words": [
+    {
+      "text": "Bu",
+      "startMs": 0,
+      "endMs": 210
+    },
+    {
+      "text": "siyah",
+      "startMs": 397,
+      "endMs": 747
+    },
+    {
+      "text": "ağ",
+      "startMs": 759,
+      "endMs": 876
+    },
+    {
+      "text": "olmasaydı",
+      "startMs": 876,
+      "endMs": 1577
+    },
+    {
+      "text": "mikrodalganın",
+      "startMs": 1764,
+      "endMs": 2512
+    },
+    {
+      "text": "dalgaları",
+      "startMs": 2511,
+      "endMs": 2990
+    },
+    {
+      "text": "kapaktan",
+      "startMs": 2990,
+      "endMs": 3516
+    },
+    {
+      "text": "dışarı",
+      "startMs": 3516,
+      "endMs": 3808
+    },
+    {
+      "text": "çıkabilirdi",
+      "startMs": 3808,
+      "endMs": 4427
+    },
+    {
+      "text": "Ama",
+      "startMs": 4637,
+      "endMs": 4917
+    },
+    {
+      "text": "gördüğün",
+      "startMs": 5069,
+      "endMs": 5490
+    },
+    {
+      "text": "noktalar",
+      "startMs": 5490,
+      "endMs": 6004
+    },
+    {
+      "text": "boya",
+      "startMs": 6004,
+      "endMs": 6226
+    },
+    {
+      "text": "değil",
+      "startMs": 6226,
+      "endMs": 6600
+    },
+    {
+      "text": "ince",
+      "startMs": 6740,
+      "endMs": 6997
+    },
+    {
+      "text": "bir",
+      "startMs": 6997,
+      "endMs": 7161
+    },
+    {
+      "text": "metal",
+      "startMs": 7160,
+      "endMs": 7510
+    },
+    {
+      "text": "ekran",
+      "startMs": 7511,
+      "endMs": 7932
+    },
+    {
+      "text": "Fırının",
+      "startMs": 8142,
+      "endMs": 8598
+    },
+    {
+      "text": "içindeki",
+      "startMs": 8597,
+      "endMs": 9018
+    },
+    {
+      "text": "magnetron",
+      "startMs": 9018,
+      "endMs": 9672
+    },
+    {
+      "text": "yaklaşık",
+      "startMs": 9777,
+      "endMs": 10279
+    },
+    {
+      "text": "2,45",
+      "startMs": 10291,
+      "endMs": 11354
+    },
+    {
+      "text": "gigahertzlik",
+      "startMs": 11354,
+      "endMs": 11926
+    },
+    {
+      "text": "mikrodalgalar",
+      "startMs": 11938,
+      "endMs": 12662
+    },
+    {
+      "text": "üretir",
+      "startMs": 12663,
+      "endMs": 13025
+    },
+    {
+      "text": "Bu",
+      "startMs": 13235,
+      "endMs": 13422
+    },
+    {
+      "text": "dalgaların",
+      "startMs": 13620,
+      "endMs": 14204
+    },
+    {
+      "text": "boyu",
+      "startMs": 14204,
+      "endMs": 14449
+    },
+    {
+      "text": "yaklaşık",
+      "startMs": 14450,
+      "endMs": 14952
+    },
+    {
+      "text": "12",
+      "startMs": 14964,
+      "endMs": 15326
+    },
+    {
+      "text": "santimetredir",
+      "startMs": 15326,
+      "endMs": 16120
+    },
+    {
+      "text": "Ağdaki",
+      "startMs": 16330,
+      "endMs": 16902
+    },
+    {
+      "text": "delikler",
+      "startMs": 16902,
+      "endMs": 17334
+    },
+    {
+      "text": "ise",
+      "startMs": 17334,
+      "endMs": 17614
+    },
+    {
+      "text": "yalnızca",
+      "startMs": 17626,
+      "endMs": 18163
+    },
+    {
+      "text": "birkaç",
+      "startMs": 18164,
+      "endMs": 18573
+    },
+    {
+      "text": "milimetre",
+      "startMs": 18584,
+      "endMs": 19121
+    },
+    {
+      "text": "Bu",
+      "startMs": 19331,
+      "endMs": 19623
+    },
+    {
+      "text": "yüzden",
+      "startMs": 19728,
+      "endMs": 20114
+    },
+    {
+      "text": "mikrodalgalar",
+      "startMs": 20113,
+      "endMs": 20872
+    },
+    {
+      "text": "metalden",
+      "startMs": 20873,
+      "endMs": 21387
+    },
+    {
+      "text": "geri",
+      "startMs": 21398,
+      "endMs": 21620
+    },
+    {
+      "text": "yansır",
+      "startMs": 21620,
+      "endMs": 22052
+    },
+    {
+      "text": "çok",
+      "startMs": 22240,
+      "endMs": 22450
+    },
+    {
+      "text": "daha",
+      "startMs": 22462,
+      "endMs": 22661
+    },
+    {
+      "text": "kısa",
+      "startMs": 22660,
+      "endMs": 22917
+    },
+    {
+      "text": "görünür",
+      "startMs": 22917,
+      "endMs": 23267
+    },
+    {
+      "text": "ışık",
+      "startMs": 23268,
+      "endMs": 23525
+    },
+    {
+      "text": "deliklerden",
+      "startMs": 23525,
+      "endMs": 24144
+    },
+    {
+      "text": "geçer",
+      "startMs": 24144,
+      "endMs": 24541
+    },
+    {
+      "text": "Yani",
+      "startMs": 24751,
+      "endMs": 25288
+    },
+    {
+      "text": "sen",
+      "startMs": 25288,
+      "endMs": 25533
+    },
+    {
+      "text": "yemeği",
+      "startMs": 25533,
+      "endMs": 25837
+    },
+    {
+      "text": "görürsün",
+      "startMs": 25837,
+      "endMs": 26409
+    },
+    {
+      "text": "mikrodalgalar",
+      "startMs": 26561,
+      "endMs": 27297
+    },
+    {
+      "text": "içeride",
+      "startMs": 27297,
+      "endMs": 27659
+    },
+    {
+      "text": "kalır",
+      "startMs": 27660,
+      "endMs": 28010
+    },
+    {
+      "text": "Küçük",
+      "startMs": 28220,
+      "endMs": 28641
+    },
+    {
+      "text": "delikler",
+      "startMs": 28640,
+      "endMs": 29142
+    },
+    {
+      "text": "büyük",
+      "startMs": 29330,
+      "endMs": 29622
+    },
+    {
+      "text": "bir",
+      "startMs": 29622,
+      "endMs": 29809
+    },
+    {
+      "text": "güvenlik",
+      "startMs": 29809,
+      "endMs": 30230
+    },
+    {
+      "text": "görevi",
+      "startMs": 30229,
+      "endMs": 30556
+    },
+    {
+      "text": "yapıyor",
+      "startMs": 30556,
+      "endMs": 30942
+    }
+  ],
+  "sources": [
+    {
+      "name": "Microwave Ovens",
+      "credit": "U.S. Food and Drug Administration",
+      "url": "https://www.fda.gov/radiation-emitting-products/resources-you-radiation-emitting-products/microwave-ovens"
+    },
+    {
+      "name": "Grandma's Microwave Oven",
+      "credit": "University of Illinois Physics Van",
+      "url": "https://van.physics.illinois.edu/ask/listing/12217"
+    }
+  ],
+  "visuals": {
+    "credit": "OpenAI ImageGen ile konuya özel üretildi"
+  }
+}

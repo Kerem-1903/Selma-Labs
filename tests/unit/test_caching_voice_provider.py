@@ -13,6 +13,7 @@ import pytest
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.value_objects.generated_audio import GeneratedAudio
 from core.domain.value_objects.speech_segment import SpeechSegment
+from core.domain.value_objects.voice_direction import VoiceDirection
 from infrastructure.providers.voice.caching_voice_provider import CachingVoiceProvider
 
 
@@ -24,7 +25,9 @@ class CountingVoiceProvider(VoiceGeneratorPort):
         self.call_count = 0
         self._segments = segments or []
 
-    async def generate_voice(self, text: str, voice_name: str) -> GeneratedAudio:
+    async def generate_voice(
+        self, text: str, voice_name: str, *, direction=None
+    ) -> GeneratedAudio:
         self.call_count += 1
         return GeneratedAudio(
             audio_bytes=f"audio-for-{text}-{voice_name}".encode(),
@@ -83,6 +86,30 @@ async def test_different_provider_identity_is_a_cache_miss(tmp_path):
 
     assert inner_a.call_count == 1
     assert inner_b.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_different_voice_direction_is_a_cache_miss(tmp_path):
+    inner = CountingVoiceProvider()
+    cache = CachingVoiceProvider(inner, cache_dir=str(tmp_path), provider_identity="fake:v1")
+    base = dict(
+        profile="wonder",
+        stability=0.38,
+        style=0.42,
+        maximum_pause_ms=450,
+        hook_delivery="bright_curiosity",
+        explanation_delivery="warm_clear_explanation",
+        payoff_delivery="satisfying_smile_in_the_voice",
+    )
+
+    await cache.generate_voice(
+        "Hello world", "voice-a", direction=VoiceDirection(speed=1.04, **base)
+    )
+    await cache.generate_voice(
+        "Hello world", "voice-a", direction=VoiceDirection(speed=1.00, **base)
+    )
+
+    assert inner.call_count == 2
 
 
 @pytest.mark.asyncio

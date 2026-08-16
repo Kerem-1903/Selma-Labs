@@ -1,0 +1,378 @@
+{
+  "script": "Venüs, bir gününü bitiremeden koskoca bir yılı tamamlıyor. Çünkü kendi ekseninde o kadar yavaş dönüyor ki, tek turu 243 Dünya günü sürüyor. Buna yıldız günü deniyor. Oysa Güneş'in çevresindeki bir turunu 225 günde tamamlıyor. Yani Venüs'ün günü, yılından 18 Dünya günü daha uzun. Üstelik çoğu gezegenin tersine, doğudan batıya dönüyor. Ama burada küçük bir ayrıntı var. Venüs yüzeyinde, bir gün doğumundan diğerine kadar geçen güneş günü yaklaşık 117 Dünya günü sürüyor.",
+  "durationMs": 30504,
+  "words": [
+    {
+      "text": "Venüs",
+      "startMs": 0,
+      "endMs": 560
+    },
+    {
+      "text": "bir",
+      "startMs": 726,
+      "endMs": 928
+    },
+    {
+      "text": "gününü",
+      "startMs": 964,
+      "endMs": 1285
+    },
+    {
+      "text": "bitiremeden",
+      "startMs": 1285,
+      "endMs": 1880
+    },
+    {
+      "text": "koskoca",
+      "startMs": 1881,
+      "endMs": 2357
+    },
+    {
+      "text": "bir",
+      "startMs": 2357,
+      "endMs": 2547
+    },
+    {
+      "text": "yılı",
+      "startMs": 2547,
+      "endMs": 2749
+    },
+    {
+      "text": "tamamlıyor",
+      "startMs": 2750,
+      "endMs": 3321
+    },
+    {
+      "text": "Çünkü",
+      "startMs": 3611,
+      "endMs": 3980
+    },
+    {
+      "text": "kendi",
+      "startMs": 3980,
+      "endMs": 4290
+    },
+    {
+      "text": "ekseninde",
+      "startMs": 4289,
+      "endMs": 4777
+    },
+    {
+      "text": "o",
+      "startMs": 4777,
+      "endMs": 4932
+    },
+    {
+      "text": "kadar",
+      "startMs": 4932,
+      "endMs": 5265
+    },
+    {
+      "text": "yavaş",
+      "startMs": 5265,
+      "endMs": 5586
+    },
+    {
+      "text": "dönüyor",
+      "startMs": 5587,
+      "endMs": 5944
+    },
+    {
+      "text": "ki",
+      "startMs": 5980,
+      "endMs": 6182
+    },
+    {
+      "text": "tek",
+      "startMs": 6313,
+      "endMs": 6503
+    },
+    {
+      "text": "turu",
+      "startMs": 6527,
+      "endMs": 6777
+    },
+    {
+      "text": "243",
+      "startMs": 6789,
+      "endMs": 7527
+    },
+    {
+      "text": "Dünya",
+      "startMs": 7563,
+      "endMs": 7825
+    },
+    {
+      "text": "günü",
+      "startMs": 7825,
+      "endMs": 8039
+    },
+    {
+      "text": "sürüyor",
+      "startMs": 8039,
+      "endMs": 8456
+    },
+    {
+      "text": "Buna",
+      "startMs": 8746,
+      "endMs": 9175
+    },
+    {
+      "text": "yıldız",
+      "startMs": 9210,
+      "endMs": 9579
+    },
+    {
+      "text": "günü",
+      "startMs": 9579,
+      "endMs": 9793
+    },
+    {
+      "text": "deniyor",
+      "startMs": 9793,
+      "endMs": 10186
+    },
+    {
+      "text": "Oysa",
+      "startMs": 10476,
+      "endMs": 10821
+    },
+    {
+      "text": "Güneş'in",
+      "startMs": 10928,
+      "endMs": 11321
+    },
+    {
+      "text": "çevresindeki",
+      "startMs": 11321,
+      "endMs": 12011
+    },
+    {
+      "text": "bir",
+      "startMs": 12011,
+      "endMs": 12178
+    },
+    {
+      "text": "turunu",
+      "startMs": 12178,
+      "endMs": 12571
+    },
+    {
+      "text": "225",
+      "startMs": 12678,
+      "endMs": 13499
+    },
+    {
+      "text": "günde",
+      "startMs": 13499,
+      "endMs": 13749
+    },
+    {
+      "text": "tamamlıyor",
+      "startMs": 13749,
+      "endMs": 14332
+    },
+    {
+      "text": "Yani",
+      "startMs": 14622,
+      "endMs": 15205
+    },
+    {
+      "text": "Venüs'ün",
+      "startMs": 15205,
+      "endMs": 15586
+    },
+    {
+      "text": "günü",
+      "startMs": 15586,
+      "endMs": 15907
+    },
+    {
+      "text": "yılından",
+      "startMs": 16050,
+      "endMs": 16586
+    },
+    {
+      "text": "18",
+      "startMs": 16622,
+      "endMs": 17098
+    },
+    {
+      "text": "Dünya",
+      "startMs": 17098,
+      "endMs": 17384
+    },
+    {
+      "text": "günü",
+      "startMs": 17384,
+      "endMs": 17598
+    },
+    {
+      "text": "daha",
+      "startMs": 17598,
+      "endMs": 17836
+    },
+    {
+      "text": "uzun",
+      "startMs": 17836,
+      "endMs": 18217
+    },
+    {
+      "text": "Üstelik",
+      "startMs": 18507,
+      "endMs": 19150
+    },
+    {
+      "text": "çoğu",
+      "startMs": 19149,
+      "endMs": 19411
+    },
+    {
+      "text": "gezegenin",
+      "startMs": 19411,
+      "endMs": 19947
+    },
+    {
+      "text": "tersine",
+      "startMs": 19947,
+      "endMs": 20483
+    },
+    {
+      "text": "doğudan",
+      "startMs": 20661,
+      "endMs": 21113
+    },
+    {
+      "text": "batıya",
+      "startMs": 21114,
+      "endMs": 21435
+    },
+    {
+      "text": "dönüyor",
+      "startMs": 21435,
+      "endMs": 21828
+    },
+    {
+      "text": "Ama",
+      "startMs": 22118,
+      "endMs": 22320
+    },
+    {
+      "text": "burada",
+      "startMs": 22463,
+      "endMs": 22820
+    },
+    {
+      "text": "küçük",
+      "startMs": 22820,
+      "endMs": 23153
+    },
+    {
+      "text": "bir",
+      "startMs": 23153,
+      "endMs": 23320
+    },
+    {
+      "text": "ayrıntı",
+      "startMs": 23320,
+      "endMs": 23737
+    },
+    {
+      "text": "var",
+      "startMs": 23737,
+      "endMs": 23999
+    },
+    {
+      "text": "Venüs",
+      "startMs": 24289,
+      "endMs": 24884
+    },
+    {
+      "text": "yüzeyinde",
+      "startMs": 24896,
+      "endMs": 25444
+    },
+    {
+      "text": "bir",
+      "startMs": 25646,
+      "endMs": 25825
+    },
+    {
+      "text": "gün",
+      "startMs": 25836,
+      "endMs": 25991
+    },
+    {
+      "text": "doğumundan",
+      "startMs": 25991,
+      "endMs": 26586
+    },
+    {
+      "text": "diğerine",
+      "startMs": 26586,
+      "endMs": 26967
+    },
+    {
+      "text": "kadar",
+      "startMs": 26967,
+      "endMs": 27288
+    },
+    {
+      "text": "geçen",
+      "startMs": 27289,
+      "endMs": 27646
+    },
+    {
+      "text": "güneş",
+      "startMs": 27646,
+      "endMs": 27979
+    },
+    {
+      "text": "günü",
+      "startMs": 27979,
+      "endMs": 28169
+    },
+    {
+      "text": "yaklaşık",
+      "startMs": 28170,
+      "endMs": 28670
+    },
+    {
+      "text": "117",
+      "startMs": 28681,
+      "endMs": 29264
+    },
+    {
+      "text": "Dünya",
+      "startMs": 29265,
+      "endMs": 29527
+    },
+    {
+      "text": "günü",
+      "startMs": 29527,
+      "endMs": 29741
+    },
+    {
+      "text": "sürüyor",
+      "startMs": 29741,
+      "endMs": 30146
+    }
+  ],
+  "sources": [
+    {
+      "name": "Venus from Mariner 10",
+      "credit": "NASA/JPL-Caltech",
+      "url": "https://science.nasa.gov/photojournal/venus-from-mariner-10/"
+    },
+    {
+      "name": "Magellan global views of Venus",
+      "credit": "NASA/JPL",
+      "url": "https://science.nasa.gov/photojournal/venus-computer-simulated-global-view-centered-at-0-degrees-east-longitude/"
+    },
+    {
+      "name": "Evolution of Venus Animations",
+      "credit": "NASA Goddard Space Flight Center Conceptual Image Lab",
+      "url": "https://svs.gsfc.nasa.gov/20308/"
+    }
+  ]
+}

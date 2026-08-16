@@ -1,0 +1,22 @@
+{
+  "fps": 30,
+  "durationInFrames": 720,
+  "title": "Ahtapotların neden üç kalbi vardır?",
+  "hookText": "3 KALP?!",
+  "brandSignature": "STRANGE THINGS",
+  "ctaText": "WHAT SURPRISED YOU MOST?",
+  "scenes": [
+    {"startFrame": 0, "durationFrames": 105, "motion": "fast-paced", "shotType": "macro-close-up", "visualJob": "open_hook", "labels": [], "transition": "hard"},
+    {"startFrame": 105, "durationFrames": 150, "motion": "steady", "shotType": "close-up", "visualJob": "locate_part", "labels": ["1. SOLUNGAÇ KALBİ", "2. SOLUNGAÇ KALBİ"], "transition": "push"},
+    {"startFrame": 255, "durationFrames": 150, "motion": "slow-motion", "shotType": "medium", "visualJob": "demonstrate_mechanism", "labels": ["SİSTEMİK KALP", "VÜCUDA KAN"], "transition": "match_zoom"},
+    {"startFrame": 405, "durationFrames": 165, "motion": "fast-paced", "shotType": "wide", "visualJob": "show_consequence", "labels": ["YÜZERKEN DURUR", "ÇABUK YORULUR"], "transition": "impact_flash"},
+    {"startFrame": 570, "durationFrames": 150, "motion": "steady", "shotType": "macro-close-up", "visualJob": "deliver_payoff", "labels": ["ÜÇ KALP", "TEK İŞ BÖLÜMÜ"], "transition": "mask_reveal"}
+  ],
+  "captions": [
+    {"startFrame": 8, "endFrame": 90, "words": [{"text": "Bir", "startFrame": 8, "endFrame": 20}, {"text": "ahtapotun", "startFrame": 20, "endFrame": 44}, {"text": "üç", "startFrame": 44, "endFrame": 58}, {"text": "kalbi", "startFrame": 58, "endFrame": 73}, {"text": "var", "startFrame": 73, "endFrame": 90}]},
+    {"startFrame": 110, "endFrame": 220, "words": [{"text": "İkisi", "startFrame": 110, "endFrame": 135}, {"text": "kanı", "startFrame": 135, "endFrame": 155}, {"text": "solungaçlardan", "startFrame": 155, "endFrame": 190}, {"text": "geçiriyor", "startFrame": 190, "endFrame": 220}]},
+    {"startFrame": 270, "endFrame": 375, "words": [{"text": "Üçüncüsü", "startFrame": 270, "endFrame": 300}, {"text": "vücuda", "startFrame": 300, "endFrame": 330}, {"text": "kan", "startFrame": 330, "endFrame": 346}, {"text": "pompalıyor", "startFrame": 346, "endFrame": 375}]},
+    {"startFrame": 430, "endFrame": 540, "words": [{"text": "Yüzerken", "startFrame": 430, "endFrame": 458}, {"text": "ana", "startFrame": 458, "endFrame": 474}, {"text": "kalbi", "startFrame": 474, "endFrame": 495}, {"text": "duruyor", "startFrame": 495, "endFrame": 520}, {"text": "bile", "startFrame": 520, "endFrame": 540}]},
+    {"startFrame": 585, "endFrame": 690, "words": [{"text": "Bu", "startFrame": 585, "endFrame": 602}, {"text": "yüzden", "startFrame": 602, "endFrame": 627}, {"text": "çabuk", "startFrame": 627, "endFrame": 650}, {"text": "yoruluyor", "startFrame": 650, "endFrame": 690}]}
+  ]
+}

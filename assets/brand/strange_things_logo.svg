@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Strange Things ST portal logo</title>
+  <desc id="desc">An ST monogram inside a broken cyan and gold portal ring.</desc>
+  <defs>
+    <radialGradient id="background" cx="50%" cy="42%" r="68%">
+      <stop offset="0" stop-color="#172033"/>
+      <stop offset="0.72" stop-color="#050912"/>
+      <stop offset="1" stop-color="#010308"/>
+    </radialGradient>
+    <filter id="cyan-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="24" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="gold-glow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="18" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" rx="220" fill="#02040A"/>
+  <circle cx="512" cy="512" r="414" fill="url(#background)" stroke="#FFFFFF" stroke-opacity=".14" stroke-width="18"/>
+  <path d="M210 630 A390 390 0 0 1 748 184" fill="none" stroke="#22D3EE" stroke-width="54" stroke-linecap="round" filter="url(#cyan-glow)"/>
+  <path d="M824 382 A390 390 0 0 1 272 842" fill="none" stroke="#FFD700" stroke-width="44" stroke-linecap="round" filter="url(#gold-glow)"/>
+  <circle cx="824" cy="382" r="42" fill="#FFD700"/>
+  <circle cx="210" cy="630" r="42" fill="#22D3EE"/>
+  <text x="512" y="635" fill="#FFFFFF" font-family="Arial Black, Arial, sans-serif" font-size="340" font-weight="900" letter-spacing="-34" text-anchor="middle">ST</text>
+</svg>

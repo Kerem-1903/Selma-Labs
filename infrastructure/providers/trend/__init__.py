@@ -1,0 +1,1 @@
+"""Trend discovery provider adapters."""

@@ -2,94 +2,47 @@
 
 ## Completed
 
-**Sprint 1**
-- Script Generation
-- Claude provider
-- ScriptService
-- Tests
-
-**Sprint 2**
-- Voice Generation
-- ElevenLabs
-- StoragePort
-- VoiceService
-- Tests
-
-**Sprint 2.1**
-- CachingVoiceProvider
-- SpeechSegment model
-- JSON export
-- Decorator cache
-- Tests
-
-**Sprint 3**
-- Video Search
-- Pexels provider
-- MediaAsset
-- VideoSearchService
-- Tests
-
-**Sprint 4**
-- Scene Planning
-- ScenePlan
-- ScenePlanningService
-- ClaudeScenePlanningProvider
-- Timeline estimation
-- Tests
-
-**Sprint 5**
-- Scene Asset Matching
-- AssetMatchPlan
-- SceneAssetMatch
-- VideoSearchService.search()
-- Deterministic ranking
-- match_assets.py
-- Tests
-
-**Sprint 6**
-- Timeline Creation
-- Timeline / TimelineClip
-- VideoSearchService.download()
-- TimelineService
-- create_timeline.py
-- Tests
-
-**Sprint 7**
-- Video Rendering
-- RenderResult / RenderedVideo
-- RenderPort / FfmpegRenderProvider
-- RenderService
-- render_video.py
-- Tests
-
-**Sprint 8**
-- Automatic Subtitle Generation
-- SubtitleTrack / SubtitleCue
-- SubtitleFormatter (SRT/WebVTT, no new Port)
-- SubtitleService
-- generate_subtitles.py
-- render_video.py --subtitle flag
-- Tests
+- Unified durable topic/audio factory
+- Source-grounded fact check and bounded rewrite loop
+- ElevenLabs narration cache and WhisperX approved-script alignment
+- Time-coded hook/context/evidence/payoff storyboard
+- English visual-query localization with topic anchoring
+- Pexels portrait search, thumbnail preflight, AI Vision scoring, and clean-content gates
+- OpenAI → NVIDIA provider fallback and structured-response recovery
+- 2–5 word ASS karaoke subtitles
+- Licensed-music selection with safe narration-only fallback
+- Single-pass CRF 17 render, sidechain mix, procedural accents, and loudness normalization
+- Technical plus content-level post-render QA
+- Complete YouTube upload package and source rights metadata
+- Checkpoint resume, explicit retry extension, and downstream reprocessing
+- Live Turkish end-to-end validation
+- Narrative contract, explicit hook/answer/payoff beats, and fail-closed creative
+  script QA before voice generation
+- Semantic storyboard jobs with required subjects, actions, relations, and
+  dominant-distraction rejection
+- Mobile-safe explanatory labels for anatomy/mechanism beats that generic stock
+  footage cannot communicate alone
+- Crop-aware visual fingerprints plus source/pose/angle/background reuse budgets
+- Phrase-aligned hard cuts and a fail-closed low-motion editorial rhythm gate
+- Purposeful motion grammar for animated caption entry, explanatory cards,
+  mechanism arrows, semantic camera movement, and payoff landing
+- Sentence/clause-aware mobile captions with styled-width and vertical UI safety gates
+- Automated 100%, 75%, and small-phone caption preview frames plus SRT sidecar
+- Evidence-backed 100-point creative quality gate with mandatory truth, rights,
+  relevance, caption, and upload-safety blockers
+- Deterministic multi-hook experiment ranking and channel-relative YouTube
+  performance learning records
+- Automatic production preflight for tools, provider configuration, storage,
+  disk space, render profile, and the explicit Vision budget switch
+- Checksummed, inter-process locked, atomically replaced YouTube performance
+  history with legacy migration and recoverable previous snapshot
 
 ## Current total
 
-174 passing tests
+**466 passing tests, 0 failures.**
 
-Architecture remains frozen.
+## Remaining non-code input
 
-## Next sprint
-
-Nothing scoped yet. The pipeline (Script -> VoiceTrack -> ScenePlan ->
-AssetMatchPlan -> Timeline -> RenderedVideo, with SubtitleTrack as a
-parallel branch off ScenePlan) is now end-to-end complete through
-rendering and subtitle export. Candidate future directions named in prior
-sprints' "Future Enhancements" sections (unmatched-scene recovery, AI
-Vision ranking, render engine fallback, hard-burned captions,
-SubtitleStyle, translated subtitles, transitions/music, YouTube
-publishing) are not yet sequenced into a sprint.
-
-Do not redesign previous sprints.
-
-Do not change public APIs unless absolutely necessary.
-
-Explain architectural reasoning before code changes.
+The local licensed music library has no real `assets/music/license_manifest.json` yet.
+Add licensed tracks and their attribution metadata when a background music bed is
+required. The current output remains safe and publishable as narration-only.

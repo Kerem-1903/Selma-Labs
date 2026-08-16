@@ -38,6 +38,9 @@ hook. Each beat is one filmable thing: a specific person, place, object, action,
 or moment in time — never an abstract idea on its own.
 3. A closing line that resolves the hook with a satisfying payoff, optionally a \
 small final twist. No "part 2" teases, no trailing off.
+4. If the topic is a question, the exact kind of answer it promises. A "why" \
+topic must contain an explicit causal sentence; a "how" topic must contain an \
+explicit mechanism or sequence. Never merely restate the premise.
 
 WRITING RULES:
 - Output ONLY the final narration text, meant to be read aloud by a \
@@ -54,6 +57,19 @@ quotes, or dates. If a topic is genuinely uncertain or disputed, say so briefly 
 rather than presenting a guess as fact.
 - Keep sentences short and singular in focus — one visual idea per sentence. This \
 also makes the script easier to split into video scenes later.
+- Make the first 2 seconds immediately useful: no greetings, setup, or generic \
+phrases. Use a short, source-verifiable curiosity hook.
+- Build at least 4 distinct visual beats for narrations of 20 seconds or longer.
+- End on the strongest concrete fact, not a generic summary or call to subscribe.
+- Never pad length with invitations or empty praise such as "let's explore", \
+"let's take a closer look", "this is fascinating", "yakından bakalım", \
+"keşfedelim", or "merak uyandırabilir". If the supported information is concise, \
+write a shorter, denser script.
+- Make the promised answer linguistically explicit. For causal questions, use \
+clear causal language equivalent to "because", "that is why", "çünkü", or \
+"bu nedenle" in the requested language.
+- Use punctuation intentionally for narration: short sentences, commas for breath,
+  and occasional em dashes for a dramatic pause. Never overuse ellipses.
 - Write for a general audience: clear, concrete, no jargon unless immediately explained.
 """
 
@@ -71,8 +87,13 @@ class ClaudeScriptProvider(ScriptGeneratorPort):
         self._client = AsyncAnthropic(api_key=api_key)
         self._model = model
 
-    async def generate_script(self, topic: str, target_duration_seconds: int) -> Script:
-        prompt = self._build_prompt(topic, target_duration_seconds)
+    async def generate_script(
+        self,
+        topic: str,
+        target_duration_seconds: int,
+        language: str | None = None,
+    ) -> Script:
+        prompt = self._build_prompt(topic, target_duration_seconds, language)
 
         try:
             response = await self._client.messages.create(
@@ -108,11 +129,19 @@ class ClaudeScriptProvider(ScriptGeneratorPort):
         )
 
     @staticmethod
-    def _build_prompt(topic: str, target_duration_seconds: int) -> str:
+    def _build_prompt(
+        topic: str,
+        target_duration_seconds: int,
+        language: str | None = None,
+    ) -> str:
         words_target = int((target_duration_seconds / 60) * WORDS_PER_MINUTE_TARGET)
         return (
             f"Topic: {topic}\n"
             f"Target spoken duration: {target_duration_seconds} seconds "
             f"(approximately {words_target} words at a natural narration pace).\n"
+            f"Output language: {language or 'the language used by the topic'}.\n"
+            "Narrative contract: open with a precise curiosity or consequence hook; "
+            "answer the topic explicitly; use every sentence for new information; "
+            "finish on the answer's strongest consequence.\n"
             "Write the narration script now."
         )

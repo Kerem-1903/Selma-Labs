@@ -1,0 +1,18 @@
+{
+  "schema_version": 2,
+  "tracks": [
+    {
+      "file": "space-curiosity-bed.mp3",
+      "title": "Space Curiosity Bed",
+      "themes": ["mystery", "wonder", "science", "space", "venus"],
+      "attribution": "SELMA Labs — original procedural synthesis",
+      "license": "Original project asset; cleared for commercial publication",
+      "source_url": "selma://original-audio/space-curiosity-bed",
+      "sha256": "b9b71688e309ce41560e853b28883d61fe35fa9e47c412ea3d676bd4ba86accc",
+      "evidence_reference": "Original procedural master stored in this repository",
+      "commercial_use": true,
+      "youtube_allowed": true,
+      "attribution_required": false
+    }
+  ]
+}

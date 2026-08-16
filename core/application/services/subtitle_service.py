@@ -113,7 +113,11 @@ from core.domain.value_objects.subtitle_cue import SubtitleCue
 
 logger = logging.getLogger("selma.subtitle_service")
 
-SUBTITLE_CONTENT_TYPES = {"srt": "text/plain", "vtt": "text/vtt"}
+SUBTITLE_CONTENT_TYPES = {
+    "srt": "text/plain",
+    "vtt": "text/vtt",
+    "ass": "text/x-ssa",
+}
 
 # Hybrid proportional timing weights (see module docstring).
 _CHARACTER_WEIGHT = 0.7
@@ -236,6 +240,7 @@ class SubtitleService:
         """
         srt_text = SubtitleFormatter.format_srt(track)
         vtt_text = SubtitleFormatter.format_vtt(track)
+        ass_text = SubtitleFormatter.format_ass(track)
 
         srt_reference = await self._storage.save(
             key=f"{base_key}.srt",
@@ -247,6 +252,11 @@ class SubtitleService:
             data=vtt_text.encode("utf-8"),
             content_type=SUBTITLE_CONTENT_TYPES["vtt"],
         )
+        ass_reference = await self._storage.save(
+            key=f"{base_key}.ass",
+            data=ass_text.encode("utf-8"),
+            content_type=SUBTITLE_CONTENT_TYPES["ass"],
+        )
 
         logger.info(
             "subtitle_export_completed",
@@ -257,7 +267,7 @@ class SubtitleService:
             },
         )
 
-        return {"srt": srt_reference, "vtt": vtt_reference}
+        return {"srt": srt_reference, "vtt": vtt_reference, "ass": ass_reference}
 
     # -- Internal helpers ------------------------------------------------
 

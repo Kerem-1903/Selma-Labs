@@ -18,7 +18,12 @@ class ScriptGeneratorPort(ABC):
     """Produces a narration-ready script for a given topic and duration."""
 
     @abstractmethod
-    async def generate_script(self, topic: str, target_duration_seconds: int) -> Script:
+    async def generate_script(
+        self,
+        topic: str,
+        target_duration_seconds: int,
+        language: str | None = None,
+    ) -> Script:
         """Generate a spoken-narration script about ``topic``.
 
         Implementations are responsible for researching the topic (facts,
@@ -30,6 +35,7 @@ class ScriptGeneratorPort(ABC):
                 Empire collapse?"
             target_duration_seconds: Desired spoken length, used by the
                 implementation to target an appropriate word count.
+            language: Optional output language code or name.
 
         Returns:
             A populated Script entity.

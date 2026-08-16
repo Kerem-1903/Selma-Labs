@@ -20,6 +20,7 @@ Two responsibilities live on this Port, not in the application layer:
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 
 from core.domain.entities.media_asset import MediaAsset
 
@@ -74,3 +75,13 @@ class VideoSourcePort(ABC):
             ProviderError: Any other provider-side failure.
         """
         raise NotImplementedError
+
+    async def download_stream(self, asset: MediaAsset) -> AsyncIterator[bytes]:
+        """Stream asset bytes, with a compatibility fallback for adapters.
+
+        Providers serving large remote media should override this method so
+        callers do not need to buffer an entire video in memory.
+        """
+        data = await self.download(asset)
+        if data:
+            yield data

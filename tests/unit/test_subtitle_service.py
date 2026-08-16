@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import pytest
 
+from core.application.services.subtitle_formatter import SubtitleFormatter
 from core.application.services.subtitle_service import SubtitleService
 from core.domain.entities.scene_plan import ScenePlan
 from core.domain.exceptions import StorageError, SubtitleGenerationError
@@ -230,7 +231,7 @@ def test_constructor_rejects_non_positive_configuration():
 
 
 @pytest.mark.asyncio
-async def test_export_persists_both_srt_and_vtt_under_base_key():
+async def test_export_persists_srt_vtt_and_ass_under_base_key():
     plan = _scene_plan([_scene()])
     storage = FakeStorage()
     service = SubtitleService(storage=storage)
@@ -238,7 +239,7 @@ async def test_export_persists_both_srt_and_vtt_under_base_key():
 
     references = await service.export(track, base_key="render/video-123")
 
-    assert set(references.keys()) == {"srt", "vtt"}
+    assert set(references.keys()) == {"srt", "vtt", "ass"}
     assert references["srt"].key == "render/video-123.srt"
     assert references["vtt"].key == "render/video-123.vtt"
     assert "render/video-123.srt" in storage.saved
@@ -256,6 +257,19 @@ async def test_export_uses_expected_content_types():
 
     assert storage.saved_content_types["subtitles/track-1.srt"] == "text/plain"
     assert storage.saved_content_types["subtitles/track-1.vtt"] == "text/vtt"
+    assert storage.saved_content_types["subtitles/track-1.ass"] == "text/x-ssa"
+
+
+def test_premium_ass_highlights_words_and_supports_contextual_emoji():
+    plan = _scene_plan([_scene(narration="Ocean animals glow")])
+    service = SubtitleService(storage=FakeStorage(), max_chars_per_line=24, max_lines_per_cue=1)
+    track = service.generate(plan)
+
+    ass = SubtitleFormatter.format_ass(track)
+
+    assert ass.count("Dialogue: 0,") == 3
+    assert "&H0000D7FF&" in ass
+    assert "🌊" in ass
 
 
 @pytest.mark.asyncio

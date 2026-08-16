@@ -24,6 +24,10 @@ from core.domain.exceptions import VoiceGenerationError
 from core.domain.ports.storage_port import StoragePort
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.value_objects.generated_audio import GeneratedAudio
+from core.application.services.voice_direction_service import VoiceDirectionService
+from core.application.services.narration_text_preparation_service import (
+    NarrationTextPreparationService,
+)
 
 logger = logging.getLogger("selma.voice_service")
 
@@ -39,10 +43,14 @@ class VoiceService:
         provider: VoiceGeneratorPort,
         storage: StoragePort,
         default_voice_name: str,
+        direction_service: VoiceDirectionService | None = None,
+        text_preparation_service: NarrationTextPreparationService | None = None,
     ) -> None:
         self._provider = provider
         self._storage = storage
         self._default_voice_name = default_voice_name
+        self._direction_service = direction_service
+        self._text_preparation_service = text_preparation_service
 
     async def generate(self, script: Script, voice_name: Optional[str] = None) -> VoiceTrack:
         """Generate and persist narration audio for ``script``.
@@ -70,8 +78,21 @@ class VoiceService:
             extra={"script_id": script.id, "voice_name": resolved_voice_name},
         )
 
+        direction = (
+            self._direction_service.plan(script)
+            if self._direction_service is not None
+            else None
+        )
+        preparation = (
+            self._text_preparation_service.prepare(script)
+            if self._text_preparation_service is not None
+            else None
+        )
+        spoken_text = preparation.spoken_text if preparation is not None else script.full_text
         audio = await self._provider.generate_voice(
-            text=script.full_text, voice_name=resolved_voice_name
+            text=spoken_text,
+            voice_name=resolved_voice_name,
+            direction=direction,
         )
 
         self._validate_output(audio)
@@ -89,6 +110,11 @@ class VoiceService:
             sample_rate=audio.sample_rate,
             file_path=reference.path,
             segments=audio.segments,
+            direction=direction,
+            spoken_text=spoken_text,
+            pronunciation_replacements=(
+                preparation.replacements if preparation is not None else ()
+            ),
         )
 
         logger.info(

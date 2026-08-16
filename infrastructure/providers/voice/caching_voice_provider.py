@@ -32,6 +32,7 @@ from typing import Optional
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.value_objects.generated_audio import GeneratedAudio
 from core.domain.value_objects.speech_segment import SpeechSegment
+from core.domain.value_objects.voice_direction import VoiceDirection
 
 logger = logging.getLogger("selma.voice_cache")
 
@@ -44,8 +45,14 @@ class CachingVoiceProvider(VoiceGeneratorPort):
         self._cache_dir = Path(cache_dir)
         self._provider_identity = provider_identity
 
-    async def generate_voice(self, text: str, voice_name: str) -> GeneratedAudio:
-        cache_key = self._compute_key(text, voice_name)
+    async def generate_voice(
+        self,
+        text: str,
+        voice_name: str,
+        *,
+        direction: VoiceDirection | None = None,
+    ) -> GeneratedAudio:
+        cache_key = self._compute_key(text, voice_name, direction=direction)
 
         cached = self._read_cache(cache_key)
         if cached is not None:
@@ -55,13 +62,30 @@ class CachingVoiceProvider(VoiceGeneratorPort):
         logger.info("voice_cache_miss", extra={"cache_key": cache_key})
         # Errors from the inner provider (auth, timeout, quota, etc.)
         # propagate unchanged — caching must never mask or alter them.
-        audio = await self._inner.generate_voice(text=text, voice_name=voice_name)
+        audio = await self._inner.generate_voice(
+            text=text,
+            voice_name=voice_name,
+            direction=direction,
+        )
 
         self._write_cache(cache_key, audio)
         return audio
 
-    def _compute_key(self, text: str, voice_name: str) -> str:
-        payload = f"{self._provider_identity}|{voice_name}|{text}".encode("utf-8")
+    def _compute_key(
+        self,
+        text: str,
+        voice_name: str,
+        *,
+        direction: VoiceDirection | None = None,
+    ) -> str:
+        direction_payload = json.dumps(
+            direction.to_dict() if direction else None,
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        payload = (
+            f"{self._provider_identity}|{voice_name}|{direction_payload}|{text}"
+        ).encode("utf-8")
         return hashlib.sha256(payload).hexdigest()
 
     def _read_cache(self, key: str) -> Optional[GeneratedAudio]:

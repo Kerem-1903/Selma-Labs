@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from core.domain.value_objects.speech_segment import SpeechSegment
+from core.domain.value_objects.voice_direction import VoiceDirection
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,9 @@ class VoiceTrack:
     # provider didn't supply timing data. See GeneratedAudio's docstring —
     # this field is carried straight through from there.
     segments: list[SpeechSegment] = field(default_factory=list)
+    direction: VoiceDirection | None = None
+    spoken_text: str = ""
+    pronunciation_replacements: tuple[tuple[str, str], ...] = ()
 
     @staticmethod
     def create(
@@ -40,6 +44,9 @@ class VoiceTrack:
         sample_rate: int,
         file_path: str,
         segments: Optional[list[SpeechSegment]] = None,
+        direction: VoiceDirection | None = None,
+        spoken_text: str = "",
+        pronunciation_replacements: tuple[tuple[str, str], ...] = (),
     ) -> "VoiceTrack":
         return VoiceTrack(
             audio_id=str(uuid.uuid4()),
@@ -51,6 +58,9 @@ class VoiceTrack:
             file_path=file_path,
             created_at=datetime.now(timezone.utc),
             segments=segments or [],
+            direction=direction,
+            spoken_text=spoken_text,
+            pronunciation_replacements=pronunciation_replacements,
         )
 
     def to_dict(self) -> dict:
@@ -67,5 +77,11 @@ class VoiceTrack:
             "sample_rate": self.sample_rate,
             "segments": [
                 {"text": s.text, "start": s.start, "end": s.end} for s in self.segments
+            ],
+            "direction": self.direction.to_dict() if self.direction else None,
+            "spoken_text": self.spoken_text,
+            "pronunciation_replacements": [
+                {"source": source, "spoken": spoken}
+                for source, spoken in self.pronunciation_replacements
             ],
         }

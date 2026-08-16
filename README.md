@@ -1,5 +1,100 @@
 # SELMA Labs
 
+## Unified Local Factory
+
+`scripts/run_factory.py` is the single production composition root. It accepts
+either a topic or a licensed local MP3/WAV and persists every completed stage in
+`.selma_runs/` so failed work can resume without repeating paid operations.
+Every production invocation now runs a secret-free local preflight before
+constructing paid providers. Missing tools, credentials, writable storage,
+portrait settings, disk space, or an explicitly enabled Vision quality gate
+stop the run before API quota is spent.
+
+Topic mode runs script generation, source retrieval, strict claim verification,
+source-grounded rewrite when required, directed narration, full-audio
+adaptation, WhisperX word alignment, 2-5 word karaoke cue partitioning, visual
+planning, vision-scored asset search, and a single-pass FFmpeg render in one
+stage graph. An unsupported final fact report blocks the run before voice,
+visual-search, or render costs are incurred. A successful topic run also performs
+black/freeze/silence/loudness QA and produces a complete YouTube upload package.
+For narrated videos, WhisperX force-aligns the approved script itself; when a
+language is supplied, a second ASR transcription cannot silently replace words.
+Audio mode joins the same graph at audio intelligence and uses the identical
+alignment, subtitle, visual, and render policies.
+
+```powershell
+python scripts/system_health.py --profile factory
+python scripts/run_factory.py --audio-path .\sarki.mp3
+python scripts/run_factory.py --topic "Ahtapotların neden üç kalbi var?" --language tr --duration-seconds 30
+python scripts/run_factory.py --topic "Derin okyanus" --language tr --music-theme mystery
+python scripts/run_factory.py --topic "Derin okyanus" --no-background-music
+python scripts/run_factory.py --audio-path .\sarki.mp3 --run-id <UUID>
+python scripts/run_factory.py --topic "Ahtapot" --run-id <UUID> --additional-retries 2
+python scripts/run_factory.py --topic "Ahtapot" --run-id <UUID> --reprocess-from VISION_SEARCH
+```
+
+`VISION_ENABLED=true` is an explicit production switch. Leave it disabled
+until the configured Vision provider and budget are ready; the strict factory
+will fail closed instead of silently calling a paid provider or bypassing visual
+relevance checks. Use `--profile audio` for licensed-audio runs and
+`--profile trends` for topic-discovery checks.
+
+Both modes require Pexels and the configured Vision provider plus local FFmpeg
+and WhisperX. Topic mode additionally requires the configured script provider
+and ElevenLabs. `scripts/run_pipeline.py` is a compatibility alias to the same
+factory; it contains no independent production implementation. See
+[`docs/LOCAL_FACTORY_RELEASE_NOTES.md`](docs/LOCAL_FACTORY_RELEASE_NOTES.md)
+for architecture, guarantees, quality gates, and operating constraints.
+
+## Current Operational Pipeline
+
+The production renderer uses one FFmpeg filter graph: bounded hard-cut visual
+segments, Ken Burns motion, ASS burn-in, a speech-first studio mix at -14 LUFS,
+BT.709 color metadata, and one final H.264 High Profile CRF 17 encode. No lossy
+CRF intermediate is generated. The first visual starts immediately without a
+fade from black.
+
+Premium captions keep a complete phrase of at most four words visible in white while the
+currently spoken word becomes yellow and briefly scales vertically. Single-word
+flash cues are rejected before render rather than silently degrading output.
+
+Visual planning produces a gap-free, time-coded storyboard rather than a flat
+list of stock queries. The opening uses an approximately 1.2-second hook beat,
+the first six seconds keep a denser rhythm, and later cuts remain at or below
+the configured 2.8-second visual-beat budget.
+Every beat carries a narrative role, varied shot type, supporting concepts,
+energy-aware camera motion, and an exact render duration. Non-English concepts are
+localized to concise, topic-anchored English stock queries. Thumbnail preflight and
+AI Vision reject low-confidence or forbidden people/face, vehicle, text, logo, and
+watermark conflicts. Selection prefers fresh footage, then non-adjacent verified
+reuse, and only then a different phase of the same verified source—without lowering
+the confidence gate.
+
+After rendering, FFmpeg-based content QA checks opening/total black, freezes,
+adaptive silence, integrated loudness, loudness range, true peak, clipping,
+leading/trailing silence, stereo layout, sample rate, and measured AAC bitrate.
+The dedicated audio gate requires at least 90/100 before packaging. Topic runs then create a sibling
+`<run-id>_youtube/` directory containing `youtube_short.mp4`, localized SRT captions,
+`youtube_metadata.json`, a rights-aware quality report, upload checklist, and a
+thumbnail-selection frame.
+
+Narrated topic videos automatically select a licensed local music bed when the
+music manifest is available. A time-coded sound-design plan controls semantic
+hook/mechanism/reveal/payoff effects, a subtle ambience layer, music intensity,
+speech-driven ducking, collision spacing, limiting, and -14 LUFS mastering.
+Procedural effects and ambience are generated locally. Music requires commercial
+YouTube rights, source evidence, and a matching SHA-256 checksum; missing or
+invalid evidence never triggers unlicensed use. See
+[`docs/AUDIO_STUDIO_SYSTEM.md`](docs/AUDIO_STUDIO_SYSTEM.md).
+
+Visual planning now has its own 90-point release gate. It plans shot scale,
+motion, sparse semantic transitions, pattern interrupts, explanatory overlays,
+and mobile safe zones; then verifies source diversity, rights, resolution,
+rendered scene changes, longest visual stasis, and freeze evidence before the
+upload package can pass. The free FFmpeg/Remotion/Pexels stack, reference render,
+and paid future roadmap are documented in
+[`docs/VISUAL_EDIT_STUDIO_SYSTEM.md`](docs/VISUAL_EDIT_STUDIO_SYSTEM.md).
+
 ## Sprint 1: Script Generation
 
 Status: **complete and passing.**
@@ -138,7 +233,7 @@ Voice provider selection is entirely config-driven, via `.env`:
 VOICE_PROVIDER=elevenlabs          # currently the only supported value
 ELEVENLABS_API_KEY=sk_...
 ELEVENLABS_MODEL_ID=eleven_multilingual_v2   # optional, this is the default
-ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM     # optional — "Rachel", a default preset voice
+ELEVENLABS_VOICE_ID=JBFqnCBsd6RMkjVDRZzb     # optional — "George", free-tier API compatible
 STORAGE_ROOT_DIR=output            # optional, local folder audio files are written under
 ```
 
@@ -177,7 +272,7 @@ Expected output: `19 passed` (7 from Sprint 1 + 12 new).
 Set `ELEVENLABS_API_KEY` in `.env` (see above), then:
 
 ```bash
-# Full pipeline: topic -> script (Claude) -> narrated audio (ElevenLabs)
+# Full pipeline: topic -> script (NVIDIA) -> narrated audio (ElevenLabs)
 python3 scripts/generate_voice.py "Titanic"
 
 # Voice-only: narrate raw text directly, skipping script generation
@@ -195,7 +290,7 @@ python3 scripts/generate_voice.py "Titanic" --voice-id <some-other-voice-id>
 Audio ID:      <uuid>
 Duration:      44.8s
 Provider:      elevenlabs:eleven_multilingual_v2
-Voice used:    21m00Tcm4TlvDq8ikWAM
+Voice used:    JBFqnCBsd6RMkjVDRZzb
 Sample rate:   44100 Hz
 File path:     /absolute/path/to/output/voice/<script_id>-<uuid>.mp3
 ============================================================

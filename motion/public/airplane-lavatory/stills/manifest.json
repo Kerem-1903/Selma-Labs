@@ -1,0 +1,26 @@
+{
+  "aircraft_lavatory": {
+    "title": "File:Aircraft Lavatory.JPG",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Aircraft_Lavatory.JPG",
+    "author": "David",
+    "license": "Public domain",
+    "licenseUrl": null,
+    "file": "aircraft_lavatory.jpg"
+  },
+  "lavatory_service": {
+    "title": "File:Fleet service 130311-F-VV898-019.jpg",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Fleet_service_130311-F-VV898-019.jpg",
+    "author": "Greg L. Davis (U.S. Air Force being on duty)",
+    "license": "Public domain",
+    "licenseUrl": null,
+    "file": "lavatory_service.jpg"
+  },
+  "service_hose_connection": {
+    "title": "File:Connecting waste suction hose to the lavatory service outlet.jpg",
+    "descriptionUrl": "https://commons.wikimedia.org/wiki/File:Connecting_waste_suction_hose_to_the_lavatory_service_outlet.jpg",
+    "author": "U.S. Air Force photo/Senior Airman Timothy Taylor",
+    "license": "Public domain",
+    "licenseUrl": null,
+    "file": "service_hose_connection.jpg"
+  }
+}

@@ -2,7 +2,7 @@
 
 ## Scope
 
-This repository was reconstructed from the supplied Sprint 1 through Sprint 17 archives, including Sprint 15.1, 15.2, and 15.3 in sequence. Sprint 18 is not included.
+This repository was reconstructed from the supplied Sprint 1 through Sprint 17 archives, including Sprint 15.1, 15.2, and 15.3 in sequence. Sprint 18 through Sprint 21 and the purposeful motion-design polish were subsequently implemented in the live repository as the narrative-quality, semantic-storyboard, editorial-diversity, animation, and mobile-caption stages.
 
 ## Reconstruction strategy
 
@@ -44,4 +44,4 @@ The repository is a usable consolidated Sprint 1–17 foundation and compiles su
 2. Re-run the full test suite.
 3. Resolve the contradictory subtitle mismatch test fixture.
 4. Review the Sprint 9–14 patch logs and manually confirm documentation-only or partially applied changes.
-5. Integrate Sprint 18 on top of this repository rather than rebuilding from the archives.
+5. Continue with Sprint 22 on top of the completed narrative, storyboard, editorial-rhythm, and mobile-caption baseline.

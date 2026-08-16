@@ -56,6 +56,28 @@ async def test_in_memory_cache_invalidation_by_prefix():
     metrics = await cache.get_metrics()
     assert metrics.eviction_count == 2
 
+
+@pytest.mark.asyncio
+async def test_in_memory_cache_evicts_the_least_recently_used_entry():
+    cache = InMemoryCache(max_entries=2)
+    await cache.set("old", ["A"], 100)
+    await cache.set("recent", ["B"], 100)
+    assert await cache.get("old") == ["A"]
+
+    await cache.set("new", ["C"], 100)
+
+    assert await cache.get("recent") is None
+    assert await cache.get("old") == ["A"]
+    assert await cache.get("new") == ["C"]
+    metrics = await cache.get_metrics()
+    assert metrics.entry_count == 2
+    assert metrics.eviction_count == 1
+
+
+def test_in_memory_cache_rejects_non_positive_capacity():
+    with pytest.raises(ValueError, match="max_entries"):
+        InMemoryCache(max_entries=0)
+
 @pytest.mark.asyncio
 async def test_search_cache_service_hits_and_negative_cache():
     mock_provider = AsyncMock()

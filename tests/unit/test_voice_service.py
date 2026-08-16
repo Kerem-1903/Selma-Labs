@@ -12,6 +12,7 @@ from __future__ import annotations
 import pytest
 
 from core.application.services.voice_service import VoiceService
+from core.application.services.voice_direction_service import VoiceDirectionService
 from core.domain.entities.script import Script
 from core.domain.exceptions import ProviderTimeoutError, StorageError, VoiceGenerationError
 from core.domain.ports.storage_port import StoragePort
@@ -38,8 +39,14 @@ class FakeVoiceProvider(VoiceGeneratorPort):
         self._raises = raises
         self.last_call: dict | None = None
 
-    async def generate_voice(self, text: str, voice_name: str) -> GeneratedAudio:
-        self.last_call = {"text": text, "voice_name": voice_name}
+    async def generate_voice(
+        self, text: str, voice_name: str, *, direction=None
+    ) -> GeneratedAudio:
+        self.last_call = {
+            "text": text,
+            "voice_name": voice_name,
+            "direction": direction,
+        }
         if self._raises:
             raise self._raises
         return GeneratedAudio(
@@ -122,6 +129,29 @@ async def test_passes_script_text_verbatim_to_provider():
     await service.generate(script)
 
     assert provider.last_call["text"] == "Exact narration text."
+
+
+@pytest.mark.asyncio
+async def test_content_direction_reaches_provider_and_voice_track():
+    provider = FakeVoiceProvider()
+    service = VoiceService(
+        provider,
+        FakeStorage(),
+        default_voice_name="v",
+        direction_service=VoiceDirectionService(),
+    )
+    script = Script.create(
+        topic="Elektrik deneyi",
+        full_text="Bu teknoloji enerjiyi hızla aktarıyor.",
+        target_duration_seconds=24,
+        provider_used="test",
+    )
+
+    track = await service.generate(script)
+
+    assert provider.last_call["direction"].profile == "energy"
+    assert track.direction == provider.last_call["direction"]
+    assert track.to_dict()["direction"]["speed"] == 1.07
 
 
 @pytest.mark.asyncio

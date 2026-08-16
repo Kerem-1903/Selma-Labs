@@ -38,7 +38,7 @@ import logging
 from core.application.services.video_search_service import VideoSearchService
 from core.domain.entities.asset_match_plan import AssetMatchPlan
 from core.domain.entities.timeline import Timeline
-from core.domain.exceptions import TimelineCreationError
+from core.domain.exceptions import AssetDownloadError, TimelineCreationError
 from core.domain.value_objects.timeline_clip import TimelineClip
 
 logger = logging.getLogger("selma.timeline_service")
@@ -49,8 +49,14 @@ class TimelineService:
     downloads it via an injected VideoSearchService, and assembles an
     ordered Timeline."""
 
-    def __init__(self, video_search_service: VideoSearchService) -> None:
+    def __init__(
+        self,
+        video_search_service: VideoSearchService,
+        *,
+        fallback_on_download_error: bool = False,
+    ) -> None:
         self._video_search_service = video_search_service
+        self._fallback_on_download_error = fallback_on_download_error
 
     async def create(self, asset_match_plan: AssetMatchPlan) -> Timeline:
         """Produce a Timeline from ``asset_match_plan``.
@@ -103,8 +109,31 @@ class TimelineService:
 
         clips: list[TimelineClip] = []
         for match in asset_match_plan.matches:
-            selected = match.assets[0]
-            downloaded = await self._video_search_service.download(selected)
+            downloaded = None
+            last_download_error = None
+            candidates = (
+                match.assets if self._fallback_on_download_error else match.assets[:1]
+            )
+            for selected in candidates:
+                try:
+                    downloaded = await self._video_search_service.download(selected)
+                    break
+                except AssetDownloadError as exc:
+                    last_download_error = exc
+                    logger.warning(
+                        "asset_download_candidate_failed",
+                        extra={
+                            "scene_index": match.scene.index,
+                            "asset_id": selected.id,
+                            "error": str(exc),
+                        },
+                    )
+            if downloaded is None:
+                if last_download_error is not None:
+                    raise last_download_error
+                raise TimelineCreationError(
+                    f"Scene {match.scene.index} has no downloadable asset."
+                )
             clips.append(TimelineClip(scene=match.scene, asset=downloaded))
 
             logger.info(
