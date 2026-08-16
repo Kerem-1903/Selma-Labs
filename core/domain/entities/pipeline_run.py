@@ -101,7 +101,14 @@ class PipelineRun:
     @property
     def artifact_manifest(self) -> Mapping[str, Mapping[str, Any]]:
         """Return a deep, immutable manifest snapshot for inspection only."""
-        return MappingProxyType(deepcopy(self._artifact_manifest))
+        def _freeze(obj):
+            if isinstance(obj, dict):
+                return MappingProxyType({k: _freeze(v) for k, v in obj.items()})
+            elif isinstance(obj, list):
+                return tuple(_freeze(v) for v in obj)
+            return obj
+
+        return _freeze(self._artifact_manifest)
 
     @classmethod
     def create(cls, *, max_retries: int = 3) -> "PipelineRun":

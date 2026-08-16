@@ -107,7 +107,13 @@ class PexelsProvider(VideoSourcePort):
         self._raise_for_status(response)
 
         payload = response.json()
-        assets = [self._map_video(item, query) for item in payload.get("videos", [])]
+        assets = []
+        for item in payload.get("videos", []):
+            try:
+                assets.append(self._map_video(item, query))
+            except ValueError:
+                continue
+
         return [
             asset
             for asset in assets
@@ -189,16 +195,29 @@ class PexelsProvider(VideoSourcePort):
         """Translate one raw Pexels video JSON object into a
         provider-independent MediaAsset. This is the only place in the
         codebase that reads Pexels' response shape."""
+        if "id" not in item:
+            raise ValueError("Malformed Pexels payload: missing 'id'")
+
         video_file = cls._select_video_file(item.get("video_files") or [])
         user = item.get("user") or {}
-        tags = item.get("tags") or [query]
+
+        # ensure tags is a list
+        tags = item.get("tags")
+        if not isinstance(tags, list):
+            tags = [query]
+        elif not tags:
+            tags = [query]
+
+        original_url = (video_file or {}).get("link") or item.get("url", "")
+        if not original_url:
+             raise ValueError(f"Malformed Pexels payload: missing URL for video {item['id']}")
 
         return MediaAsset(
             id=f"pexels:{item['id']}",
             provider="pexels",
             provider_asset_id=str(item["id"]),
             media_type="video",
-            original_url=(video_file or {}).get("link") or item.get("url", ""),
+            original_url=original_url,
             thumbnail_url=item.get("image"),
             width=(video_file or {}).get("width") or item.get("width"),
             height=(video_file or {}).get("height") or item.get("height"),
