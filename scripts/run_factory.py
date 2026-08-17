@@ -242,8 +242,8 @@ def build_orchestrator(
         FfmpegMediaQualityAnalysisProvider,
     )
     from infrastructure.storage.local_fs_storage import LocalFsStorage
-    from infrastructure.repositories.local_json_youtube_performance_repository import (
-        LocalJsonYoutubePerformanceRepository,
+    from infrastructure.repositories.sqlite_youtube_performance_repository import (
+        SQLiteYoutubePerformanceRepository,
     )
     from infrastructure.providers.video.local_visual_manifest_provider import (
         LocalVisualManifestProvider,
@@ -437,7 +437,7 @@ def build_orchestrator(
         ),
         performance_learning_service=(
             YoutubePerformanceLearningService(
-                LocalJsonYoutubePerformanceRepository(
+                SQLiteYoutubePerformanceRepository(
                     settings.youtube_performance_store
                 )
             )

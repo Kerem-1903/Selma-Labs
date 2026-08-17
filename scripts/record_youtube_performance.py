@@ -15,8 +15,8 @@ from core.application.services.youtube_performance_learning_service import (
     YoutubePerformanceLearningService,
 )
 from core.domain.value_objects.youtube_performance import YoutubePerformanceRecord
-from infrastructure.repositories.local_json_youtube_performance_repository import (
-    LocalJsonYoutubePerformanceRepository,
+from infrastructure.repositories.sqlite_youtube_performance_repository import (
+    SQLiteYoutubePerformanceRepository,
 )
 
 
@@ -50,7 +50,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 async def run(args: argparse.Namespace) -> dict[str, object]:
-    repository = LocalJsonYoutubePerformanceRepository(args.store)
+    repository = SQLiteYoutubePerformanceRepository(args.store)
     service = YoutubePerformanceLearningService(repository)
     record = YoutubePerformanceRecord(
         video_id=args.video_id,
