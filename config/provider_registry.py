@@ -419,7 +419,15 @@ def get_render_provider(settings: Settings) -> RenderPort:
 
     Remotion supplies the creative composition and FFmpeg supplies delivery
     mastering. The original FFmpeg-only path remains available as fallback.
+    nvenc allows fast hardware accelerated rendering with ducking.
     """
+    if settings.render_provider == "nvenc":
+        from infrastructure.providers.render.nvenc_fast_render_adapter import NVENCFastRenderAdapter
+        return NVENCFastRenderAdapter(
+            ffmpeg_path=settings.ffmpeg_binary_path,
+            use_gpu=True,
+            timeout_seconds=settings.remotion_subprocess_timeout_seconds
+        )
     if settings.render_provider == "ffmpeg":
         return FfmpegRenderProvider(
             ffmpeg_binary=settings.ffmpeg_binary_path,
