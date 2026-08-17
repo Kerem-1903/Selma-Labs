@@ -9,6 +9,7 @@ depends on StoragePort needs to change when that swap happens.
 """
 from __future__ import annotations
 
+import typing
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterable
 
@@ -49,3 +50,18 @@ class StoragePort(ABC):
         async for chunk in chunks:
             data.extend(chunk)
         return await self.save(key, bytes(data), content_type)
+
+    @abstractmethod
+    def upload_file(self, file_stream: typing.BinaryIO, destination_path: str, content_type: str) -> str:
+        """Uploads a file to cloud storage and returns its access URL (or URI)."""
+        pass
+
+    @abstractmethod
+    def download_file(self, source_path: str, local_destination: str) -> bool:
+        """Downloads a file from cloud storage to a local temporary path."""
+        pass
+
+    @abstractmethod
+    def delete_file(self, file_path: str) -> bool:
+        """Deletes a file from cloud storage when no longer needed."""
+        pass

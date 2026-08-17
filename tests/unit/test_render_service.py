@@ -102,6 +102,15 @@ class FakeRenderPort(RenderPort):
 class FakeStorage(StoragePort):
     """In-memory StoragePort. Records every save() call."""
 
+    def upload_file(self, file_stream, destination_path: str, content_type: str = "video/mp4") -> str:
+        return f"fake://{destination_path}"
+
+    def download_file(self, source_path: str, local_destination: str) -> bool:
+        return True
+
+    def delete_file(self, file_path: str) -> bool:
+        return True
+
     def __init__(self):
         self.saved: list[tuple[str, bytes, str]] = []
 
@@ -113,6 +122,15 @@ class FakeStorage(StoragePort):
 class RaisingStorage(StoragePort):
     async def save(self, key: str, data: bytes, content_type: str) -> StorageReference:
         raise StorageError("disk full")
+
+    def upload_file(self, file_stream, destination_path: str, content_type: str = "video/mp4") -> str:
+        return f"fake://{destination_path}"
+
+    def download_file(self, source_path: str, local_destination: str) -> bool:
+        return True
+
+    def delete_file(self, file_path: str) -> bool:
+        return True
 
 
 @pytest.mark.asyncio
