@@ -36,8 +36,11 @@ class NVENCFastRenderAdapter(RenderPort):
         narration_audio_path: str,
         subtitle_path: str | None = None,
     ) -> RenderResult:
+        import uuid
         import tempfile
-        output_path = tempfile.mktemp(prefix="selma-rendered-", suffix=".mp4")
+
+        tmp_dir = Path(tempfile.gettempdir())
+        output_path = str(tmp_dir / f"selma-rendered-{uuid.uuid4().hex}.mp4")
 
         video_clips = [clip.asset.local_path for clip in timeline.clips if clip.asset and getattr(clip.asset, 'local_path', None)]
         clip_durations = [(clip.scene.end_time - clip.scene.start_time) for clip in timeline.clips]
@@ -151,12 +154,15 @@ class NVENCFastRenderAdapter(RenderPort):
 
         logger.info("Starting NVENC fast render with Smart Cropping command: %s", " ".join(cmd))
 
-        preexec = os.setsid if os.name == "posix" else None
+        kwargs = {}
+        if os.name == "posix":
+            kwargs["start_new_session"] = True
+
         process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            preexec_fn=preexec
+            **kwargs
         )
 
         try:

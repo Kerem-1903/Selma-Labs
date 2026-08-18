@@ -46,10 +46,6 @@ def test_crop_horizontal_video_centered_on_person(service):
 
         mock_results = MagicMock()
         mock_box = MagicMock()
-        # Mocking the specific list structure the code expects
-        mock_box.xyxy = [[200, 100, 400, 900]]
-        # The service code does: x1, y1, x2, y2 = largest_box.xyxy[0].tolist()
-        # Let's mock xyxy[0] so it has a tolist method
         class MockXYXY:
             def tolist(self): return [200, 100, 400, 900]
             def __getitem__(self, idx): return [200, 100, 400, 900][idx]
