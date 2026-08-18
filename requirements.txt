@@ -11,3 +11,4 @@ openai>=1.0.0
 edge-tts>=7.2.0
 Pillow>=10.0.0
 google-cloud-storage
+ultralytics>=8.0.0

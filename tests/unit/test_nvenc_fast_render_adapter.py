@@ -38,7 +38,8 @@ async def test_builds_and_executes_ffmpeg_command(adapter, tmp_path):
     mock_process.communicate = mock_communicate
 
     with patch("asyncio.create_subprocess_exec") as mock_exec, \
-         patch("os.setsid"), patch("os.killpg"), patch("os.getpgid"):
+         patch("os.setsid"), patch("os.killpg"), patch("os.getpgid"), \
+         patch("infrastructure.providers.render.smart_cropping_service.SmartCroppingService.get_crop_filter", return_value="crop=1080:1920:0:0"):
 
         async def mock_create(*args, **kwargs):
             return mock_process
@@ -60,9 +61,13 @@ async def test_builds_and_executes_ffmpeg_command(adapter, tmp_path):
         assert "-hwaccel" in args
         assert "cuda" in args
         assert "h264_nvenc" in args
-        # Check audio ducking logic exists in the arguments
-        assert any("sidechaincompress" in arg for arg in args)
-        assert any("subtitles='subs.ass'" in arg for arg in args)
+        assert "-filter_complex" in args
+
+        # Check audio ducking logic exists
+        filter_str = args[args.index("-filter_complex") + 1]
+        assert "sidechaincompress" in filter_str
+        assert "concat=n=2:v=1:a=0" in filter_str
+        assert "crop=1080:1920:0:0" in filter_str
 
 @pytest.mark.asyncio
 async def test_handles_ffmpeg_failure(adapter, tmp_path):

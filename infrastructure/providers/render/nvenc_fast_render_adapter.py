@@ -7,6 +7,7 @@ from core.domain.entities.timeline import Timeline
 from core.domain.exceptions import RenderError
 from core.domain.ports.render_port import RenderPort
 from core.domain.value_objects.render_result import RenderResult
+from infrastructure.providers.render.smart_cropping_service import SmartCroppingService
 
 logger = logging.getLogger(__name__)
 
@@ -15,11 +16,18 @@ class NVENCFastRenderAdapter(RenderPort):
         self,
         ffmpeg_path: str = "ffmpeg",
         use_gpu: bool = True,
-        timeout_seconds: int = 900
+        timeout_seconds: int = 900,
+        smart_crop: bool = True,
+        output_width: int = 1080,
+        output_height: int = 1920
     ) -> None:
         self.ffmpeg_path = ffmpeg_path
         self.use_gpu = use_gpu
         self.timeout_seconds = timeout_seconds
+        self.smart_crop = smart_crop
+        self.output_width = output_width
+        self.output_height = output_height
+        self.cropping_service = SmartCroppingService(target_ratio=output_width/output_height) if smart_crop else None
 
     async def render(
         self,
@@ -47,105 +55,111 @@ class NVENCFastRenderAdapter(RenderPort):
         sound_design_plan: dict | None = None,
         creative_timeline_path: str | None = None,
     ) -> str:
-        """
-        NVENC and Audio Ducking powered single-pass video render.
-        """
         if not video_clips:
             raise RenderError("No video clips provided for rendering.")
 
-        concat_file = Path(output_path).with_suffix(".txt")
-        try:
-            with open(concat_file, "w", encoding="utf-8") as f:
-                for clip in video_clips:
-                    f.write(f"file '{Path(clip).resolve()}'\\n")
+        vcodec = "h264_nvenc -preset p6 -tune hq" if self.use_gpu else "libx264 -preset fast"
+        hwaccel_args = ["-hwaccel", "cuda"] if self.use_gpu else []
 
-            vcodec = "h264_nvenc -preset p6 -tune hq" if self.use_gpu else "libx264 -preset fast"
-            hwaccel_args = ["-hwaccel", "cuda"] if self.use_gpu else []
+        cmd = [self.ffmpeg_path, "-y", *hwaccel_args]
 
-            # Filter graph construction
-            filters = []
+        # Add all video inputs
+        for clip in video_clips:
+            cmd.extend(["-i", str(Path(clip).resolve())])
 
-            # Map video
-            video_map = "0:v"
-            if subtitle_ass_path:
-                filters.append(f"[0:v]subtitles='{subtitle_ass_path}'[v_out]")
-                video_map = "[v_out]"
+        audio_input_idx = len(video_clips)
+        cmd.extend(["-i", str(Path(audio_path).resolve())])
 
-            # Map audio
-            if background_music_path:
-                # [1:a] is voiceover, [2:a] is background music
-                audio_filter = (
-                    "[2:a]volume=0.3[bgm_soft];"
-                    "[1:a]asplit=2[voice_out][voice_sidechain];"
-                    "[bgm_soft][voice_sidechain]sidechaincompress=threshold=0.0625:ratio=10:attack=50:release=300[bgm_ducked];"
-                    "[bgm_ducked][voice_out]amix=inputs=2:duration=first:dropout_transition=2[audio_out]"
+        music_input_idx = None
+        if background_music_path:
+            music_input_idx = audio_input_idx + 1
+            cmd.extend(["-i", str(Path(background_music_path).resolve())])
+
+        filters = []
+
+        # Process each video clip
+        for i, clip in enumerate(video_clips):
+            # If smart crop is enabled, fetch crop params
+            crop_cmd = f"crop={self.output_width}:{self.output_height}:(in_w-{self.output_width})/2:(in_h-{self.output_height})/2"
+            if self.smart_crop and self.cropping_service:
+                # Do this in a thread to prevent blocking asyncio
+                crop_cmd = await asyncio.to_thread(
+                    self.cropping_service.get_crop_filter, clip, self.output_width, self.output_height
                 )
-                filters.append(audio_filter)
-                audio_map = "[audio_out]"
-            else:
-                audio_map = "1:a"
 
-            filter_complex = ";".join(filters)
+            # If clip duration is provided, trim it. Otherwise just use it as is.
+            duration_filter = ""
+            if clip_durations_seconds and i < len(clip_durations_seconds):
+                dur = clip_durations_seconds[i]
+                duration_filter = f"trim=duration={dur:.6f},setpts=PTS-STARTPTS,"
 
-            cmd = [
-                self.ffmpeg_path, "-y",
-                *hwaccel_args,
-                "-f", "concat",
-                "-safe", "0",
-                "-i", str(concat_file.resolve()),
-                "-i", str(Path(audio_path).resolve())
-            ]
+            filters.append(f"[{i}:v]{duration_filter}scale=ceil(in_w*max({self.output_width}/in_w\\,{self.output_height}/in_h)/2)*2:ceil(in_h*max({self.output_width}/in_w\\,{self.output_height}/in_h)/2)*2,{crop_cmd},setsar=1/1,format=yuv420p[v{i}]")
 
-            if background_music_path:
-                cmd.extend(["-i", str(Path(background_music_path).resolve())])
+        # Concat video streams
+        concat_inputs = "".join([f"[v{i}]" for i in range(len(video_clips))])
+        filters.append(f"{concat_inputs}concat=n={len(video_clips)}:v=1:a=0[joined]")
 
-            if filter_complex:
-                cmd.extend(["-filter_complex", filter_complex])
+        video_map = "[joined]"
+        if subtitle_ass_path:
+            escaped_sub = str(Path(subtitle_ass_path).resolve()).replace("\\", "/").replace(":", r"\\:").replace("'", r"\'")
+            filters.append(f"[joined]subtitles='{escaped_sub}'[v_out]")
+            video_map = "[v_out]"
 
-            cmd.extend([
-                "-map", video_map,
-                "-map", audio_map,
-                "-c:v"
-            ])
-            cmd.extend(vcodec.split())
-            cmd.extend([
-                "-c:a", "aac",
-                "-b:a", "192k",
-                "-shortest",
-                str(Path(output_path).resolve())
-            ])
-
-            logger.info("Starting NVENC fast render with command: %s", " ".join(cmd))
-
-            # Process execution with process groups for safe cancellation
-            process = await asyncio.create_subprocess_exec(
-                *cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                preexec_fn=os.setsid
+        if background_music_path:
+            audio_filter = (
+                f"[{music_input_idx}:a]volume=0.3[bgm_soft];"
+                f"[{audio_input_idx}:a]asplit=2[voice_out][voice_sidechain];"
+                f"[bgm_soft][voice_sidechain]sidechaincompress=threshold=0.0625:ratio=10:attack=50:release=300[bgm_ducked];"
+                f"[bgm_ducked][voice_out]amix=inputs=2:duration=first:dropout_transition=2[audio_out]"
             )
+            filters.append(audio_filter)
+            audio_map = "[audio_out]"
+        else:
+            audio_map = f"{audio_input_idx}:a"
 
+        filter_complex = ";".join(filters)
+
+        cmd.extend([
+            "-filter_complex", filter_complex,
+            "-map", video_map,
+            "-map", audio_map,
+            "-c:v"
+        ])
+        cmd.extend(vcodec.split())
+        cmd.extend([
+            "-c:a", "aac",
+            "-b:a", "192k",
+            "-shortest",
+            str(Path(output_path).resolve())
+        ])
+
+        logger.info("Starting NVENC fast render with Smart Cropping command: %s", " ".join(cmd))
+
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            preexec_fn=os.setsid
+        )
+
+        try:
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=self.timeout_seconds)
+            if process.returncode != 0:
+                error_msg = stderr.decode() if stderr else "Unknown FFmpeg error"
+                raise RenderError(f"NVENC rendering failed: {error_msg}")
+        except asyncio.TimeoutError as error:
+            import signal
             try:
-                stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=self.timeout_seconds)
-                if process.returncode != 0:
-                    error_msg = stderr.decode() if stderr else "Unknown FFmpeg error"
-                    raise RenderError(f"NVENC rendering failed: {error_msg}")
-            except asyncio.TimeoutError as error:
+                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            raise RenderError(f"Render process timed out after {self.timeout_seconds} seconds") from error
+        finally:
+            if process.returncode is None:
                 import signal
                 try:
-                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                    os.killpg(os.getpgid(process.pid), signal.SIGKILL)
                 except ProcessLookupError:
                     pass
-                raise RenderError(f"Render process timed out after {self.timeout_seconds} seconds") from error
-            finally:
-                if process.returncode is None:
-                    import signal
-                    try:
-                        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-                    except ProcessLookupError:
-                        pass
 
-            return output_path
-        finally:
-            if concat_file.exists():
-                concat_file.unlink()
+        return output_path
