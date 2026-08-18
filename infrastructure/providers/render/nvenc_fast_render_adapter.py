@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import sys
 from pathlib import Path
 
 from core.domain.entities.timeline import Timeline
@@ -35,7 +36,22 @@ class NVENCFastRenderAdapter(RenderPort):
         narration_audio_path: str,
         subtitle_path: str | None = None,
     ) -> RenderResult:
-        raise NotImplementedError("This adapter is optimized for the render_shorts method.")
+        import tempfile
+        output_path = tempfile.mktemp(prefix="selma-rendered-", suffix=".mp4")
+
+        video_clips = [clip.asset.local_path for clip in timeline.clips if clip.asset and getattr(clip.asset, 'local_path', None)]
+        clip_durations = [(clip.scene.end_time - clip.scene.start_time) for clip in timeline.clips]
+
+        await self.render_shorts(
+            audio_path=narration_audio_path,
+            subtitle_ass_path=subtitle_path,
+            video_clips=video_clips,
+            output_path=output_path,
+            clip_durations_seconds=clip_durations
+        )
+
+        size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
+        return RenderResult(file_path=output_path, file_size_bytes=size)
 
     async def render_shorts(
         self,
@@ -135,11 +151,12 @@ class NVENCFastRenderAdapter(RenderPort):
 
         logger.info("Starting NVENC fast render with Smart Cropping command: %s", " ".join(cmd))
 
+        preexec = os.setsid if os.name == "posix" else None
         process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            preexec_fn=os.setsid
+            preexec_fn=preexec
         )
 
         try:
@@ -148,18 +165,24 @@ class NVENCFastRenderAdapter(RenderPort):
                 error_msg = stderr.decode() if stderr else "Unknown FFmpeg error"
                 raise RenderError(f"NVENC rendering failed: {error_msg}")
         except asyncio.TimeoutError as error:
-            import signal
-            try:
-                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-            except ProcessLookupError:
-                pass
+            if os.name == "posix":
+                import signal
+                try:
+                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+            else:
+                process.terminate()
             raise RenderError(f"Render process timed out after {self.timeout_seconds} seconds") from error
         finally:
             if process.returncode is None:
-                import signal
-                try:
-                    os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
+                if os.name == "posix":
+                    import signal
+                    try:
+                        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                else:
+                    process.kill()
 
         return output_path

@@ -1,3 +1,4 @@
+import os
 import pytest
 import asyncio
 from pathlib import Path
@@ -37,9 +38,19 @@ async def test_builds_and_executes_ffmpeg_command(adapter, tmp_path):
         return (b"stdout", b"stderr")
     mock_process.communicate = mock_communicate
 
-    with patch("asyncio.create_subprocess_exec") as mock_exec, \
-         patch("os.setsid"), patch("os.killpg"), patch("os.getpgid"), \
-         patch("infrastructure.providers.render.smart_cropping_service.SmartCroppingService.get_crop_filter", return_value="crop=1080:1920:0:0"):
+    mock_patches = [patch("asyncio.create_subprocess_exec")]
+    if os.name == "posix":
+        mock_patches.extend([patch("os.setsid"), patch("os.killpg"), patch("os.getpgid")])
+
+    # We must apply patches manually using context managers
+    from contextlib import ExitStack
+    with ExitStack() as stack:
+        mock_exec = stack.enter_context(patch("asyncio.create_subprocess_exec"))
+        if os.name == "posix":
+            stack.enter_context(patch("os.setsid"))
+            stack.enter_context(patch("os.killpg"))
+            stack.enter_context(patch("os.getpgid"))
+        stack.enter_context(patch("infrastructure.providers.render.smart_cropping_service.SmartCroppingService.get_crop_filter", return_value="crop=1080:1920:0:0"))
 
         async def mock_create(*args, **kwargs):
             return mock_process
@@ -82,8 +93,13 @@ async def test_handles_ffmpeg_failure(adapter, tmp_path):
         return b"", b"Fatal error in ffmpeg"
     mock_process.communicate = mock_communicate
 
-    with patch("asyncio.create_subprocess_exec") as mock_exec, \
-         patch("os.setsid"), patch("os.killpg"), patch("os.getpgid"):
+    from contextlib import ExitStack
+    with ExitStack() as stack:
+        mock_exec = stack.enter_context(patch("asyncio.create_subprocess_exec"))
+        if os.name == "posix":
+            stack.enter_context(patch("os.setsid"))
+            stack.enter_context(patch("os.killpg"))
+            stack.enter_context(patch("os.getpgid"))
 
         async def mock_create(*args, **kwargs):
             return mock_process
