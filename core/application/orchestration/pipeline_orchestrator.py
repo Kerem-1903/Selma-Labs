@@ -123,6 +123,8 @@ class PipelineOrchestrator:
         caption_ux_service: CaptionUxService | None = None,
         video_search_service: VideoSearchService | None = None,
         vision_asset_scoring_service: VisionAssetScoringService | None = None,
+        video_generation_port: VideoGenerationPort | None = None,
+        vision_safety_gate: VisionSafetyGate | None = None,
         asset_diversity_service: AssetDiversityService | None = None,
         editorial_rhythm_service: EditorialRhythmService | None = None,
         render_port: RenderPort | None = None,
@@ -177,6 +179,8 @@ class PipelineOrchestrator:
             )
         self._video_search_service = video_search_service
         self._vision_asset_scoring_service = vision_asset_scoring_service
+        self._video_generation_port = video_generation_port
+        self._vision_safety_gate = vision_safety_gate
         self._asset_diversity_service = asset_diversity_service
         self._editorial_rhythm_service = editorial_rhythm_service
         self._render_port = render_port

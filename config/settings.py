@@ -98,6 +98,10 @@ class Settings(BaseSettings):
     # Visual asset discovery (Sprint 3). video_provider is the single
     # switch that selects an adapter via config/provider_registry.py, same
     # pattern as voice_provider above.
+    video_generation_provider: str = "none"
+    luma_api_key: str = ""
+    vision_safety_gate_enabled: bool = False
+    vision_relevance_threshold: float = 0.70
     video_provider: Literal["pexels"] = "pexels"
     pexels_api_key: str = ""
     default_video_max_results: int = 10

@@ -68,6 +68,7 @@ class ScenePlan:
                     "end_time": scene.end_time,
                     "narration": scene.narration,
                     "search_keywords": scene.search_keywords,
+                    "generation_prompt": scene.generation_prompt,
                     "detected_objects": scene.detected_objects,
                     "location": scene.location,
                     "mood": scene.mood,

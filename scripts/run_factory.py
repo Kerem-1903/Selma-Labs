@@ -175,6 +175,7 @@ def build_orchestrator(
         get_translation_provider,
         get_vision_asset_scoring_service,
         get_voice_provider,
+        get_video_generation_port,
     )
     from config.settings import get_settings
     from core.application.orchestration.pipeline_orchestrator import PipelineOrchestrator
@@ -346,6 +347,8 @@ def build_orchestrator(
         if visual_manifest_path is None
         else None
     )
+    video_generation = get_video_generation_port(settings)
+    vision_safety_gate = VisionSafetyGate(vision_scoring_service=vision_scoring, relevance_threshold=settings.vision_relevance_threshold) if (vision_scoring and settings.vision_safety_gate_enabled) else None
     script_service = None
     script_fact_check_service = None
     script_rewriter = None
@@ -393,6 +396,8 @@ def build_orchestrator(
         caption_ux_service=caption_ux,
         video_search_service=video_search,
         vision_asset_scoring_service=vision_scoring,
+        video_generation_port=video_generation,
+        vision_safety_gate=vision_safety_gate,
         asset_diversity_service=(AssetDiversityService(
             perceptual_distance_threshold=(
                 settings.asset_perceptual_distance_threshold

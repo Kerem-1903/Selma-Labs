@@ -51,6 +51,8 @@ paraphrase, summarize, omit, or duplicate narration.
 - Every scene must have 2 to 5 concise search_keywords: short, concrete, \
 stock-footage-searchable phrases (e.g. "titanic ship", "harbor departure"), \
 never abstract ideas like "human ambition" or "the passage of time".
+- generation_prompt: A highly detailed, cinematic prompt for a Text-to-Video AI model (like Kling or Runway). It must describe the subject, lighting, camera movement, and mood specifically (e.g., "A hyper-realistic cinematic tracking shot of the Titanic departing Southampton harbor, golden hour lighting, 8k resolution, photorealistic").
+- The JSON output must include "generation_prompt" alongside "search_keywords".
 - detected_objects: concrete physical objects or subjects visible in that \
 scene (e.g. "ship", "passengers", "iceberg"). Empty list if none are clearly \
 implied.

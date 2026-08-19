@@ -41,6 +41,7 @@ from core.domain.ports.translation_port import TranslationPort
 from core.domain.ports.topic_selection_port import TopicSelectionPort
 from core.domain.ports.trend_source_port import TrendSourcePort
 from core.domain.ports.video_source_port import VideoSourcePort
+from core.domain.ports.video_generation_port import VideoGenerationPort
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
 from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
@@ -391,6 +392,12 @@ def get_vision_asset_scoring_service(settings: Settings) -> VisionAssetScoringSe
         vision_weight=settings.vision_weight,
     )
 
+
+def get_video_generation_port(settings: Settings):
+    if settings.video_generation_provider == "luma":
+        from infrastructure.providers.video.luma_video_generation_provider import LumaVideoGenerationProvider
+        return LumaVideoGenerationProvider(api_key=settings.luma_api_key)
+    return None
 
 def get_scene_planning_provider(settings: Settings) -> ScenePlanningPort:
     """Return the configured ScenePlanningPort implementation.
