@@ -9,6 +9,7 @@ from core.domain.exceptions import RenderError
 from core.domain.ports.render_port import RenderPort
 from core.domain.value_objects.render_result import RenderResult
 from infrastructure.providers.render.smart_cropping_service import SmartCroppingService
+from infrastructure.providers.render.studio_audio_filter_graph import build_studio_audio_filters
 
 logger = logging.getLogger(__name__)
 
@@ -120,21 +121,24 @@ class NVENCFastRenderAdapter(RenderPort):
 
         video_map = "[joined]"
         if subtitle_ass_path:
-            escaped_sub = str(Path(subtitle_ass_path).resolve()).replace("\\", "/").replace(":", r"\\:").replace("'", r"\'")
+            escaped_sub = str(Path(subtitle_ass_path).resolve()).replace("\\", "/").replace(":", r"\:").replace("'", r"\'")
             filters.append(f"[joined]subtitles='{escaped_sub}'[v_out]")
             video_map = "[v_out]"
 
-        if background_music_path:
-            audio_filter = (
-                f"[{music_input_idx}:a]volume=0.3[bgm_soft];"
-                f"[{audio_input_idx}:a]asplit=2[voice_out][voice_sidechain];"
-                f"[bgm_soft][voice_sidechain]sidechaincompress=threshold=0.0625:ratio=10:attack=50:release=300[bgm_ducked];"
-                f"[bgm_ducked][voice_out]amix=inputs=2:duration=first:dropout_transition=2[audio_out]"
-            )
-            filters.append(audio_filter)
-            audio_map = "[audio_out]"
-        else:
-            audio_map = f"{audio_input_idx}:a"
+        # Build full studio audio filters with SFX, Ducking, and Voice EQ
+        total_duration = sum(clip_durations_seconds) if clip_durations_seconds else 60.0
+
+        audio_filters = build_studio_audio_filters(
+            voice_input_index=audio_input_idx,
+            music_input_index=music_input_idx,
+            audio_start_seconds=audio_start_ms / 1000.0,
+            duration_seconds=total_duration,
+            background_music_volume=0.3,
+            sound_design_plan=sound_design_plan,
+            legacy_procedural_accents=procedural_audio_accents
+        )
+        filters.extend(audio_filters)
+        audio_map = "[audio]"
 
         filter_complex = ";".join(filters)
 

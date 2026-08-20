@@ -61,7 +61,8 @@ async def test_builds_and_executes_ffmpeg_command(adapter, tmp_path):
             subtitle_ass_path="subs.ass",
             video_clips=video_clips,
             output_path=str(output_path),
-            background_music_path=str(bgm_path)
+            background_music_path=str(bgm_path),
+            procedural_audio_accents=True
         )
 
         assert result == str(output_path)
@@ -76,7 +77,10 @@ async def test_builds_and_executes_ffmpeg_command(adapter, tmp_path):
 
         # Check audio ducking logic exists
         filter_str = args[args.index("-filter_complex") + 1]
-        assert "sidechaincompress" in filter_str
+
+        # The legacy procedural accents generate the hook_impact and payoff
+        assert "aevalsrc='(sin(2*PI*62*t)+0.30*sin(2*PI*124*t))*exp(-10*t)'" in filter_str
+        assert "amix=inputs=3" in filter_str # voice, bgm, + 2 sfx layers combined
         assert "concat=n=2:v=1:a=0" in filter_str
         assert "crop=1080:1920:0:0" in filter_str
 
