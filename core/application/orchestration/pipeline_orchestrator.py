@@ -653,11 +653,11 @@ class PipelineOrchestrator:
             )
             result["upload_package"] = package_artifact
 
-        if self._youtube_upload_port is not None and "output_path" in result:
+        if self._youtube_upload_port is not None and render_artifact and "output_path" in render_artifact:
             upload_artifact = await self._executor.execute_stage(
                 run_id,
                 "YOUTUBE_UPLOAD",
-                lambda: self._run_youtube_upload(result["output_path"], package_context.get("script"), self._youtube_upload_privacy)
+                lambda: self._run_youtube_upload(str(render_artifact["output_path"]), package_context.get("script") if package_context else None, self._youtube_upload_privacy)
             )
             result["youtube_upload"] = upload_artifact
 

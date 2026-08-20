@@ -14,20 +14,27 @@ class VisionSafetyGate:
         self.vision_scoring_service = vision_scoring_service
         self.relevance_threshold = relevance_threshold
 
-    async def evaluate(self, asset: MediaAsset, scene, context_text: str = "") -> bool:
+    async def evaluate(self, asset: MediaAsset, scene_or_intent, context_text: str = "") -> bool:
         """
         Asks the Vision AI to score the semantic relevance of the asset.
         Returns True if the asset passes the gate, False if it is rejected.
         """
         logger.info(f"Evaluating asset {asset.provider_asset_id} through Vision Safety Gate...")
 
-        # We leverage the existing scoring infrastructure which extracts frames and hits the Vision AI.
-        # It typically returns a score between 0.0 and 1.0 based on narrative/visual alignment.
-        score = await self.vision_scoring_service.score_asset(
-            asset=asset,
-            scene=scene,
-            context_text=context_text
-        )
+        # Determine if we are scoring a Scene or a VisualIntent depending on the stage of the pipeline
+        if hasattr(self.vision_scoring_service, 'score_visual_intent') and hasattr(scene_or_intent, 'primary_keyword'):
+            from core.domain.value_objects.visual_intent import VisualIntent
+            # Fake a ScoredAsset list
+            from core.domain.value_objects.asset_score import AssetScore, ScoredAsset
+            fake_scored = [ScoredAsset(asset=asset, score=AssetScore(final_score=0.5))]
+            res = await self.vision_scoring_service.score_visual_intent(scene_or_intent, fake_scored)
+            score = res[0].adjusted_score
+        else:
+            score = await self.vision_scoring_service.score_asset(
+                asset=asset,
+                scene=scene_or_intent,
+                context_text=context_text
+            )
 
         passed = score >= self.relevance_threshold
         if passed:

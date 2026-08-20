@@ -30,8 +30,10 @@ class SQLiteYoutubePerformanceRepository(YoutubePerformanceRepositoryPort):
 
     def _init_db(self):
         """Initialize table and set WAL mode for high concurrency."""
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
+        from contextlib import closing
+        with closing(self._get_connection()) as conn:
+            with conn:
+                cursor = conn.cursor()
             if not self._is_memory:
                 cursor.execute("PRAGMA journal_mode=WAL;")
             cursor.execute('''
@@ -50,8 +52,10 @@ class SQLiteYoutubePerformanceRepository(YoutubePerformanceRepositoryPort):
         return await asyncio.to_thread(self._list_records_sync)
 
     def _list_records_sync(self) -> tuple[YoutubePerformanceRecord, ...]:
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
+        from contextlib import closing
+        with closing(self._get_connection()) as conn:
+            with conn:
+                cursor = conn.cursor()
             cursor.execute("SELECT data FROM youtube_performance_records")
             rows = cursor.fetchall()
             records = []
@@ -70,8 +74,10 @@ class SQLiteYoutubePerformanceRepository(YoutubePerformanceRepositoryPort):
             await asyncio.to_thread(self._save_sync, record)
     def _save_sync(self, record: YoutubePerformanceRecord) -> None:
         data_json = json.dumps(record.to_dict())
-        with self._get_connection() as conn:
-            cursor = conn.cursor()
+        from contextlib import closing
+        with closing(self._get_connection()) as conn:
+            with conn:
+                cursor = conn.cursor()
             cursor.execute(
                 """
                 INSERT INTO youtube_performance_records (video_id, data)

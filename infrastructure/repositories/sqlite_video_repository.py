@@ -10,8 +10,10 @@ class SQLiteVideoRepository:
 
     def _init_db(self):
         """Initialize tables and set WAL mode for high concurrency."""
-        with sqlite3.connect(self.db_path, timeout=10.0) as conn:
-            cursor = conn.cursor()
+        from contextlib import closing
+        with closing(sqlite3.connect(self.db_path, timeout=10.0)) as conn:
+            with conn:
+                cursor = conn.cursor()
             cursor.execute("PRAGMA journal_mode=WAL;")
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS videos (
@@ -36,8 +38,10 @@ class SQLiteVideoRepository:
 
     def save_video(self, video_data: dict):
         """Save a new video record to the database."""
-        with sqlite3.connect(self.db_path, timeout=10.0) as conn:
-            cursor = conn.cursor()
+        from contextlib import closing
+        with closing(sqlite3.connect(self.db_path, timeout=10.0)) as conn:
+            with conn:
+                cursor = conn.cursor()
             cursor.execute(
                 "INSERT INTO videos (id, title, status, current_step) VALUES (?, ?, ?, ?)",
                 (video_data.get('id'), video_data.get('title'), video_data.get('status'), video_data.get('current_step'))
@@ -46,8 +50,10 @@ class SQLiteVideoRepository:
 
     def get_video(self, video_id: str) -> dict:
         """Retrieve a video record by its ID."""
-        with sqlite3.connect(self.db_path, timeout=10.0) as conn:
-            cursor = conn.cursor()
+        from contextlib import closing
+        with closing(sqlite3.connect(self.db_path, timeout=10.0)) as conn:
+            with conn:
+                cursor = conn.cursor()
             cursor.execute("SELECT id, title, status, current_step FROM videos WHERE id = ?", (video_id,))
             row = cursor.fetchone()
             if row:
@@ -61,8 +67,10 @@ class SQLiteVideoRepository:
 
     def update_video_status(self, video_id: str, status: str, current_step: str):
         """Update the status and current step of a video."""
-        with sqlite3.connect(self.db_path, timeout=10.0) as conn:
-            cursor = conn.cursor()
+        from contextlib import closing
+        with closing(sqlite3.connect(self.db_path, timeout=10.0)) as conn:
+            with conn:
+                cursor = conn.cursor()
             cursor.execute(
                 "UPDATE videos SET status = ?, current_step = ? WHERE id = ?",
                 (status, current_step, video_id)
@@ -71,8 +79,10 @@ class SQLiteVideoRepository:
 
     def save_checkpoint(self, video_id: str, step_name: str, step_status: str, payload: dict, error_message: str = None):
         """Save a saga checkpoint for a specific video and step."""
-        with sqlite3.connect(self.db_path, timeout=10.0) as conn:
-            cursor = conn.cursor()
+        from contextlib import closing
+        with closing(sqlite3.connect(self.db_path, timeout=10.0)) as conn:
+            with conn:
+                cursor = conn.cursor()
             payload_json = json.dumps(payload)
             cursor.execute(
                 "INSERT INTO checkpoints (video_id, step_name, step_status, payload, error_message) VALUES (?, ?, ?, ?, ?)",
@@ -82,8 +92,10 @@ class SQLiteVideoRepository:
 
     def get_latest_checkpoint(self, video_id: str) -> dict:
         """Retrieve the most recent checkpoint for a given video."""
-        with sqlite3.connect(self.db_path, timeout=10.0) as conn:
-            cursor = conn.cursor()
+        from contextlib import closing
+        with closing(sqlite3.connect(self.db_path, timeout=10.0)) as conn:
+            with conn:
+                cursor = conn.cursor()
             cursor.execute(
                 "SELECT id, video_id, step_name, step_status, payload, error_message FROM checkpoints WHERE video_id = ? ORDER BY id DESC LIMIT 1",
                 (video_id,)
