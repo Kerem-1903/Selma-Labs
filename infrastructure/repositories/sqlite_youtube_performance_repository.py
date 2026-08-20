@@ -34,14 +34,14 @@ class SQLiteYoutubePerformanceRepository(YoutubePerformanceRepositoryPort):
         with closing(self._get_connection()) as conn:
             with conn:
                 cursor = conn.cursor()
-            if not self._is_memory:
-                cursor.execute("PRAGMA journal_mode=WAL;")
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS youtube_performance_records (
-                    video_id TEXT PRIMARY KEY,
-                    data JSON
-                )
-            ''')
+                if not self._is_memory:
+                    cursor.execute("PRAGMA journal_mode=WAL;")
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS youtube_performance_records (
+                        video_id TEXT PRIMARY KEY,
+                        data JSON
+                    )
+                ''')
             conn.commit()
 
     async def list_records(self) -> tuple[YoutubePerformanceRecord, ...]:
@@ -56,14 +56,14 @@ class SQLiteYoutubePerformanceRepository(YoutubePerformanceRepositoryPort):
         with closing(self._get_connection()) as conn:
             with conn:
                 cursor = conn.cursor()
-            cursor.execute("SELECT data FROM youtube_performance_records")
-            rows = cursor.fetchall()
-            records = []
-            for row in rows:
-                data = json.loads(row[0])
-                records.append(YoutubePerformanceRecord.from_dict(data))
-            records.sort(key=lambda item: item.published_at)
-            return tuple(records)
+                cursor.execute("SELECT data FROM youtube_performance_records")
+                rows = cursor.fetchall()
+                records = []
+                for row in rows:
+                    data = json.loads(row[0])
+                    records.append(YoutubePerformanceRecord.from_dict(data))
+                records.sort(key=lambda item: item.published_at)
+                return tuple(records)
 
     async def save(self, record: YoutubePerformanceRecord) -> None:
         import asyncio
@@ -78,12 +78,12 @@ class SQLiteYoutubePerformanceRepository(YoutubePerformanceRepositoryPort):
         with closing(self._get_connection()) as conn:
             with conn:
                 cursor = conn.cursor()
-            cursor.execute(
-                """
-                INSERT INTO youtube_performance_records (video_id, data)
-                VALUES (?, ?)
-                ON CONFLICT(video_id) DO UPDATE SET data=excluded.data
-                """,
-                (record.video_id, data_json)
-            )
+                cursor.execute(
+                    """
+                    INSERT INTO youtube_performance_records (video_id, data)
+                    VALUES (?, ?)
+                    ON CONFLICT(video_id) DO UPDATE SET data=excluded.data
+                    """,
+                    (record.video_id, data_json)
+                )
             conn.commit()

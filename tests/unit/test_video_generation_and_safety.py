@@ -12,9 +12,30 @@ async def test_luma_video_generation_provider():
     provider = LumaVideoGenerationProvider("fake_key")
     assert provider.name == "luma_dream_machine"
 
-    asset = await provider.generate_video("A hyper-realistic cinematic shot of a black hole", 5.0)
-    assert asset.provider_asset_id.startswith("luma-")
-    assert asset.original_url == "https://fake-luma-cdn.com/generation.mp4"
+    # Mock httpx AsyncClient
+    import httpx
+
+    mock_post_resp = MagicMock()
+    mock_post_resp.json.return_value = {"id": "fake_gen_id"}
+
+    mock_get_resp = MagicMock()
+    mock_get_resp.json.return_value = {
+        "state": "completed",
+        "assets": {"video": "https://luma-cdn.com/test.mp4"}
+    }
+
+    class MockAsyncClient:
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def post(self, *args, **kwargs): return mock_post_resp
+        async def get(self, *args, **kwargs): return mock_get_resp
+
+    from unittest.mock import patch
+    with patch("httpx.AsyncClient", return_value=MockAsyncClient()):
+        asset = await provider.generate_video("A hyper-realistic cinematic shot of a black hole", 5.0)
+
+    assert asset.provider_asset_id == "fake_gen_id"
+    assert asset.original_url == "https://luma-cdn.com/test.mp4"
     assert asset.width == 1080
     assert asset.height == 1920
 

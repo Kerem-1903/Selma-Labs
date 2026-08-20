@@ -178,6 +178,7 @@ def build_orchestrator(
         get_video_generation_port,
         get_youtube_upload_port,
     )
+    from core.application.services.vision_safety_gate import VisionSafetyGate
     from config.settings import get_settings
     from core.application.orchestration.pipeline_orchestrator import PipelineOrchestrator
     from core.application.orchestration.run_executor import RunExecutor

@@ -1,4 +1,6 @@
+import httpx
 import logging
+import asyncio
 from core.domain.ports.video_generation_port import VideoGenerationPort
 from core.domain.entities.media_asset import MediaAsset
 
@@ -6,9 +8,7 @@ logger = logging.getLogger(__name__)
 
 class LumaVideoGenerationProvider(VideoGenerationPort):
     """
-    Mock integration for Luma Dream Machine API or similar T2V endpoints.
-    In a real implementation, this would hit the Luma REST API to generate
-    high-quality B-Roll for scenes where stock footage is inadequate.
+    Integration for Luma Dream Machine API to generate high-quality B-Roll.
     """
     def __init__(self, api_key: str):
         self.api_key = api_key
@@ -20,17 +20,59 @@ class LumaVideoGenerationProvider(VideoGenerationPort):
     async def generate_video(self, prompt: str, duration_seconds: float = 5.0) -> MediaAsset:
         logger.info(f"Triggering Text-to-Video generation using Luma for prompt: '{prompt[:50]}...'")
 
-        # Simulate network delay for API generation
-        import asyncio
-        await asyncio.sleep(2.0)
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+        }
 
-        # In a real app, you would parse the resulting job and extract the final download URL
+        payload = {
+            "prompt": prompt,
+            "aspect_ratio": "9:16",
+            "loop": False
+        }
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # 1. Start generation
+            response = await client.post(
+                "https://api.lumalabs.ai/dream-machine/v1/generations",
+                headers=headers,
+                json=payload
+            )
+            response.raise_from_status()
+            job_data = response.json()
+            generation_id = job_data["id"]
+
+            # 2. Poll for completion
+            max_retries = 60 # 5 minutes maximum
+            retries = 0
+            while retries < max_retries:
+                poll_resp = await client.get(
+                    f"https://api.lumalabs.ai/dream-machine/v1/generations/{generation_id}",
+                    headers=headers
+                )
+                poll_resp.raise_from_status()
+                status_data = poll_resp.json()
+
+                state = status_data.get("state")
+                if state == "completed":
+                    video_url = status_data["assets"]["video"]
+                    break
+                elif state == "failed":
+                    raise Exception(f"Luma generation failed for prompt: {prompt}")
+
+                await asyncio.sleep(5.0)
+                retries += 1
+
+            if retries >= max_retries:
+                raise Exception(f"Luma generation timed out for prompt: {prompt}")
+
         return MediaAsset(
-            id="luma:" + str(hash(prompt))[-8:],
+            id="luma:" + generation_id,
             provider="luma_dream_machine",
-            provider_asset_id="luma-" + str(hash(prompt))[-8:],
+            provider_asset_id=generation_id,
             media_type="video",
-            original_url="https://fake-luma-cdn.com/generation.mp4",
+            original_url=video_url,
             width=1080,
             height=1920,
             duration_seconds=duration_seconds,
