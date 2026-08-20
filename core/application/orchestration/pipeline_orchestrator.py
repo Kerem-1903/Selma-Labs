@@ -133,6 +133,7 @@ class PipelineOrchestrator:
         media_quality_analysis_port: MediaQualityAnalysisPort | None = None,
         post_render_quality_service: PostRenderQualityService | None = None,
         youtube_upload_port: YoutubeUploadPort | None = None,
+        youtube_upload_privacy: str = "unlisted",
         remotion_timeline_service: RemotionTimelineService | None = None,
         script_service: ScriptService | None = None,
         script_fact_check_service: ScriptFactCheckService | None = None,
@@ -196,6 +197,7 @@ class PipelineOrchestrator:
         self._media_quality_analysis_port = media_quality_analysis_port
         self._post_render_quality_service = post_render_quality_service
         self._youtube_upload_port = youtube_upload_port
+        self._youtube_upload_privacy = youtube_upload_privacy
         self._remotion_timeline_service = remotion_timeline_service
         topic_dependencies = (
             script_service,
@@ -651,11 +653,11 @@ class PipelineOrchestrator:
             )
             result["upload_package"] = package_artifact
 
-        if self._youtube_upload_port is not None:
+        if self._youtube_upload_port is not None and "output_path" in result:
             upload_artifact = await self._executor.execute_stage(
                 run_id,
                 "YOUTUBE_UPLOAD",
-                lambda: self._run_youtube_upload(result["output_path"], result.get("script"))
+                lambda: self._run_youtube_upload(result["output_path"], package_context.get("script"), self._youtube_upload_privacy)
             )
             result["youtube_upload"] = upload_artifact
 
@@ -1309,7 +1311,7 @@ class PipelineOrchestrator:
         )
         return package.to_dict()
 
-    async def _run_youtube_upload(self, video_path: str, script: dict[str, Any] | None) -> dict[str, Any]:
+    async def _run_youtube_upload(self, video_path: str, script: dict[str, Any] | None, privacy: str = "unlisted") -> dict[str, Any]:
         if self._youtube_upload_port is None:
             return {"status": "skipped"}
 
@@ -1327,7 +1329,7 @@ class PipelineOrchestrator:
             title=title,
             description=description,
             tags=tags,
-            privacy_status="unlisted"
+            privacy_status=privacy
         )
         return {
             "youtube_video_id": video_id,
