@@ -176,6 +176,7 @@ def build_orchestrator(
         get_vision_asset_scoring_service,
         get_voice_provider,
         get_video_generation_port,
+        get_youtube_upload_port,
     )
     from config.settings import get_settings
     from core.application.orchestration.pipeline_orchestrator import PipelineOrchestrator
@@ -348,6 +349,7 @@ def build_orchestrator(
         else None
     )
     video_generation = get_video_generation_port(settings)
+    youtube_upload = get_youtube_upload_port(settings)
     vision_safety_gate = VisionSafetyGate(vision_scoring_service=vision_scoring, relevance_threshold=settings.vision_relevance_threshold) if (vision_scoring and settings.vision_safety_gate_enabled) else None
     script_service = None
     script_fact_check_service = None

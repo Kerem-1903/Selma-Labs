@@ -102,6 +102,8 @@ class Settings(BaseSettings):
     luma_api_key: str = ""
     vision_safety_gate_enabled: bool = False
     vision_relevance_threshold: float = 0.70
+    youtube_upload_enabled: bool = False
+    youtube_upload_privacy: str = "unlisted"
     video_provider: Literal["pexels"] = "pexels"
     pexels_api_key: str = ""
     default_video_max_results: int = 10

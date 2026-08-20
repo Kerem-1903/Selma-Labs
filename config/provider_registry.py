@@ -399,6 +399,12 @@ def get_video_generation_port(settings: Settings):
         return LumaVideoGenerationProvider(api_key=settings.luma_api_key)
     return None
 
+def get_youtube_upload_port(settings: Settings):
+    if settings.youtube_upload_enabled:
+        from infrastructure.providers.publish.google_api_youtube_upload_provider import GoogleApiYoutubeUploadProvider
+        return GoogleApiYoutubeUploadProvider()
+    return None
+
 def get_scene_planning_provider(settings: Settings) -> ScenePlanningPort:
     """Return the configured ScenePlanningPort implementation.
 

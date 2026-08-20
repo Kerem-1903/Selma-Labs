@@ -14,7 +14,7 @@ class VisionSafetyGate:
         self.vision_scoring_service = vision_scoring_service
         self.relevance_threshold = relevance_threshold
 
-    async def evaluate(self, asset: MediaAsset, scene: Scene, context_text: str = "") -> bool:
+    async def evaluate(self, asset: MediaAsset, scene, context_text: str = "") -> bool:
         """
         Asks the Vision AI to score the semantic relevance of the asset.
         Returns True if the asset passes the gate, False if it is rejected.

@@ -132,6 +132,7 @@ class PipelineOrchestrator:
         media_inspection_port: MediaInspectionPort | None = None,
         media_quality_analysis_port: MediaQualityAnalysisPort | None = None,
         post_render_quality_service: PostRenderQualityService | None = None,
+        youtube_upload_port: YoutubeUploadPort | None = None,
         remotion_timeline_service: RemotionTimelineService | None = None,
         script_service: ScriptService | None = None,
         script_fact_check_service: ScriptFactCheckService | None = None,
@@ -194,6 +195,7 @@ class PipelineOrchestrator:
             )
         self._media_quality_analysis_port = media_quality_analysis_port
         self._post_render_quality_service = post_render_quality_service
+        self._youtube_upload_port = youtube_upload_port
         self._remotion_timeline_service = remotion_timeline_service
         topic_dependencies = (
             script_service,
@@ -648,6 +650,15 @@ class PipelineOrchestrator:
                 ),
             )
             result["upload_package"] = package_artifact
+
+        if self._youtube_upload_port is not None:
+            upload_artifact = await self._executor.execute_stage(
+                run_id,
+                "YOUTUBE_UPLOAD",
+                lambda: self._run_youtube_upload(result["output_path"], result.get("script"))
+            )
+            result["youtube_upload"] = upload_artifact
+
         await self._executor.complete_run(run_id)
         return result
 
@@ -927,40 +938,65 @@ class PipelineOrchestrator:
                 ScoredAsset(asset=asset, score=AssetScore(final_score=0.50))
                 for asset in scoring_candidates
             ]
+            accepted_asset = None
             try:
-                accepted = await self._vision_asset_scoring_service.score_visual_intent(
+                accepted_scores = await self._vision_asset_scoring_service.score_visual_intent(
                     intent,
                     scored_candidates,
                 )
+
+                if self._vision_safety_gate:
+                    is_safe = await self._vision_safety_gate.evaluate(accepted_scores[0].asset, intent, intent.narration_text)
+                    if not is_safe:
+                        raise VisualAssetNotFoundError("Asset rejected by Vision Safety Gate")
+
+                accepted_asset = accepted_scores[0]
             except (LowVisionConfidenceError, VisualAssetNotFoundError):
-                # Editorial quality beats artificial uniqueness. If the
-                # unused tail is weak, reuse a previously verified clip while
-                # still preventing an immediately adjacent duplicate.
-                reusable = [
-                    asset for asset in candidates if asset.id != last_selected_asset_id
-                ]
-                if not reusable:
-                    raise
-                try:
-                    accepted = await self._vision_asset_scoring_service.score_visual_intent(
-                        intent,
-                        [
-                            ScoredAsset(asset=asset, score=AssetScore(final_score=0.50))
-                            for asset in reusable
-                        ],
-                    )
-                except (LowVisionConfidenceError, VisualAssetNotFoundError):
-                    # A different phase of the same verified source is still
-                    # preferable to lowering the visual confidence threshold.
-                    if last_selected_asset_id is None:
+                # Try Text-to-Video generation if stock videos fail safety or aren't found
+                if self._video_generation_port and getattr(intent, 'generation_prompt', None):
+                    duration_sec = (intent.end_ms - intent.start_ms) / 1000.0
+                    if duration_sec <= 0:
+                        duration_sec = 5.0
+                    try:
+                        gen_asset = await self._video_generation_port.generate_video(intent.generation_prompt, duration_sec)
+                        accepted_asset = ScoredAsset(asset=gen_asset, score=AssetScore(final_score=1.0))
+                    except Exception as e:
+                        pass # Fallback to stock reuse if T2V fails
+
+                # If still not accepted, do the stock fallback
+                if not accepted_asset:
+                    reusable = [
+                        asset for asset in candidates if asset.id != last_selected_asset_id
+                    ]
+                    if not reusable:
                         raise
-                    accepted = await self._vision_asset_scoring_service.score_visual_intent(
-                        intent,
-                        [
-                            ScoredAsset(asset=asset, score=AssetScore(final_score=0.50))
-                            for asset in candidates
-                        ],
-                    )
+                    try:
+                        fallback_scores = await self._vision_asset_scoring_service.score_visual_intent(
+                            intent,
+                            [
+                                ScoredAsset(asset=asset, score=AssetScore(final_score=0.50))
+                                for asset in reusable
+                            ],
+                        )
+                        if self._vision_safety_gate:
+                            is_safe = await self._vision_safety_gate.evaluate(fallback_scores[0].asset, intent, intent.narration_text)
+                            if not is_safe:
+                                raise VisualAssetNotFoundError("Asset rejected by Vision Safety Gate")
+                        accepted_asset = fallback_scores[0]
+                    except (LowVisionConfidenceError, VisualAssetNotFoundError):
+                        if last_selected_asset_id is None:
+                            raise
+                        final_scores = await self._vision_asset_scoring_service.score_visual_intent(
+                            intent,
+                            [
+                                ScoredAsset(asset=asset, score=AssetScore(final_score=0.50))
+                                for asset in candidates
+                            ],
+                        )
+                        accepted_asset = final_scores[0]
+
+            # The downstream code expects a list called `accepted`
+            accepted = [accepted_asset]
             selected_usage: AssetUsage | None = None
             if self._asset_diversity_service is None:
                 selected = await self._video_search_service.download(accepted[0].asset)
@@ -1272,6 +1308,31 @@ class PipelineOrchestrator:
             ),
         )
         return package.to_dict()
+
+    async def _run_youtube_upload(self, video_path: str, script: dict[str, Any] | None) -> dict[str, Any]:
+        if self._youtube_upload_port is None:
+            return {"status": "skipped"}
+
+        title = "Automated Video"
+        description = "Automated Video Upload"
+        tags = ["Science", "Mystery"]
+
+        if script:
+            title = script.get("topic", title)[:100]
+            description = script.get("full_text", description)
+            tags = list(set(script.get("topic", "").split() + ["StrangeThingsLab", "Science", "Mystery"]))
+
+        video_id = await self._youtube_upload_port.upload_video(
+            video_path=video_path,
+            title=title,
+            description=description,
+            tags=tags,
+            privacy_status="unlisted"
+        )
+        return {
+            "youtube_video_id": video_id,
+            "url": f"https://youtu.be/{video_id}"
+        }
 
     def _run_creative_quality(
         self,
