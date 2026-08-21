@@ -42,7 +42,7 @@ class SQLiteYoutubePerformanceRepository(YoutubePerformanceRepositoryPort):
                         data JSON
                     )
                 ''')
-            conn.commit()
+                conn.commit()
 
     async def list_records(self) -> tuple[YoutubePerformanceRecord, ...]:
         import asyncio
@@ -86,4 +86,4 @@ class SQLiteYoutubePerformanceRepository(YoutubePerformanceRepositoryPort):
                     """,
                     (record.video_id, data_json)
                 )
-            conn.commit()
+                conn.commit()

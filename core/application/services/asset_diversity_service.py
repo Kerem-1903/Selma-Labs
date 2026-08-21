@@ -209,7 +209,7 @@ class AssetDiversityService:
     @staticmethod
     def _difference_hash(image: Image.Image) -> str:
         resized = image.resize((9, 8), Image.Resampling.LANCZOS)
-        pixels = list(resized.get_flattened_data())
+        pixels = list(resized.getdata())
         value = 0
         for row in range(8):
             for column in range(8):
