@@ -27,10 +27,13 @@ class Settings(BaseSettings):
     # which is the correct place for it once more than one provider exists.
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    ollama_api_url: str = "http://localhost:11434/api/generate"
+    ollama_script_model: str = "llama3"
+
     # Check https://docs.claude.com for the current recommended model string
     # before running — model identifiers change over time.
     script_model: str = "claude-sonnet-4-5"
-    script_provider: Literal["claude", "nvidia"] = "nvidia"
+    script_provider: Literal["claude", "nvidia", "ollama"] = "nvidia"
     nvidia_api_key: str = ""
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
     nvidia_text_model: str = "meta/llama-3.3-70b-instruct"

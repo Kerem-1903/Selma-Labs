@@ -73,6 +73,7 @@ from infrastructure.providers.scene_planning.nvidia_scene_planning_provider impo
 )
 from infrastructure.providers.script.claude_script_provider import ClaudeScriptProvider
 from infrastructure.providers.script.nvidia_script_provider import NvidiaScriptProvider
+from infrastructure.providers.script.ollama_script_provider import OllamaScriptProvider
 from infrastructure.providers.script.nvidia_fact_grounded_rewriter import (
     NvidiaFactGroundedRewriter,
 )
@@ -211,6 +212,11 @@ def get_script_provider(settings: Settings) -> ScriptGeneratorPort:
         return ClaudeScriptProvider(
             api_key=settings.anthropic_api_key,
             model=settings.script_model,
+        )
+    if settings.script_provider == "ollama":
+        return OllamaScriptProvider(
+            api_url=settings.ollama_api_url,
+            model=settings.ollama_script_model
         )
     if settings.script_provider == "nvidia":
         return NvidiaScriptProvider(

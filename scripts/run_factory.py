@@ -276,7 +276,8 @@ def build_orchestrator(
         elif settings.vision_provider == "anthropic":
             _require_factory_configuration(settings.anthropic_api_key, "ANTHROPIC_API_KEY")
         elif settings.vision_provider == "nvidia":
-            _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
+            if settings.script_provider != "ollama":
+                _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
         else:
             raise RuntimeError(
                 f"Unsupported VISION_PROVIDER={settings.vision_provider!r}."
@@ -363,7 +364,8 @@ def build_orchestrator(
         # NVIDIA remains mandatory in topic mode because claim extraction,
         # independent audit, and grounded rewrite use its configured models
         # even when Claude generates the initial draft.
-        _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
+        if settings.script_provider != "ollama":
+            _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
         _require_factory_configuration(settings.elevenlabs_api_key, "ELEVENLABS_API_KEY")
         script_service = ScriptService(get_script_provider(settings))
         script_fact_check_service = ScriptFactCheckService(
