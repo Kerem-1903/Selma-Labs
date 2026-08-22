@@ -66,6 +66,9 @@ class SchedulerBot:
                 run_id = str(uuid.uuid4())
 
                 os.makedirs(".selma_runs", exist_ok=True)
+                settings.youtube_upload_privacy = privacy
+                settings.youtube_upload_enabled = True
+
                 repo = LocalJsonRunRepository(".selma_runs")
                 pipeline_run = PipelineRun(run_id=run_id)
                 await repo.save(pipeline_run)
@@ -79,9 +82,6 @@ class SchedulerBot:
                     enable_topic_pipeline=True,
                     content_language=language,
                 )
-
-                settings.youtube_upload_privacy = privacy
-                settings.youtube_upload_enabled = True
 
                 await orchestrator.run_topic_factory(run_id=run_id, topic=topic)
                 logger.info(f"Otonom üretim tamamlandı ve yüklendi! Run ID: {run_id}")

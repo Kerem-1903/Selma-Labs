@@ -454,6 +454,7 @@ def build_orchestrator(
             if enable_topic_pipeline
             else None
         ),
+        youtube_upload_port=youtube_upload,
         brand_narration_service=(
             BrandNarrationService(settings.brand_signature_text)
             if enable_topic_pipeline and settings.brand_signature_enabled
