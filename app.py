@@ -16,11 +16,20 @@ from infrastructure.repositories.sqlite_video_repository import SQLiteVideoRepos
 import uuid
 
 async def generate_short(topic: str, language: str, music_theme: str, privacy: str, generation_engine: str, voice_provider: str):
-    if not topic.strip():
-        yield "Lütfen bir konu giriniz.", None, None
-        return
+    settings = get_settings()
 
-    yield f"'{topic}' konulu video için yapay zeka senaryo yazımına başlıyor...", None, None
+    if not topic.strip():
+        yield "Konu girilmedi. İnternetteki bugünün trend konusu aranıyor...", None, None
+        from scripts.discover_trending_topic import get_trending_topic
+        try:
+            topic = await get_trending_topic(settings)
+            yield f"Trend konu bulundu: '{topic}'. Yapay zeka senaryo yazımına başlıyor...", None, None
+        except Exception as e:
+            yield f"Trend bulunamadı: {e}. Lütfen elle bir konu girin.", None, None
+            return
+    else:
+        yield f"'{topic}' konulu video için yapay zeka senaryo yazımına başlıyor...", None, None
+
 
     settings = get_settings()
     # Force some settings for UI
@@ -122,7 +131,7 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
         with gr.Tab("🎬 Yönetmen Masası"):
             with gr.Row():
                 with gr.Column(scale=1):
-                    topic_input = gr.Textbox(label="Video Konusu / Fikriniz", placeholder="Örn: Evrenin en karanlık sırrı nedir?", lines=3)
+                    topic_input = gr.Textbox(label="Video Konusu / Fikriniz", placeholder="Boş bırakırsanız sistem bugünün en popüler Trend konusunu kendisi bulur!", lines=3)
                     language_input = gr.Dropdown(choices=["en", "tr", "es", "de", "fr"], value="tr", label="Yayın Dili")
                     theme_input = gr.Dropdown(choices=["mystery", "epic", "sci-fi", "documentary", "chill"], value="mystery", label="Müzik / Atmosfer")
                     privacy_input = gr.Radio(choices=["public", "unlisted", "private"], value="unlisted", label="YouTube Gizlilik")
@@ -140,6 +149,24 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
                     status_output = gr.Textbox(label="Durum Konsolu", lines=6, interactive=False)
                     video_output = gr.Video(label="Üretilen Video Sonucu")
                     youtube_link = gr.Textbox(label="YouTube Linki", interactive=False)
+
+        # Sekme 4: Otonom Fabrika (Scheduler)
+        with gr.Tab("🤖 Otonom Fabrika (7/24)"):
+            gr.Markdown("### Siz uyurken kanalınız büyüsün!")
+            gr.Markdown("Bu botu başlattığınızda, ayarladığınız saat aralığında bir uyanıp internetteki trendleri bulur, senaryoyu kendi yazar, videoyu kendi renderlar ve YouTube kanalınıza otomatik yükler.")
+
+            with gr.Row():
+                with gr.Column():
+                    interval_input = gr.Slider(minimum=1, maximum=72, step=1, value=24, label="Üretim Sıklığı (Kaç saatte bir?)")
+                    sched_lang_input = gr.Dropdown(choices=["en", "tr", "es", "de"], value="tr", label="Yayın Dili")
+                    sched_privacy = gr.Radio(choices=["public", "unlisted", "private"], value="private", label="YouTube Gizliliği")
+
+                    with gr.Row():
+                        start_bot_btn = gr.Button("🟢 Otonom Botu Başlat", variant="primary")
+                        stop_bot_btn = gr.Button("🔴 Botu Durdur", variant="stop")
+
+                with gr.Column():
+                    bot_status = gr.Textbox(label="Bot Durumu", value="Bot şu an: UYUYOR (Kapalı)", interactive=False, lines=3)
 
         # Sekme 2: Medya Havuzu (Kullanıcı Yüklemeleri)
         with gr.Tab("📁 Medya Havuzu (Kişisel)"):
@@ -201,6 +228,21 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
 
     user_videos.change(fn=update_video_gallery, inputs=user_videos, outputs=video_gallery)
     user_audio.change(fn=update_audio_gallery, inputs=user_audio, outputs=audio_gallery)
+
+
+    # Scheduler Logic Connections
+    from core.application.services.scheduler_bot import scheduler_bot_instance
+
+    def start_scheduler(interval, lang, priv):
+        scheduler_bot_instance.start(interval, lang, priv)
+        return f"Bot şu an: ÇALIŞIYOR (Her {interval} saatte bir içerik üretecek)"
+
+    def stop_scheduler():
+        scheduler_bot_instance.stop()
+        return "Bot şu an: UYUYOR (Durduruldu)"
+
+    start_bot_btn.click(fn=start_scheduler, inputs=[interval_input, sched_lang_input, sched_privacy], outputs=bot_status)
+    stop_bot_btn.click(fn=stop_scheduler, inputs=[], outputs=bot_status)
 
     generate_btn.click(
         fn=generate_short,
