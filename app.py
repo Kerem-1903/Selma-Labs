@@ -43,6 +43,15 @@ def list_uploaded_assets() -> str:
     return "\n".join(files) if files else "Havuz boş."
 
 
+def save_reference_audio(file_path: str | None) -> tuple[str, str | None]:
+    source = Path(file_path) if file_path else None
+    if source is None or not source.is_file():
+        return "Referans ses seçilmedi.", None
+    target = UPLOAD_DIR / f"voice_reference{source.suffix.lower()}"
+    shutil.copy2(source, target)
+    return f"Referans ses hazır: {target.name}", str(target)
+
+
 async def generate_short(
     topic: str,
     language: str,
@@ -52,6 +61,8 @@ async def generate_short(
     video_mode: str,
     input_video: str | None,
     input_image: str | None,
+    voice_provider: str,
+    reference_audio: str | None,
 ):
     if not topic.strip():
         yield "Lütfen bir konu giriniz.", None, None
@@ -65,6 +76,12 @@ async def generate_short(
     settings.vision_provider = "openai"
     settings.video_provider = "user_uploads" if visual_source == "Kişisel havuz" else "pexels"
     settings.user_uploads_dir = str(UPLOAD_DIR)
+    settings.voice_provider = "local_xtts" if voice_provider == "Yerel XTTSv2" else "elevenlabs"
+    if reference_audio:
+        settings.local_tts_reference_audio = reference_audio
+    if settings.voice_provider == "local_xtts" and not reference_audio:
+        yield "Yerel ses klonlama için referans ses yükleyin.", None, None
+        return
     if settings.video_provider == "pexels" and not settings.pexels_api_key:
         yield "Pexels API anahtarı eksik. Kişisel havuz seçin veya .env dosyasını ayarlayın.", None, None
         return
@@ -120,6 +137,10 @@ with gr.Blocks(title="SELMA Director Studio") as demo:
             input_image = gr.Image(label="I2V giriş görseli", type="filepath")
             input_video = gr.Video(label="V2V giriş videosu")
             language_input = gr.Dropdown(["tr", "en", "es", "de"], value="tr", label="Seslendirme dili")
+            voice_provider = gr.Radio(["ElevenLabs", "Yerel XTTSv2"], value="Yerel XTTSv2", label="Seslendirme motoru")
+            reference_audio = gr.Audio(label="Ses klonlama referansı (10-30 sn)", type="filepath", sources=["upload", "microphone"])
+            reference_status = gr.Textbox(label="Ses profili", interactive=False)
+            reference_audio.change(save_reference_audio, inputs=reference_audio, outputs=[reference_status, reference_audio])
             theme_input = gr.Dropdown(["mysterious, dark ambient", "upbeat, tech, sci-fi", "cinematic, epic", ""], value="mysterious, dark ambient", label="Müzik teması")
             privacy_input = gr.Dropdown(["private", "unlisted", "public"], value="unlisted", label="YouTube gizliliği")
 
@@ -131,7 +152,7 @@ with gr.Blocks(title="SELMA Director Studio") as demo:
             youtube_link = gr.Textbox(label="YouTube linki", interactive=False)
             generate_btn.click(
                 generate_short,
-                inputs=[topic_input, language_input, theme_input, privacy_input, visual_source, video_mode, input_video, input_image],
+                inputs=[topic_input, language_input, theme_input, privacy_input, visual_source, video_mode, input_video, input_image, voice_provider, reference_audio],
                 outputs=[status_output, video_output, youtube_link],
             )
 

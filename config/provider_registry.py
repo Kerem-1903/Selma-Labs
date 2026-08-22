@@ -263,10 +263,27 @@ def get_voice_provider(settings: Settings) -> VoiceGeneratorPort:
             f"speed={settings.elevenlabs_speed}:"
             f"boost={settings.elevenlabs_use_speaker_boost}"
         )
+    elif settings.voice_provider == "local_xtts":
+        from infrastructure.providers.voice.local_voice_clone_provider import (
+            LocalVoiceCloneProvider,
+        )
+
+        base_provider = LocalVoiceCloneProvider(
+            reference_audio_path=settings.local_tts_reference_audio,
+            model_name=settings.local_tts_model_name,
+            language=settings.local_tts_language,
+            ffmpeg_binary=settings.ffmpeg_binary_path,
+            gpu=settings.local_tts_use_gpu,
+        )
+        provider_identity = (
+            f"local-xtts:{settings.local_tts_model_name}:"
+            f"language={settings.local_tts_language}:"
+            f"reference={settings.local_tts_reference_audio}"
+        )
     else:
         raise ValueError(
             f"Unknown voice_provider configured: {settings.voice_provider!r}. "
-            "Supported: ['elevenlabs']"
+            "Supported: ['elevenlabs', 'local_xtts']"
         )
 
     if settings.voice_cache_enabled:

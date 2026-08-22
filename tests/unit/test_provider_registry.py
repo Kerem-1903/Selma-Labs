@@ -118,6 +118,23 @@ def test_get_voice_provider_success():
     assert isinstance(provider, CachingVoiceProvider)
 
 
+def test_get_local_voice_clone_provider_success():
+    from infrastructure.providers.voice.local_voice_clone_provider import (
+        LocalVoiceCloneProvider,
+    )
+
+    settings = Settings(
+        voice_provider="local_xtts",
+        local_tts_reference_audio="input_audio/reference.wav",
+        voice_cache_enabled=False,
+    )
+
+    provider = get_voice_provider(settings)
+
+    assert isinstance(provider, LocalVoiceCloneProvider)
+    assert provider._reference_audio_path.name == "reference.wav"
+
+
 def test_get_video_source_provider_success():
     settings = Settings(pexels_api_key="test-key", video_provider="pexels")
     provider = get_video_source_provider(settings)
