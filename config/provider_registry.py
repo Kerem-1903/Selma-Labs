@@ -260,27 +260,10 @@ def get_voice_provider(settings: Settings) -> VoiceGeneratorPort:
             f"speed={settings.elevenlabs_speed}:"
             f"boost={settings.elevenlabs_use_speaker_boost}"
         )
-    elif settings.voice_provider == "local_xtts":
-        from infrastructure.providers.voice.local_voice_clone_provider import (
-            LocalVoiceCloneProvider,
-        )
-
-        base_provider = LocalVoiceCloneProvider(
-            reference_audio_path=settings.local_tts_reference_audio,
-            model_name=settings.local_tts_model_name,
-            language=settings.local_tts_language,
-            ffmpeg_binary=settings.ffmpeg_binary_path,
-            gpu=settings.local_tts_use_gpu,
-        )
-        provider_identity = (
-            f"local-xtts:{settings.local_tts_model_name}:"
-            f"language={settings.local_tts_language}:"
-            f"reference={settings.local_tts_reference_audio}"
-        )
     else:
         raise ValueError(
             f"Unknown voice_provider configured: {settings.voice_provider!r}. "
-            "Supported: ['elevenlabs', 'local_xtts']"
+            "Supported: ['elevenlabs']"
         )
 
     if settings.voice_cache_enabled:
@@ -299,14 +282,9 @@ def get_video_source_provider(settings: Settings) -> VideoSourcePort:
     if settings.video_provider == "pexels":
         from infrastructure.providers.video.pexels_provider import PexelsProvider
         return PexelsProvider(api_key=settings.pexels_api_key)
-    if settings.video_provider == "user_uploads":
-        from infrastructure.providers.video.user_uploaded_asset_provider import (
-            UserUploadedAssetProvider,
-        )
-        return UserUploadedAssetProvider(settings.user_uploads_dir)
     raise ValueError(
         f"Unknown video_provider configured: {settings.video_provider!r}. "
-        "Supported: ['pexels', 'user_uploads']"
+        "Supported: ['pexels']"
     )
 
 

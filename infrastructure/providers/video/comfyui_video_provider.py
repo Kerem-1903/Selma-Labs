@@ -65,13 +65,7 @@ class ComfyUIVideoProvider(VideoGenerationPort):
                     f.write(content)
                 return local_path
 
-    async def generate_video(
-        self,
-        prompt: str,
-        duration_seconds: float = 5.0,
-        image_path: str | None = None,
-        video_path: str | None = None,
-    ) -> MediaAsset:
+    async def generate_video(self, prompt: str, duration_seconds: float = 5.0) -> MediaAsset:
         logger.info(f"Generating video with ComfyUI. Prompt: '{prompt}'")
 
         try:
@@ -124,18 +118,6 @@ class ComfyUIVideoProvider(VideoGenerationPort):
         if not found_node:
             logger.warning("Could not find a CLIPTextEncode node in the ComfyUI workflow to inject the prompt.")
 
-        if image_path or video_path:
-            input_classes = {"LoadImage"} if image_path else {"LoadVideo", "VHS_LoadVideo"}
-            input_value = os.path.basename(image_path or video_path or "")
-            for node_data in workflow.values():
-                if node_data.get("class_type") in input_classes:
-                    field = "image" if image_path else "video"
-                    node_data.setdefault("inputs", {})[field] = input_value
-                    break
-            else:
-                expected = "LoadImage" if image_path else "LoadVideo/VHS_LoadVideo"
-                raise ProviderError(f"ComfyUI workflow has no {expected} node for the selected input.")
-
         try:
             # 1. Queue it
             prompt_id = await self._queue_prompt(workflow)
@@ -182,9 +164,3 @@ class ComfyUIVideoProvider(VideoGenerationPort):
         except Exception as e:
             logger.error(f"ComfyUI generation failed: {e}")
             raise ProviderError(f"ComfyUI Error: {str(e)}")
-
-    async def generate_from_image(self, prompt: str, image_path: str, duration_seconds: float = 5.0) -> MediaAsset:
-        return await self.generate_video(prompt, duration_seconds, image_path=image_path)
-
-    async def generate_from_video(self, prompt: str, video_path: str, duration_seconds: float = 5.0) -> MediaAsset:
-        return await self.generate_video(prompt, duration_seconds, video_path=video_path)

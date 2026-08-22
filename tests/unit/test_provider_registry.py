@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 from config.provider_registry import (
     get_asset_selection_service,
@@ -118,23 +116,6 @@ def test_get_voice_provider_success():
     settings = Settings(elevenlabs_api_key="test-key", voice_provider="elevenlabs", voice_cache_enabled=True)
     provider = get_voice_provider(settings)
     assert isinstance(provider, CachingVoiceProvider)
-
-
-def test_get_local_voice_clone_provider_success():
-    from infrastructure.providers.voice.local_voice_clone_provider import (
-        LocalVoiceCloneProvider,
-    )
-
-    settings = Settings(
-        voice_provider="local_xtts",
-        local_tts_reference_audio="input_audio/reference.wav",
-        voice_cache_enabled=False,
-    )
-
-    provider = get_voice_provider(settings)
-
-    assert isinstance(provider, LocalVoiceCloneProvider)
-    assert Path(provider.reference_audio_path).name == "voice_reference.wav"
 
 
 def test_get_video_source_provider_success():

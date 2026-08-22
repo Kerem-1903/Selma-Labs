@@ -270,8 +270,7 @@ def build_orchestrator(
                 "VISION_ENABLED must be true for the strict visual-quality gate. "
                 "Enable it only after confirming the selected vision provider and budget."
             )
-        if settings.video_provider == "pexels":
-            _require_factory_configuration(settings.pexels_api_key, "PEXELS_API_KEY")
+        _require_factory_configuration(settings.pexels_api_key, "PEXELS_API_KEY")
         if settings.vision_provider == "openai":
             _require_factory_configuration(settings.openai_api_key, "OPENAI_API_KEY")
         elif settings.vision_provider == "anthropic":
