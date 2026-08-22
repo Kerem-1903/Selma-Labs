@@ -1453,13 +1453,29 @@ class PipelineOrchestrator:
             visual_jobs=[intent.visual_job for intent in visual_intents],
             background_music_path=background_music_path,
             procedural_audio_accents=procedural_audio_accents,
-            sound_design_plan=sound_design_artifact,
-            creative_timeline_path=(
-                str(creative_timeline_path)
-                if creative_timeline_path is not None
-                else None
-            ),
+            sound_design_plan=(sound_design_artifact["plan"] if sound_design_artifact else None),
+            creative_timeline_path=str(creative_timeline_path) if creative_timeline_path else None
         )
+
+        # --- QUALITY GATE: Cinematic Mastering ---
+        from config.settings import get_settings
+        settings = get_settings()
+        if getattr(settings, "apply_cinematic_mastering", False):
+            import logging
+            from core.application.services.video_mastering_service import VideoMasteringService
+            logger = logging.getLogger(__name__)
+            logger.info("Applying Quality Gate: Cinematic Mastering to rendered video...")
+
+            mastering_service = VideoMasteringService()
+            mastered_path = await mastering_service.apply_cinematic_mastering(
+                input_video_path=rendered_path,
+                output_dir=str(self._output_directory),
+                enhance_colors=True,
+                normalize_audio=True
+            )
+            rendered_path = mastered_path
+        # -----------------------------------------
+
         inspection = None
         if self._media_inspection_port is not None:
             assert self._post_render_quality_service is not None
