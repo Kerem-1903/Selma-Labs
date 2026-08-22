@@ -31,7 +31,11 @@ JOB_STATUS = {}
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={},
+    )
 
 async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None):
     try:
