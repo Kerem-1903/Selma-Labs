@@ -114,6 +114,7 @@ class Settings(BaseSettings):
     vision_relevance_threshold: float = 0.70
     youtube_upload_enabled: bool = False
     youtube_upload_privacy: str = "unlisted"
+    apply_cinematic_mastering: bool = False
     video_provider: Literal["pexels", "user_uploads"] = "pexels"
     pexels_api_key: str = ""
     default_video_max_results: int = 10

@@ -1320,8 +1320,9 @@ class PipelineOrchestrator:
         tags = ["Science", "Mystery"]
 
         if script:
-            title = script.get("topic", title)[:100]
-            description = script.get("full_text", description)
+            # Script dictionary contains "topic" if generated, but the narrative content is often in "narration" or "title"
+            title = script.get("title", script.get("topic", title))[:100]
+            description = script.get("narration", description)
             tags = list(set(script.get("topic", "").split() + ["StrangeThingsLab", "Science", "Mystery"]))
 
         video_id = await self._youtube_upload_port.upload_video(

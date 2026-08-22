@@ -24,7 +24,23 @@ class SchedulerBot:
 
         self.interval_hours = interval_hours
         self.is_running = True
-        self._task = asyncio.create_task(self._run_loop(language, privacy))
+
+        # When called from Gradio synchronous threadpool, there is no active event loop.
+        # We need to spawn a background thread with its own event loop.
+        import threading
+        def run_in_thread():
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            self._task = loop.create_task(self._run_loop(language, privacy))
+            try:
+                loop.run_until_complete(self._task)
+            except asyncio.CancelledError:
+                pass
+            finally:
+                loop.close()
+
+        self._thread = threading.Thread(target=run_in_thread, daemon=True)
+        self._thread.start()
         logger.info(f"Otonom Fabrika Başlatıldı! Her {interval_hours} saatte bir video üretilecek.")
 
     def stop(self):
@@ -67,7 +83,7 @@ class SchedulerBot:
                 settings.youtube_upload_privacy = privacy
                 settings.youtube_upload_enabled = True
 
-                await orchestrator.execute(pipeline_run, topic=topic)
+                await orchestrator.run_topic_factory(run_id=run_id, topic=topic)
                 logger.info(f"Otonom üretim tamamlandı ve yüklendi! Run ID: {run_id}")
 
             except Exception as e:

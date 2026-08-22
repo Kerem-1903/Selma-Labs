@@ -19,11 +19,16 @@ class OllamaScriptProvider(ScriptGeneratorPort):
         language: str | None = None,
     ) -> Script:
 
+        # Zeka Merkezi (Analytics Strategy) entegrasyonu
+        from core.application.services.analytics_strategy_service import analytics_strategy_service
+        strategy = await analytics_strategy_service.get_current_strategy()
+
         language_instruction = f" Please write it in {language}." if language else " Please write it in English."
 
         prompt = (
-            f"Write a {target_duration_seconds}-second engaging YouTube Shorts script about: '{topic}'."
-            f" Only output the raw spoken narration text. No stage directions, no markdown, no quotes, no preamble."
+            f"Write a {target_duration_seconds}-second engaging YouTube Shorts script about: '{topic}'.\n"
+            f"STRATEGY INSTRUCTION: {strategy}\n"
+            f"Only output the raw spoken narration text. No stage directions, no markdown, no quotes, no preamble."
             f"{language_instruction}"
         )
 

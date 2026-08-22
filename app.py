@@ -122,6 +122,7 @@ async def generate_short(topic: str, language: str, music_theme: str, privacy: s
 
 
 # UI Layout
+custom_theme = gr.themes.Soft(primary_hue="indigo", secondary_hue="blue", neutral_hue="slate")
 with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
     gr.Markdown("# 🎬 SELMA Labs - Yönetmen Stüdyosu (V2)")
     gr.Markdown("Kendi medyanızı yükleyin, yapay zekayı yönlendirin ve benzersiz kalitede YouTube Shorts'lar yaratın.")
@@ -149,6 +150,23 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
                     status_output = gr.Textbox(label="Durum Konsolu", lines=6, interactive=False)
                     video_output = gr.Video(label="Üretilen Video Sonucu")
                     youtube_link = gr.Textbox(label="YouTube Linki", interactive=False)
+
+        # Sekme 6: Yapay Zeka Beyni
+        with gr.Tab("🧠 Yapay Zeka Beyni"):
+            gr.Markdown("### YouTube Optimizasyon ve Öğrenme Merkezi")
+            gr.Markdown("Sistem, ürettiği her videonun izlenme oranını (AVD) ve kitleyi tutma başarısını analiz ederek kendini eğitir. Sonuçlar senaryo yazarına (SelmaGPT) yönlendirme olarak iletilir.")
+
+            with gr.Row():
+                with gr.Column():
+                    gr.Markdown("#### Anlık Öğrenme İstatistikleri")
+                    total_vid_out = gr.Textbox(label="Analiz Edilen Toplam Video")
+                    avg_view_out = gr.Textbox(label="Ortalama İzlenme Oranı (AVD)")
+                    best_format_out = gr.Textbox(label="Kanalınızın En Başarılı Formatı")
+                    refresh_stats_btn = gr.Button("🔄 Verileri Güncelle")
+
+                with gr.Column():
+                    gr.Markdown("#### SelmaGPT Aktif Öğrenme Stratejisi")
+                    strategy_out = gr.Textbox(label="Senaryo Yazarına Verilen Gizli Talimat", lines=6, interactive=False)
 
         # Sekme 5: Sistem Monitörü
         with gr.Tab("📊 Sistem Monitörü"):
@@ -246,6 +264,17 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
     user_audio.change(fn=update_audio_gallery, inputs=user_audio, outputs=audio_gallery)
 
 
+
+
+    # AI Brain Logic
+    from core.application.services.analytics_strategy_service import analytics_strategy_service
+
+    async def load_brain_stats():
+        stats = await analytics_strategy_service.get_dashboard_stats()
+        strategy = await analytics_strategy_service.get_current_strategy()
+        return stats["total_videos"], stats["avg_view_rate"], stats["best_format"], strategy
+
+    refresh_stats_btn.click(fn=load_brain_stats, inputs=None, outputs=[total_vid_out, avg_view_out, best_format_out, strategy_out])
 
     # Real-Time Monitor Logic
     from core.application.services.system_monitor import get_system_stats
