@@ -409,6 +409,9 @@ def get_video_generation_port(settings: Settings):
     if settings.video_generation_provider == "luma":
         from infrastructure.providers.video.luma_video_generation_provider import LumaVideoGenerationProvider
         return LumaVideoGenerationProvider(api_key=settings.luma_api_key)
+    if settings.video_generation_provider == "comfyui":
+        from infrastructure.providers.video.comfyui_video_provider import ComfyUIVideoProvider
+        return ComfyUIVideoProvider(api_url=settings.comfyui_api_url, workflow_path=settings.comfyui_workflow_path)
     return None
 
 def get_youtube_upload_port(settings: Settings):

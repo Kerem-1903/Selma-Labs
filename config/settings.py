@@ -104,8 +104,10 @@ class Settings(BaseSettings):
     # Visual asset discovery (Sprint 3). video_provider is the single
     # switch that selects an adapter via config/provider_registry.py, same
     # pattern as voice_provider above.
-    video_generation_provider: str = "none"
+    video_generation_provider: str = "none" # options: "none", "luma", "comfyui"
     luma_api_key: str = ""
+    comfyui_api_url: str = "http://127.0.0.1:8188"
+    comfyui_workflow_path: str = "assets/comfyui_workflow.json"
     vision_safety_gate_enabled: bool = False
     vision_relevance_threshold: float = 0.70
     youtube_upload_enabled: bool = False

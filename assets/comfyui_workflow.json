@@ -1,0 +1,15 @@
+{
+  "6": {
+    "inputs": {
+      "text": "Prompt will be injected here",
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  }
+}
