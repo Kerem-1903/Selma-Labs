@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 import uuid
 import shutil
 from pathlib import Path
@@ -28,6 +29,15 @@ templates = Jinja2Templates(directory="web/templates")
 
 # In-memory status tracker for the UI to poll
 JOB_STATUS = {}
+
+
+def _extract_topic(prompt: str) -> str:
+    cleaned = " ".join((prompt or "").split()).strip()
+    match = re.search(r"(?:bana\s+)?(.+?)\s+hakkında\b", cleaned, re.IGNORECASE)
+    if match:
+        return match.group(1).strip(" .,:;!?\"")
+    return cleaned
+
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -72,7 +82,12 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
         )
 
         JOB_STATUS[job_id]["message"] = "Yapay Zeka filmi renderlıyor... Lütfen bekleyin."
-        await orchestrator.run_topic_factory(run_id=run_id, topic=prompt)
+        topic = _extract_topic(prompt)
+        await orchestrator.run_topic_factory(
+            run_id=run_id,
+            topic=topic,
+            language="tr",
+        )
 
         # Pipeline is done. Let's find the generated MP4
         # Orchestrator saves to output_dir
