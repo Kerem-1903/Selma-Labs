@@ -1,15 +1,53 @@
 {
+  "1": {
+    "inputs": {
+      "image": "input.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {"title": "I2V input image"}
+  },
+  "2": {
+    "inputs": {
+      "video": "input.mp4",
+      "force_rate": 0,
+      "force_size": "Disabled",
+      "custom_width": 0,
+      "custom_height": 0,
+      "frame_load_cap": 0,
+      "skip_first_frames": 0,
+      "select_every_nth": 1
+    },
+    "class_type": "VHS_LoadVideo",
+    "_meta": {"title": "V2V input video"}
+  },
   "6": {
     "inputs": {
       "text": "Prompt will be injected here",
-      "clip": [
-        "4",
-        1
-      ]
+      "clip": ["4", 1]
     },
     "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
-    }
+    "_meta": {"title": "CLIP Text Encode (Prompt)"}
+  },
+  "4": {
+    "inputs": {
+      "clip_name": "clip_l.safetensors",
+      "type": "stable_diffusion"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {"title": "CLIP loader"}
+  },
+  "20": {
+    "inputs": {
+      "images": ["2", 0],
+      "audio": ["2", 2],
+      "frame_rate": 24,
+      "loop_count": 0,
+      "filename_prefix": "selma_v2v",
+      "format": "video/h264-mp4",
+      "pingpong": false,
+      "save_output": true
+    },
+    "class_type": "VHS_VideoCombine",
+    "_meta": {"title": "Video output"}
   }
 }

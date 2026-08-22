@@ -287,9 +287,14 @@ def get_video_source_provider(settings: Settings) -> VideoSourcePort:
     """
     if settings.video_provider == "pexels":
         return PexelsProvider(api_key=settings.pexels_api_key)
+    if settings.video_provider == "user_uploads":
+        from infrastructure.providers.video.user_uploaded_asset_provider import (
+            UserUploadedAssetProvider,
+        )
+        return UserUploadedAssetProvider(settings.user_uploads_dir)
     raise ValueError(
         f"Unknown video_provider configured: {settings.video_provider!r}. "
-        "Supported: ['pexels']"
+        "Supported: ['pexels', 'user_uploads']"
     )
 
 
