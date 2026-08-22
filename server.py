@@ -17,15 +17,16 @@ from scripts.run_factory import build_orchestrator
 from core.domain.entities.pipeline_run import PipelineRun
 from infrastructure.repositories.local_json_run_repository import LocalJsonRunRepository
 
+PROJECT_ROOT = Path(__file__).resolve().parent
 app = FastAPI(title="SELMA Labs - Luma Edition")
 
 # Serve static files (CSS, JS, Images, Videos)
-os.makedirs("output", exist_ok=True)
-os.makedirs("web/static", exist_ok=True)
-app.mount("/static", StaticFiles(directory="web/static"), name="static")
-app.mount("/output", StaticFiles(directory="output"), name="output")
+os.makedirs(PROJECT_ROOT / "output", exist_ok=True)
+os.makedirs(PROJECT_ROOT / "web" / "static", exist_ok=True)
+app.mount("/static", StaticFiles(directory=PROJECT_ROOT / "web" / "static"), name="static")
+app.mount("/output", StaticFiles(directory=PROJECT_ROOT / "output"), name="output")
 
-templates = Jinja2Templates(directory="web/templates")
+templates = Jinja2Templates(directory=PROJECT_ROOT / "web" / "templates")
 
 # In-memory status tracker for the UI to poll
 JOB_STATUS = {}
@@ -66,12 +67,12 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
         settings.apply_cinematic_mastering = True
 
         run_id = job_id
-        os.makedirs(".selma_runs", exist_ok=True)
-        repo = LocalJsonRunRepository(".selma_runs")
+        os.makedirs(PROJECT_ROOT / ".selma_runs", exist_ok=True)
+        repo = LocalJsonRunRepository(PROJECT_ROOT / ".selma_runs")
         pipeline_run = PipelineRun(run_id=run_id)
         await repo.save(pipeline_run)
 
-        output_dir = Path(settings.storage_root_dir) / run_id
+        output_dir = PROJECT_ROOT / settings.storage_root_dir / run_id
 
         orchestrator = build_orchestrator(
             repo,
@@ -118,13 +119,13 @@ async def generate(
 
     if image and image.filename:
         import werkzeug.utils
-        upload_dir = "output/user_uploads/images"
+        upload_dir = PROJECT_ROOT / "output" / "user_uploads" / "images"
         os.makedirs(upload_dir, exist_ok=True)
         # Safely extract the filename
         safe_filename = werkzeug.utils.secure_filename(image.filename)
         if not safe_filename:
             safe_filename = "upload.jpg"
-        image_path = os.path.join(upload_dir, f"{job_id}_{safe_filename}")
+        image_path = str(upload_dir / f"{job_id}_{safe_filename}")
         with open(image_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
 
