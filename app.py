@@ -150,6 +150,22 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
                     video_output = gr.Video(label="Üretilen Video Sonucu")
                     youtube_link = gr.Textbox(label="YouTube Linki", interactive=False)
 
+        # Sekme 5: Sistem Monitörü
+        with gr.Tab("📊 Sistem Monitörü"):
+            gr.Markdown("### Canlı Kaynak Tüketimi (Real-Time Monitor)")
+            gr.Markdown("Sunucunuzun / Bilgisayarınızın kaynak kullanımını buradan canlı olarak takip edebilirsiniz.")
+
+            with gr.Row():
+                with gr.Column():
+                    cpu_out = gr.Textbox(label="💻 CPU Kullanımı", interactive=False)
+                    ram_out = gr.Textbox(label="🧠 RAM Kullanımı", interactive=False)
+                with gr.Column():
+                    gpu_out = gr.Textbox(label="🎮 GPU Durumu (VRAM)", interactive=False, lines=2)
+                    disk_out = gr.Textbox(label="💾 Disk Doluluğu", interactive=False)
+
+            gr.Markdown("### Canlı Uygulama Logları")
+            log_out = gr.Textbox(label="Terminal", lines=10, interactive=False)
+
         # Sekme 4: Otonom Fabrika (Scheduler)
         with gr.Tab("🤖 Otonom Fabrika (7/24)"):
             gr.Markdown("### Siz uyurken kanalınız büyüsün!")
@@ -228,6 +244,35 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
 
     user_videos.change(fn=update_video_gallery, inputs=user_videos, outputs=video_gallery)
     user_audio.change(fn=update_audio_gallery, inputs=user_audio, outputs=audio_gallery)
+
+
+
+    # Real-Time Monitor Logic
+    from core.application.services.system_monitor import get_system_stats
+
+
+    # Logging capture setup
+    import logging
+    log_file = "output/system.log"
+    os.makedirs("output", exist_ok=True)
+    file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(file_handler)
+    logging.getLogger().setLevel(logging.INFO)
+
+    def refresh_monitor():
+        stats = get_system_stats()
+        logs = ""
+        try:
+            with open(log_file, "r", encoding="utf-8") as lf:
+                lines = lf.readlines()
+                logs = "".join(lines[-15:]) # Son 15 log
+        except:
+            pass
+        return stats["cpu_percent"], stats["ram_percent"], stats["gpu_info"], stats["disk_percent"], logs
+
+    timer = gr.Timer(2.0)
+    timer.tick(fn=refresh_monitor, inputs=None, outputs=[cpu_out, ram_out, gpu_out, disk_out, log_out])
 
 
     # Scheduler Logic Connections
