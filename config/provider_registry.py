@@ -93,6 +93,7 @@ from infrastructure.providers.topic_selection.nvidia_topic_selection_provider im
 from infrastructure.providers.trend.youtube_most_popular_provider import (
     YoutubeMostPopularProvider,
 )
+from infrastructure.providers.video.user_uploaded_asset_provider import UserUploadedAssetProvider
 from infrastructure.providers.video.pexels_provider import PexelsProvider
 from infrastructure.providers.video.orchestrated_video_source_provider import (
     OrchestratedVideoSourceProvider,
@@ -279,13 +280,11 @@ def get_voice_provider(settings: Settings) -> VoiceGeneratorPort:
 
 
 def get_video_source_provider(settings: Settings) -> VideoSourcePort:
-    """Return the configured VideoSourcePort implementation.
-
-    Only "pexels" is supported in Sprint 3. Adding a new provider (e.g.
-    Pixabay, Mixkit) follows the same three steps as adding a voice
-    provider — see this module's docstring.
-    """
+    if settings.video_provider == "user_uploads":
+        from infrastructure.providers.video.user_uploaded_asset_provider import UserUploadedAssetProvider
+        return UserUploadedAssetProvider()
     if settings.video_provider == "pexels":
+        from infrastructure.providers.video.pexels_provider import PexelsProvider
         return PexelsProvider(api_key=settings.pexels_api_key)
     raise ValueError(
         f"Unknown video_provider configured: {settings.video_provider!r}. "
