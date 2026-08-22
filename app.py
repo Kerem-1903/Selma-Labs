@@ -15,7 +15,7 @@ from core.domain.entities.pipeline_run import PipelineRun
 from infrastructure.repositories.sqlite_video_repository import SQLiteVideoRepository
 import uuid
 
-async def generate_short(topic: str, language: str, music_theme: str, privacy: str, generation_engine: str, voice_provider: str):
+async def generate_short(topic: str, language: str, music_theme: str, privacy: str, generation_engine: str, voice_provider: str, apply_mastering: bool = True, i2v_image: str = None):
     settings = get_settings()
 
     if not topic.strip():
@@ -36,11 +36,15 @@ async def generate_short(topic: str, language: str, music_theme: str, privacy: s
     settings.youtube_upload_enabled = True
     settings.youtube_upload_privacy = privacy
     # Map UI engine to backend providers
+    settings.apply_cinematic_mastering = apply_mastering
+    # Map UI engine to backend providers
     if voice_provider == "Local Ses Klonlama (Kendi Sesim)":
         settings.voice_provider = "local_xtts"
     else:
         settings.voice_provider = "elevenlabs"
 
+    # Map UI engine to backend providers
+    settings.apply_cinematic_mastering = apply_mastering
     # Map UI engine to backend providers
     if generation_engine == "Kişisel Havuzdan Seç (Sadece Benim Yüklediklerim)":
         settings.video_provider = "user_uploads"
@@ -51,7 +55,17 @@ async def generate_short(topic: str, language: str, music_theme: str, privacy: s
     elif generation_engine == "ComfyUI (T2V - Üret)":
         settings.video_provider = "pexels" # fallback search
         settings.video_generation_provider = "comfyui"
-    elif generation_engine == "ComfyUI (V2V - Videomu Dönüştür)":
+    elif generation_engine == "ComfyUI (Image-to-Video)":
+        settings.video_provider = "pexels" # fallback search
+        settings.video_generation_provider = "comfyui"
+        settings.comfyui_mode = "i2v"
+        if i2v_image:
+            import shutil
+            os.makedirs("output/user_uploads/images", exist_ok=True)
+            dest = os.path.join("output/user_uploads/images", os.path.basename(i2v_image))
+            shutil.copy(i2v_image, dest)
+            settings.i2v_image_path = dest
+    elif generation_engine == "ComfyUI (Video-to-Video)":
         settings.video_provider = "user_uploads" # Use local
         settings.video_generation_provider = "comfyui"
         settings.comfyui_mode = "v2v"
@@ -132,18 +146,27 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
         with gr.Tab("🎬 Yönetmen Masası"):
             with gr.Row():
                 with gr.Column(scale=1):
-                    topic_input = gr.Textbox(label="Video Konusu / Fikriniz", placeholder="Boş bırakırsanız sistem bugünün en popüler Trend konusunu kendisi bulur!", lines=3)
+                    with gr.Group():
+                        topic_input = gr.Textbox(label="Video Konusu / Luma Promptu", placeholder="Boş bırakırsanız sistem bugünün en popüler Trend konusunu kendisi bulur!", lines=3)
+                        enhance_btn = gr.Button("✨ Sihirli Değnek (Promptu Sinematik Yap)", size="sm")
+
+                    with gr.Accordion("🖼️ Başlangıç Karesi (Image-to-Video)", open=False):
+                        gr.Markdown("Luma'daki gibi hareketi bir görselden başlatmak için buraya ilk kareyi (Keyframe) yükleyin.")
+                        i2v_image_input = gr.Image(type="filepath", label="İlk Kareyi Yükle (İsteğe Bağlı)")
+
                     language_input = gr.Dropdown(choices=["en", "tr", "es", "de", "fr"], value="tr", label="Yayın Dili")
                     theme_input = gr.Dropdown(choices=["mystery", "epic", "sci-fi", "documentary", "chill"], value="mystery", label="Müzik / Atmosfer")
                     privacy_input = gr.Radio(choices=["public", "unlisted", "private"], value="unlisted", label="YouTube Gizlilik")
 
                     gr.Markdown("### Yapay Zeka Video Motoru")
                     generation_engine = gr.Radio(
-                        choices=["Kişisel Havuzdan Seç (Sadece Benim Yüklediklerim)", "Pexels (Stok Video)", "ComfyUI (T2V - Üret)", "ComfyUI (V2V - Videomu Dönüştür)"],
+                        choices=["Kişisel Havuzdan Seç", "Pexels (Stok)", "ComfyUI (Text-to-Video)", "ComfyUI (Image-to-Video)", "ComfyUI (Video-to-Video)"],
                         value="Pexels (Stok Video)",
                         label="Görsel Kaynağı Seçimi"
                     )
 
+                    gr.Markdown("### Ekstra Kalite (Post-Processing)")
+                    mastering_checkbox = gr.Checkbox(label="✨ Sinematik Mastering (Renk & Ses İyileştirme)", value=True)
                     generate_btn = gr.Button("🚀 Yapay Zeka ile Videoyu Üret ve Yayınla", variant="primary", size="lg")
 
                 with gr.Column(scale=1):
@@ -266,6 +289,17 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
 
 
 
+
+    # Enhancer Logic
+    from core.application.services.prompt_enhancer_service import prompt_enhancer_service
+    async def enhance_prompt(prompt, endpoint, llm_choice):
+        # Determine model name based on UI choice
+        model_name = "llama3" if llm_choice == "ollama" else "SelmaGPT-v1"
+        enhanced = await prompt_enhancer_service.enhance(prompt, endpoint, model_name)
+        return enhanced
+
+    enhance_btn.click(fn=enhance_prompt, inputs=[topic_input, llm_endpoint, script_llm], outputs=topic_input)
+
     # AI Brain Logic
     from core.application.services.analytics_strategy_service import analytics_strategy_service
 
@@ -320,7 +354,7 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
 
     generate_btn.click(
         fn=generate_short,
-        inputs=[topic_input, language_input, theme_input, privacy_input, generation_engine, voice_provider],
+        inputs=[topic_input, language_input, theme_input, privacy_input, generation_engine, voice_provider, mastering_checkbox, i2v_image_input],
         outputs=[status_output, video_output, youtube_link]
     )
 

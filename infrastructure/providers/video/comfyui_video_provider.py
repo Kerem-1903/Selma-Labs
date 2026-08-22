@@ -94,6 +94,15 @@ class ComfyUIVideoProvider(VideoGenerationPort):
                             logger.info(f"Injected source video {source_video} into V2V workflow.")
                             break
 
+        if hasattr(settings, "comfyui_mode") and settings.comfyui_mode == "i2v":
+            if hasattr(settings, "i2v_image_path") and settings.i2v_image_path:
+                source_image = settings.i2v_image_path
+                for node_id, node_data in workflow.items():
+                    if node_data.get("class_type") in ["LoadImage"]:
+                        node_data["inputs"]["image"] = source_image
+                        logger.info(f"Injected source image {source_image} into I2V workflow.")
+                        break
+
         # --- DYNAMIC PROMPT INJECTION ---
         # Note: ComfyUI workflows have node IDs (e.g., "6", "15").
         # You MUST edit this section to match your specific workflow's Text Prompt Node ID.
