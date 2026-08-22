@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 .env
 output/
+data/
 /cache/
 .selma_runs*/
 .codex_video_review/
