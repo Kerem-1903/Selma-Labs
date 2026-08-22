@@ -17,6 +17,7 @@ class SQLiteYoutubePerformanceRepository(YoutubePerformanceRepositoryPort):
             self.db_path = f"file:memdb_{uuid.uuid4().hex}?mode=memory&cache=shared"
         else:
             self.db_path = str(db_path)
+            Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
 
         if self._is_memory and self.db_path not in SQLiteYoutubePerformanceRepository._mem_locks:
             import asyncio
