@@ -239,14 +239,10 @@ def get_script_provider(settings: Settings) -> ScriptGeneratorPort:
 
 
 def get_voice_provider(settings: Settings) -> VoiceGeneratorPort:
-    """Return the configured VoiceGeneratorPort implementation.
-
-    If voice_cache_enabled is set, the returned provider is transparently
-    wrapped in CachingVoiceProvider — VoiceService and every other caller
-    still just see a VoiceGeneratorPort and have no way to tell whether
-    caching is active underneath.
-    """
-    if settings.voice_provider == "elevenlabs":
+    if settings.voice_provider == "local_xtts":
+        from infrastructure.providers.voice.local_voice_clone_provider import LocalVoiceCloneProvider
+        base_provider: VoiceGeneratorPort = LocalVoiceCloneProvider(reference_audio_path=settings.local_voice_reference_path)
+    elif settings.voice_provider == "elevenlabs":
         base_provider: VoiceGeneratorPort = ElevenLabsVoiceProvider(
             api_key=settings.elevenlabs_api_key,
             model_id=settings.elevenlabs_model_id,

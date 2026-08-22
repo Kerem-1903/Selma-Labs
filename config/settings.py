@@ -74,7 +74,8 @@ class Settings(BaseSettings):
     # Voice generation (Sprint 2). voice_provider is the single switch that
     # selects an adapter via config/provider_registry.py — add new literal
     # values here as new adapters are implemented.
-    voice_provider: Literal["elevenlabs"] = "elevenlabs"
+    voice_provider: Literal["elevenlabs", "local_xtts"] = "elevenlabs"
+    local_voice_reference_path: str = "output/user_uploads/voice_reference.wav"
     elevenlabs_api_key: str = ""
     elevenlabs_model_id: str = "eleven_multilingual_v2"
     elevenlabs_stability: float = 0.35

@@ -15,7 +15,7 @@ from core.domain.entities.pipeline_run import PipelineRun
 from infrastructure.repositories.sqlite_video_repository import SQLiteVideoRepository
 import uuid
 
-async def generate_short(topic: str, language: str, music_theme: str, privacy: str, generation_engine: str):
+async def generate_short(topic: str, language: str, music_theme: str, privacy: str, generation_engine: str, voice_provider: str):
     if not topic.strip():
         yield "Lütfen bir konu giriniz.", None, None
         return
@@ -26,6 +26,12 @@ async def generate_short(topic: str, language: str, music_theme: str, privacy: s
     # Force some settings for UI
     settings.youtube_upload_enabled = True
     settings.youtube_upload_privacy = privacy
+    # Map UI engine to backend providers
+    if voice_provider == "Local Ses Klonlama (Kendi Sesim)":
+        settings.voice_provider = "local_xtts"
+    else:
+        settings.voice_provider = "elevenlabs"
+
     # Map UI engine to backend providers
     if generation_engine == "Kişisel Havuzdan Seç (Sadece Benim Yüklediklerim)":
         settings.video_provider = "user_uploads"
@@ -156,6 +162,8 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
                 with gr.Column():
                     script_llm = gr.Dropdown(choices=["selmagpt", "ollama", "nvidia", "claude"], value="selmagpt", label="Senaryo Yazarı (LLM)")
                     llm_endpoint = gr.Textbox(label="Local LLM API URL (Ollama/SelmaGPT)", value="http://localhost:11434/api/generate")
+                    voice_provider = gr.Radio(choices=["ElevenLabs (Ücretli API)", "Local Ses Klonlama (Kendi Sesim)"], value="ElevenLabs (Ücretli API)", label="Seslendirme Motoru (TTS)")
+
                 with gr.Column():
                     comfy_endpoint = gr.Textbox(label="ComfyUI API URL", value="http://127.0.0.1:8188")
                     comfy_workflow = gr.Dropdown(choices=["Text-to-Video (T2V)", "Video-to-Video (V2V)", "Image-to-Video (I2V)"], value="Text-to-Video (T2V)", label="Aktif ComfyUI Workflow")
@@ -179,14 +187,16 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
     def update_audio_gallery(files):
         if not files: return []
         import shutil
-        upload_dir = "output/user_uploads/audio"
+        upload_dir = "output/user_uploads"
         os.makedirs(upload_dir, exist_ok=True)
         res = []
         for f in files:
             file_path = f.name if hasattr(f, 'name') else f
-            dest = os.path.join(upload_dir, os.path.basename(file_path))
+            # Always save as voice_reference.wav so the backend can easily pick it up for cloning
+            dest = os.path.join(upload_dir, "voice_reference.wav")
             shutil.copy(file_path, dest)
-            res.append([os.path.basename(file_path), f"{os.path.getsize(dest)/1024:.1f} KB"])
+            res.append(["voice_reference.wav (Ses Klonlama Referansı)", f"{os.path.getsize(dest)/1024:.1f} KB"])
+            break # Sadece ilk yüklenen dosyayı referans kabul et
         return res
 
     user_videos.change(fn=update_video_gallery, inputs=user_videos, outputs=video_gallery)
@@ -194,7 +204,7 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
 
     generate_btn.click(
         fn=generate_short,
-        inputs=[topic_input, language_input, theme_input, privacy_input, generation_engine],
+        inputs=[topic_input, language_input, theme_input, privacy_input, generation_engine, voice_provider],
         outputs=[status_output, video_output, youtube_link]
     )
 
