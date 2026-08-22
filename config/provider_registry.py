@@ -93,6 +93,7 @@ from infrastructure.providers.topic_selection.nvidia_topic_selection_provider im
 from infrastructure.providers.trend.youtube_most_popular_provider import (
     YoutubeMostPopularProvider,
 )
+from infrastructure.providers.video.user_uploaded_asset_provider import UserUploadedAssetProvider
 from infrastructure.providers.video.pexels_provider import PexelsProvider
 from infrastructure.providers.video.orchestrated_video_source_provider import (
     OrchestratedVideoSourceProvider,
@@ -238,14 +239,10 @@ def get_script_provider(settings: Settings) -> ScriptGeneratorPort:
 
 
 def get_voice_provider(settings: Settings) -> VoiceGeneratorPort:
-    """Return the configured VoiceGeneratorPort implementation.
-
-    If voice_cache_enabled is set, the returned provider is transparently
-    wrapped in CachingVoiceProvider — VoiceService and every other caller
-    still just see a VoiceGeneratorPort and have no way to tell whether
-    caching is active underneath.
-    """
-    if settings.voice_provider == "elevenlabs":
+    if settings.voice_provider == "local_xtts":
+        from infrastructure.providers.voice.local_voice_clone_provider import LocalVoiceCloneProvider
+        base_provider: VoiceGeneratorPort = LocalVoiceCloneProvider(reference_audio_path=settings.local_voice_reference_path)
+    elif settings.voice_provider == "elevenlabs":
         base_provider: VoiceGeneratorPort = ElevenLabsVoiceProvider(
             api_key=settings.elevenlabs_api_key,
             model_id=settings.elevenlabs_model_id,
@@ -296,13 +293,11 @@ def get_voice_provider(settings: Settings) -> VoiceGeneratorPort:
 
 
 def get_video_source_provider(settings: Settings) -> VideoSourcePort:
-    """Return the configured VideoSourcePort implementation.
-
-    Only "pexels" is supported in Sprint 3. Adding a new provider (e.g.
-    Pixabay, Mixkit) follows the same three steps as adding a voice
-    provider — see this module's docstring.
-    """
+    if settings.video_provider == "user_uploads":
+        from infrastructure.providers.video.user_uploaded_asset_provider import UserUploadedAssetProvider
+        return UserUploadedAssetProvider()
     if settings.video_provider == "pexels":
+        from infrastructure.providers.video.pexels_provider import PexelsProvider
         return PexelsProvider(api_key=settings.pexels_api_key)
     if settings.video_provider == "user_uploads":
         from infrastructure.providers.video.user_uploaded_asset_provider import (

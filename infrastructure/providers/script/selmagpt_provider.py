@@ -26,11 +26,20 @@ class SelmaGPTProvider(ScriptGeneratorPort):
 
         language_instruction = f" Please write it in {language}." if language else " Please write it in English."
 
+        # Zeka Merkezi (Analytics Strategy) entegrasyonu
+        from core.application.services.analytics_strategy_service import analytics_strategy_service
+        strategy = await analytics_strategy_service.get_current_strategy()
+
+        system_prompt = (
+            "You are SelmaGPT, a highly specialized AI designed to write viral, engaging, and high-retention YouTube Shorts scripts.\n"
+            f"STRATEGY INSTRUCTION: {strategy}"
+        )
+
         # SelmaGPT eğitim verisine sadık (Instruction formatında) prompt hazırlama
         messages = [
             {
                 "role": "system",
-                "content": "You are SelmaGPT, a highly specialized AI designed to write viral, engaging, and high-retention YouTube Shorts scripts."
+                "content": system_prompt
             },
             {
                 "role": "user",

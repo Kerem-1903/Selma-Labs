@@ -1,129 +1,77 @@
-"""Local XTTSv2 voice-cloning adapter.
-
-The optional ``TTS`` package is imported only when a generation is requested,
-so installations that continue to use ElevenLabs do not pay the import cost.
-"""
-from __future__ import annotations
-
+import logging
+import os
+import uuid
 import asyncio
-from pathlib import Path
-import subprocess
-import tempfile
-
-from mutagen.mp3 import MP3
-
-from core.domain.exceptions import (
-    InvalidVoiceConfigurationError,
-    ProviderError,
-)
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.value_objects.generated_audio import GeneratedAudio
-from core.domain.value_objects.voice_direction import VoiceDirection
+from core.domain.exceptions import ProviderError
 
+logger = logging.getLogger(__name__)
 
 class LocalVoiceCloneProvider(VoiceGeneratorPort):
-    """Generate narration locally with Coqui XTTSv2 and a reference clip."""
+    """
+    Kullanıcının yüklediği 10-30 saniyelik referans sesi kullanarak
+    metni (senaryoyu) o sesle klonlayarak okuyan Coqui XTTSv2 altyapısı.
+    """
 
-    def __init__(
-        self,
-        reference_audio_path: str,
-        *,
-        model_name: str = "tts_models/multilingual/multi-dataset/xtts_v2",
-        language: str = "en",
-        ffmpeg_binary: str = "ffmpeg",
-        gpu: bool = True,
-    ) -> None:
-        self._reference_audio_path = Path(reference_audio_path).expanduser()
-        self._model_name = model_name
-        self._language = language.strip().lower()
-        self._ffmpeg_binary = ffmpeg_binary
-        self._gpu = gpu
-        if not self._language:
-            raise InvalidVoiceConfigurationError(
-                "Local TTS language must not be empty."
-            )
+    def __init__(self, reference_audio_path: str = "output/user_uploads/voice_reference.wav", model_name: str = "tts_models/multilingual/multi-dataset/xtts_v2"):
+        self.reference_audio_path = reference_audio_path
+        self.model_name = model_name
+        self.tts = None # Lazy loading (sadece kullanılacağı zaman belleğe alınır)
 
-    async def generate_voice(
-        self,
-        text: str,
-        voice_name: str,
-        *,
-        direction: VoiceDirection | None = None,
-    ) -> GeneratedAudio:
+    @property
+    def name(self) -> str:
+        return "local_xtts"
+
+    def _load_model(self):
+        if self.tts is None:
+            logger.info("Yükleniyor: Local XTTS Voice Cloning Modeli (Bu işlem ilk seferde vakit alabilir)...")
+            try:
+                from TTS.api import TTS
+                import torch
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                self.tts = TTS(self.model_name).to(device)
+                logger.info(f"Model {device} üzerinde başarıyla yüklendi.")
+            except ImportError:
+                raise ProviderError("TTS modülü bulunamadı. Lütfen 'pip install TTS' komutuyla yükleyin.")
+
+    async def generate_voice(self, text: str, track_id: str, language: str = "tr") -> GeneratedAudio:
         if not text.strip():
-            raise InvalidVoiceConfigurationError("Local TTS text must not be empty.")
-        if not self._reference_audio_path.is_file():
-            raise InvalidVoiceConfigurationError(
-                "Local TTS reference audio was not found at "
-                f"'{self._reference_audio_path}'."
+            raise ValueError("Klonlanacak metin boş olamaz.")
+
+        if not os.path.exists(self.reference_audio_path):
+            raise ProviderError(f"Referans ses bulunamadı: {self.reference_audio_path}. Lütfen UI üzerinden bir ses yükleyin.")
+
+        logger.info(f"Ses klonlanıyor... Track ID: {track_id}")
+
+        # CPU/GPU blocking process olduğu için bunu bir thread'de çalıştırmak en güvenlisidir.
+        loop = asyncio.get_event_loop()
+
+        output_dir = "output/voice_cache"
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, f"{track_id}.wav")
+
+        def _synthesize():
+            self._load_model()
+            self.tts.tts_to_file(
+                text=text,
+                speaker_wav=self.reference_audio_path,
+                language=language,
+                file_path=output_path
             )
-        audio_bytes = await asyncio.to_thread(self._synthesize, text, direction)
+
         try:
-            info = MP3(audio_bytes).info
-            duration = float(info.length)
-            sample_rate = int(info.sample_rate)
-        except Exception as exc:  # noqa: BLE001 - malformed model output
-            raise ProviderError(
-                f"Local TTS produced invalid MP3 audio: {exc}"
-            ) from exc
+            await loop.run_in_executor(None, _synthesize)
+        except Exception as e:
+            logger.error(f"Ses klonlama sırasında hata oluştu: {e}")
+            raise ProviderError(f"Local TTS Hatası: {e}")
+
+        # VoiceService'in beklediği formatta (GeneratedAudio) dönüyoruz.
+        with open(output_path, "rb") as f:
+            audio_bytes = f.read()
+
         return GeneratedAudio(
             audio_bytes=audio_bytes,
-            duration_seconds=duration,
-            sample_rate=sample_rate,
-            provider=f"local-xtts:{self._model_name}",
-            voice_name=voice_name or self._reference_audio_path.stem,
+            content_type="audio/wav",
+            metadata={"provider": "local_xtts", "track_id": track_id, "reference": self.reference_audio_path}
         )
-
-    def _synthesize(self, text: str, direction: VoiceDirection | None) -> bytes:
-        try:
-            from TTS.api import TTS
-        except ImportError as exc:
-            raise ProviderError(
-                "Local voice cloning requires the optional 'TTS' package. "
-                "Install it with: pip install TTS"
-            ) from exc
-
-        with tempfile.TemporaryDirectory(prefix="selma-xtts-") as directory:
-            wav_path = Path(directory) / "narration.wav"
-            mp3_path = Path(directory) / "narration.mp3"
-            try:
-                tts = TTS(model_name=self._model_name, progress_bar=False).to(
-                    "cuda" if self._gpu else "cpu"
-                )
-                kwargs = {
-                    "text": text,
-                    "speaker_wav": str(self._reference_audio_path),
-                    "language": self._language,
-                    "file_path": str(wav_path),
-                }
-                tts.tts_to_file(**kwargs)
-                subprocess.run(
-                    [
-                        self._ffmpeg_binary,
-                        "-y",
-                        "-i",
-                        str(wav_path),
-                        "-codec:a",
-                        "libmp3lame",
-                        "-b:a",
-                        "128k",
-                        str(mp3_path),
-                    ],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
-            except FileNotFoundError as exc:
-                raise ProviderError(
-                    f"Local TTS could not find '{exc.filename}'."
-                ) from exc
-            except subprocess.CalledProcessError as exc:
-                detail = (exc.stderr or "").strip()
-                raise ProviderError(
-                    f"FFmpeg could not encode local TTS audio: {detail}"
-                ) from exc
-            except Exception as exc:  # noqa: BLE001 - model-specific failures
-                raise ProviderError(f"Local XTTS generation failed: {exc}") from exc
-            if not mp3_path.is_file() or mp3_path.stat().st_size == 0:
-                raise ProviderError("Local XTTS generated no audio output.")
-            return mp3_path.read_bytes()

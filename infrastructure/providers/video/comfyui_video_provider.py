@@ -80,6 +80,35 @@ class ComfyUIVideoProvider(VideoGenerationPort):
         except FileNotFoundError:
             raise ProviderError(f"ComfyUI workflow file not found at {self.workflow_path}")
 
+                # --- DYNAMIC V2V / I2V INJECTION ---
+        # If the user selected V2V/I2V, we must also inject their source media path.
+        # Assuming node "10" is a LoadImage or LoadVideo node in the specific V2V workflow.
+        # This will look at the global settings to see if V2V is active and use the first user asset.
+        from config.settings import get_settings
+        settings = get_settings()
+        if hasattr(settings, "comfyui_mode") and settings.comfyui_mode == "v2v":
+            upload_dir = "output/user_uploads/videos"
+            if os.path.exists(upload_dir):
+                # Sort files by creation time to get the most recently uploaded one instead of arbitrary order
+                files = [f for f in os.listdir(upload_dir) if f.endswith(('.mp4', '.mov'))]
+                if files:
+                    files.sort(key=lambda x: os.path.getmtime(os.path.join(upload_dir, x)), reverse=True)
+                    source_video = os.path.join(upload_dir, files[0])
+                    for node_id, node_data in workflow.items():
+                        if node_data.get("class_type") in ["LoadVideo", "VHS_LoadVideo"]:
+                            node_data["inputs"]["video"] = source_video
+                            logger.info(f"Injected source video {source_video} into V2V workflow.")
+                            break
+
+        if hasattr(settings, "comfyui_mode") and settings.comfyui_mode == "i2v":
+            if hasattr(settings, "i2v_image_path") and settings.i2v_image_path:
+                source_image = settings.i2v_image_path
+                for node_id, node_data in workflow.items():
+                    if node_data.get("class_type") in ["LoadImage"]:
+                        node_data["inputs"]["image"] = source_image
+                        logger.info(f"Injected source image {source_image} into I2V workflow.")
+                        break
+
         # --- DYNAMIC PROMPT INJECTION ---
         # Note: ComfyUI workflows have node IDs (e.g., "6", "15").
         # You MUST edit this section to match your specific workflow's Text Prompt Node ID.
@@ -139,7 +168,9 @@ class ComfyUIVideoProvider(VideoGenerationPort):
             # 5. Return MediaAsset
             return MediaAsset(
                 id=str(uuid.uuid4()),
-                source="comfyui",
+                provider="comfyui",
+                provider_asset_id=video_filename,
+                media_type="video",
                 original_url=local_path, # We treat the local downloaded path as original_url for processing
                 description=prompt,
                 duration_seconds=duration_seconds, # Approximated based on request

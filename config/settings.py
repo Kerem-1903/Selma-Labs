@@ -75,6 +75,7 @@ class Settings(BaseSettings):
     # selects an adapter via config/provider_registry.py — add new literal
     # values here as new adapters are implemented.
     voice_provider: Literal["elevenlabs", "local_xtts"] = "elevenlabs"
+    local_voice_reference_path: str = "output/user_uploads/voice_reference.wav"
     elevenlabs_api_key: str = ""
     elevenlabs_model_id: str = "eleven_multilingual_v2"
     elevenlabs_stability: float = 0.35
@@ -85,10 +86,6 @@ class Settings(BaseSettings):
     # "George" — the API quickstart voice and usable on the free API tier.
     # Override via ELEVENLABS_VOICE_ID or the CLI's --voice-id flag.
     elevenlabs_voice_id: str = "JBFqnCBsd6RMkjVDRZzb"
-    local_tts_reference_audio: str = "input_audio/voice_reference.wav"
-    local_tts_model_name: str = "tts_models/multilingual/multi-dataset/xtts_v2"
-    local_tts_language: str = "en"
-    local_tts_use_gpu: bool = True
     brand_signature_enabled: bool = True
     brand_signature_text: str = "Welcome to Strange Things."
     pronunciation_lexicon_path: str = "assets/audio/pronunciation_lexicon.json"
@@ -112,12 +109,13 @@ class Settings(BaseSettings):
     luma_api_key: str = ""
     comfyui_api_url: str = "http://127.0.0.1:8188"
     comfyui_workflow_path: str = "assets/comfyui_workflow.json"
+    comfyui_mode: str = "t2v"
     vision_safety_gate_enabled: bool = False
     vision_relevance_threshold: float = 0.70
     youtube_upload_enabled: bool = False
     youtube_upload_privacy: str = "unlisted"
+    apply_cinematic_mastering: bool = False
     video_provider: Literal["pexels", "user_uploads"] = "pexels"
-    user_uploads_dir: str = "output/user_uploads"
     pexels_api_key: str = ""
     default_video_max_results: int = 10
 
