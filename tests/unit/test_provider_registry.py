@@ -134,7 +134,7 @@ def test_get_local_voice_clone_provider_success():
     provider = get_voice_provider(settings)
 
     assert isinstance(provider, LocalVoiceCloneProvider)
-    assert Path(provider.reference_audio_path).name == "reference.wav"
+    assert Path(provider.reference_audio_path).name == "voice_reference.wav"
 
 
 def test_get_video_source_provider_success():
