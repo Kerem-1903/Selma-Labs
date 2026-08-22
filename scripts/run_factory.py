@@ -175,7 +175,10 @@ def build_orchestrator(
         get_translation_provider,
         get_vision_asset_scoring_service,
         get_voice_provider,
+        get_video_generation_port,
+        get_youtube_upload_port,
     )
+    from core.application.services.vision_safety_gate import VisionSafetyGate
     from config.settings import get_settings
     from core.application.orchestration.pipeline_orchestrator import PipelineOrchestrator
     from core.application.orchestration.run_executor import RunExecutor
@@ -242,8 +245,8 @@ def build_orchestrator(
         FfmpegMediaQualityAnalysisProvider,
     )
     from infrastructure.storage.local_fs_storage import LocalFsStorage
-    from infrastructure.repositories.local_json_youtube_performance_repository import (
-        LocalJsonYoutubePerformanceRepository,
+    from infrastructure.repositories.sqlite_youtube_performance_repository import (
+        SQLiteYoutubePerformanceRepository,
     )
     from infrastructure.providers.video.local_visual_manifest_provider import (
         LocalVisualManifestProvider,
@@ -273,7 +276,8 @@ def build_orchestrator(
         elif settings.vision_provider == "anthropic":
             _require_factory_configuration(settings.anthropic_api_key, "ANTHROPIC_API_KEY")
         elif settings.vision_provider == "nvidia":
-            _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
+            if settings.script_provider not in ["ollama", "selmagpt"]:
+                _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
         else:
             raise RuntimeError(
                 f"Unsupported VISION_PROVIDER={settings.vision_provider!r}."
@@ -346,6 +350,9 @@ def build_orchestrator(
         if visual_manifest_path is None
         else None
     )
+    video_generation = get_video_generation_port(settings)
+    youtube_upload = get_youtube_upload_port(settings)
+    vision_safety_gate = VisionSafetyGate(vision_scoring_service=vision_scoring, relevance_threshold=settings.vision_relevance_threshold) if (vision_scoring and settings.vision_safety_gate_enabled) else None
     script_service = None
     script_fact_check_service = None
     script_rewriter = None
@@ -357,7 +364,8 @@ def build_orchestrator(
         # NVIDIA remains mandatory in topic mode because claim extraction,
         # independent audit, and grounded rewrite use its configured models
         # even when Claude generates the initial draft.
-        _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
+        if settings.script_provider not in ["ollama", "selmagpt"]:
+            _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
         _require_factory_configuration(settings.elevenlabs_api_key, "ELEVENLABS_API_KEY")
         script_service = ScriptService(get_script_provider(settings))
         script_fact_check_service = ScriptFactCheckService(
@@ -393,6 +401,8 @@ def build_orchestrator(
         caption_ux_service=caption_ux,
         video_search_service=video_search,
         vision_asset_scoring_service=vision_scoring,
+        video_generation_port=video_generation,
+        vision_safety_gate=vision_safety_gate,
         asset_diversity_service=(AssetDiversityService(
             perceptual_distance_threshold=(
                 settings.asset_perceptual_distance_threshold
@@ -437,13 +447,14 @@ def build_orchestrator(
         ),
         performance_learning_service=(
             YoutubePerformanceLearningService(
-                LocalJsonYoutubePerformanceRepository(
+                SQLiteYoutubePerformanceRepository(
                     settings.youtube_performance_store
                 )
             )
             if enable_topic_pipeline
             else None
         ),
+        youtube_upload_port=youtube_upload,
         brand_narration_service=(
             BrandNarrationService(settings.brand_signature_text)
             if enable_topic_pipeline and settings.brand_signature_enabled

@@ -41,6 +41,7 @@ from core.domain.ports.translation_port import TranslationPort
 from core.domain.ports.topic_selection_port import TopicSelectionPort
 from core.domain.ports.trend_source_port import TrendSourcePort
 from core.domain.ports.video_source_port import VideoSourcePort
+from core.domain.ports.video_generation_port import VideoGenerationPort
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
 from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
@@ -72,6 +73,8 @@ from infrastructure.providers.scene_planning.nvidia_scene_planning_provider impo
 )
 from infrastructure.providers.script.claude_script_provider import ClaudeScriptProvider
 from infrastructure.providers.script.nvidia_script_provider import NvidiaScriptProvider
+from infrastructure.providers.script.ollama_script_provider import OllamaScriptProvider
+from infrastructure.providers.script.selmagpt_provider import SelmaGPTProvider
 from infrastructure.providers.script.nvidia_fact_grounded_rewriter import (
     NvidiaFactGroundedRewriter,
 )
@@ -90,6 +93,7 @@ from infrastructure.providers.topic_selection.nvidia_topic_selection_provider im
 from infrastructure.providers.trend.youtube_most_popular_provider import (
     YoutubeMostPopularProvider,
 )
+from infrastructure.providers.video.user_uploaded_asset_provider import UserUploadedAssetProvider
 from infrastructure.providers.video.pexels_provider import PexelsProvider
 from infrastructure.providers.video.orchestrated_video_source_provider import (
     OrchestratedVideoSourceProvider,
@@ -211,6 +215,16 @@ def get_script_provider(settings: Settings) -> ScriptGeneratorPort:
             api_key=settings.anthropic_api_key,
             model=settings.script_model,
         )
+    if settings.script_provider == "selmagpt":
+        return SelmaGPTProvider(
+            api_url=settings.selmagpt_api_url,
+            model_name=settings.selmagpt_model_name
+        )
+    if settings.script_provider == "ollama":
+        return OllamaScriptProvider(
+            api_url=settings.ollama_api_url,
+            model=settings.ollama_script_model
+        )
     if settings.script_provider == "nvidia":
         return NvidiaScriptProvider(
             api_key=settings.nvidia_api_key,
@@ -225,14 +239,10 @@ def get_script_provider(settings: Settings) -> ScriptGeneratorPort:
 
 
 def get_voice_provider(settings: Settings) -> VoiceGeneratorPort:
-    """Return the configured VoiceGeneratorPort implementation.
-
-    If voice_cache_enabled is set, the returned provider is transparently
-    wrapped in CachingVoiceProvider — VoiceService and every other caller
-    still just see a VoiceGeneratorPort and have no way to tell whether
-    caching is active underneath.
-    """
-    if settings.voice_provider == "elevenlabs":
+    if settings.voice_provider == "local_xtts":
+        from infrastructure.providers.voice.local_voice_clone_provider import LocalVoiceCloneProvider
+        base_provider: VoiceGeneratorPort = LocalVoiceCloneProvider(reference_audio_path=settings.local_voice_reference_path)
+    elif settings.voice_provider == "elevenlabs":
         base_provider: VoiceGeneratorPort = ElevenLabsVoiceProvider(
             api_key=settings.elevenlabs_api_key,
             model_id=settings.elevenlabs_model_id,
@@ -266,13 +276,11 @@ def get_voice_provider(settings: Settings) -> VoiceGeneratorPort:
 
 
 def get_video_source_provider(settings: Settings) -> VideoSourcePort:
-    """Return the configured VideoSourcePort implementation.
-
-    Only "pexels" is supported in Sprint 3. Adding a new provider (e.g.
-    Pixabay, Mixkit) follows the same three steps as adding a voice
-    provider — see this module's docstring.
-    """
+    if settings.video_provider == "user_uploads":
+        from infrastructure.providers.video.user_uploaded_asset_provider import UserUploadedAssetProvider
+        return UserUploadedAssetProvider()
     if settings.video_provider == "pexels":
+        from infrastructure.providers.video.pexels_provider import PexelsProvider
         return PexelsProvider(api_key=settings.pexels_api_key)
     raise ValueError(
         f"Unknown video_provider configured: {settings.video_provider!r}. "
@@ -392,6 +400,21 @@ def get_vision_asset_scoring_service(settings: Settings) -> VisionAssetScoringSe
     )
 
 
+def get_video_generation_port(settings: Settings):
+    if settings.video_generation_provider == "luma":
+        from infrastructure.providers.video.luma_video_generation_provider import LumaVideoGenerationProvider
+        return LumaVideoGenerationProvider(api_key=settings.luma_api_key)
+    if settings.video_generation_provider == "comfyui":
+        from infrastructure.providers.video.comfyui_video_provider import ComfyUIVideoProvider
+        return ComfyUIVideoProvider(api_url=settings.comfyui_api_url, workflow_path=settings.comfyui_workflow_path)
+    return None
+
+def get_youtube_upload_port(settings: Settings):
+    if settings.youtube_upload_enabled:
+        from infrastructure.providers.publish.google_api_youtube_upload_provider import GoogleApiYoutubeUploadProvider
+        return GoogleApiYoutubeUploadProvider()
+    return None
+
 def get_scene_planning_provider(settings: Settings) -> ScenePlanningPort:
     """Return the configured ScenePlanningPort implementation.
 
@@ -419,7 +442,15 @@ def get_render_provider(settings: Settings) -> RenderPort:
 
     Remotion supplies the creative composition and FFmpeg supplies delivery
     mastering. The original FFmpeg-only path remains available as fallback.
+    nvenc allows fast hardware accelerated rendering with ducking.
     """
+    if settings.render_provider == "nvenc":
+        from infrastructure.providers.render.nvenc_fast_render_adapter import NVENCFastRenderAdapter
+        return NVENCFastRenderAdapter(
+            ffmpeg_path=settings.ffmpeg_binary_path,
+            use_gpu=True,
+            timeout_seconds=settings.remotion_subprocess_timeout_seconds
+        )
     if settings.render_provider == "ffmpeg":
         return FfmpegRenderProvider(
             ffmpeg_binary=settings.ffmpeg_binary_path,

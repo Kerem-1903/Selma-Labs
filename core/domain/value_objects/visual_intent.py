@@ -25,6 +25,7 @@ class VisualIntent:
     shot_type: str = "medium"
     narration_text: str = ""
     visual_job: str = "support_context"
+    generation_prompt: str | None = None
     required_subjects: tuple[str, ...] = ()
     required_actions: tuple[str, ...] = ()
     required_relations: tuple[str, ...] = ()

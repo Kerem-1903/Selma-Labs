@@ -8,6 +8,8 @@ rewrite of any service that depends on StoragePort.
 """
 from __future__ import annotations
 
+import typing
+
 import asyncio
 import hashlib
 import os
@@ -153,3 +155,34 @@ class LocalFsStorage(StoragePort):
     def _write_bytes(destination: Path, data: bytes) -> None:
         destination.parent.mkdir(parents=True, exist_ok=True)
         destination.write_bytes(data)
+
+    def upload_file(self, file_stream: typing.BinaryIO, destination_path: str, content_type: str = "video/mp4") -> str:
+        destination = self._destination_for(destination_path)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        with destination.open("wb") as handle:
+            while True:
+                chunk = file_stream.read(5 * 1024 * 1024)
+                if not chunk:
+                    break
+                handle.write(chunk)
+        return str(destination.resolve())
+
+    def download_file(self, source_path: str, local_destination: str) -> bool:
+        import shutil
+        source = Path(source_path)
+        if not source.is_absolute():
+            source = self._destination_for(source_path)
+        if not source.exists():
+            return False
+        Path(local_destination).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, local_destination)
+        return True
+
+    def delete_file(self, file_path: str) -> bool:
+        target = Path(file_path)
+        if not target.is_absolute():
+            target = self._destination_for(file_path)
+        if target.exists():
+            target.unlink()
+            return True
+        return False

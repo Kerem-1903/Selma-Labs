@@ -27,10 +27,16 @@ class Settings(BaseSettings):
     # which is the correct place for it once more than one provider exists.
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    ollama_api_url: str = "http://localhost:11434/api/generate"
+    ollama_script_model: str = "llama3"
+
+    selmagpt_api_url: str = "http://localhost:8000/v1/chat/completions"
+    selmagpt_model_name: str = "SelmaGPT-v1"
+
     # Check https://docs.claude.com for the current recommended model string
     # before running — model identifiers change over time.
     script_model: str = "claude-sonnet-4-5"
-    script_provider: Literal["claude", "nvidia"] = "nvidia"
+    script_provider: Literal["claude", "nvidia", "ollama", "selmagpt"] = "nvidia"
     nvidia_api_key: str = ""
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
     nvidia_text_model: str = "meta/llama-3.3-70b-instruct"
@@ -68,7 +74,8 @@ class Settings(BaseSettings):
     # Voice generation (Sprint 2). voice_provider is the single switch that
     # selects an adapter via config/provider_registry.py — add new literal
     # values here as new adapters are implemented.
-    voice_provider: Literal["elevenlabs"] = "elevenlabs"
+    voice_provider: Literal["elevenlabs", "local_xtts"] = "elevenlabs"
+    local_voice_reference_path: str = "output/user_uploads/voice_reference.wav"
     elevenlabs_api_key: str = ""
     elevenlabs_model_id: str = "eleven_multilingual_v2"
     elevenlabs_stability: float = 0.35
@@ -98,7 +105,17 @@ class Settings(BaseSettings):
     # Visual asset discovery (Sprint 3). video_provider is the single
     # switch that selects an adapter via config/provider_registry.py, same
     # pattern as voice_provider above.
-    video_provider: Literal["pexels"] = "pexels"
+    video_generation_provider: str = "none" # options: "none", "luma", "comfyui"
+    luma_api_key: str = ""
+    comfyui_api_url: str = "http://127.0.0.1:8188"
+    comfyui_workflow_path: str = "assets/comfyui_workflow.json"
+    comfyui_mode: str = "t2v"
+    vision_safety_gate_enabled: bool = False
+    vision_relevance_threshold: float = 0.70
+    youtube_upload_enabled: bool = False
+    youtube_upload_privacy: str = "unlisted"
+    apply_cinematic_mastering: bool = False
+    video_provider: Literal["pexels", "user_uploads"] = "pexels"
     pexels_api_key: str = ""
     default_video_max_results: int = 10
 

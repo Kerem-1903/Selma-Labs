@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SELMA Dream Machine</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #050505; color: #ffffff; font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glow-text {
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .shimmer {
+            animation: shimmer 2s linear infinite;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+            background-size: 200% 100%;
+        }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+        #drop-zone.dragover { border-color: #4facfe; background: rgba(79, 172, 254, 0.1); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+
+    <!-- Background Ambient Glow -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/20 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
+
+    <!-- Header -->
+    <div class="absolute top-6 left-8 flex items-center gap-3">
+        <div class="w-8 h-8 rounded bg-gradient-to-tr from-blue-500 to-purple-600"></div>
+        <h1 class="text-xl font-bold tracking-tight">SELMA <span class="text-gray-400 font-light">Dream Machine</span></h1>
+    </div>
+
+    <!-- Main Container -->
+    <div class="w-full max-w-3xl px-6 z-10 flex flex-col items-center mt-20">
+
+        <h2 class="text-5xl font-medium tracking-tight mb-4 text-center glow-text">Imagine the impossible.</h2>
+        <p class="text-gray-400 mb-12 text-center text-lg">Generate high-quality cinematic videos from text or images using SELMA AI.</p>
+
+        <!-- Prompt Bar (Glassmorphism) -->
+        <div class="w-full glass-panel rounded-3xl p-2 flex flex-col transition-all duration-300 hover:border-gray-600 focus-within:border-blue-500 shadow-2xl relative" id="prompt-container">
+
+            <form id="generate-form" class="flex flex-col w-full">
+                <!-- Text Area -->
+                <textarea id="prompt-input" rows="2" class="w-full bg-transparent text-white text-lg px-4 py-3 outline-none resize-none placeholder-gray-500" placeholder="A cinematic drone shot of a cyberpunk city floating in space..."></textarea>
+
+                <!-- Action Row -->
+                <div class="flex justify-between items-center px-4 py-2 mt-2">
+
+                    <!-- Image Upload -->
+                    <div class="flex items-center">
+                        <input type="file" id="image-upload" class="hidden" accept="image/*">
+                        <button type="button" onclick="document.getElementById('image-upload').click()" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-medium px-3 py-1.5 rounded-full hover:bg-white/10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <span id="upload-label">Start with Image</span>
+                        </button>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="submit-btn" class="bg-white text-black px-6 py-2 rounded-full font-semibold hover:bg-gray-200 transition-all transform hover:scale-105 shadow-[0_0_15px_rgba(255,255,255,0.3)] disabled:opacity-50 flex items-center gap-2">
+                        <span>Generate</span>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Status & Loader -->
+        <div id="status-container" class="hidden w-full mt-8 flex flex-col items-center">
+            <div class="w-12 h-12 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+            <p id="status-text" class="text-gray-300 font-medium animate-pulse">Initializing dream matrix...</p>
+        </div>
+
+        <!-- Video Result Gallery -->
+        <div id="result-container" class="hidden w-full mt-12 mb-20 animate-fade-in">
+            <div class="glass-panel rounded-2xl overflow-hidden aspect-video relative shadow-2xl border border-white/10">
+                <video id="result-video" class="w-full h-full object-cover" controls autoplay loop playsinline></video>
+                <div class="absolute top-4 left-4 bg-black/50 backdrop-blur px-3 py-1 rounded-full text-xs font-medium border border-white/10 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-green-400"></span> Generation Complete
+                </div>
+            </div>
+            <p id="result-prompt" class="mt-4 text-gray-400 text-sm px-2 italic"></p>
+        </div>
+
+    </div>
+
+    <script>
+        const form = document.getElementById('generate-form');
+        const fileInput = document.getElementById('image-upload');
+        const uploadLabel = document.getElementById('upload-label');
+        const statusContainer = document.getElementById('status-container');
+        const statusText = document.getElementById('status-text');
+        const resultContainer = document.getElementById('result-container');
+        const resultVideo = document.getElementById('result-video');
+        const resultPrompt = document.getElementById('result-prompt');
+        const submitBtn = document.getElementById('submit-btn');
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                uploadLabel.textContent = e.target.files[0].name;
+                uploadLabel.classList.add('text-blue-400');
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = document.getElementById('prompt-input').value;
+            if (!prompt && fileInput.files.length === 0) return;
+
+            submitBtn.disabled = true;
+            resultContainer.classList.add('hidden');
+            statusContainer.classList.remove('hidden');
+            statusText.textContent = "Connecting to SELMA AI cluster...";
+
+            const formData = new FormData();
+            formData.append('prompt', prompt);
+            if (fileInput.files.length > 0) {
+                formData.append('image', fileInput.files[0]);
+            }
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                pollStatus(data.job_id, prompt);
+            } catch (err) {
+                statusText.textContent = "Error: Could not connect to server.";
+                submitBtn.disabled = false;
+            }
+        });
+
+        async function pollStatus(jobId, promptText) {
+            const interval = setInterval(async () => {
+                const res = await fetch(`/api/status/${jobId}`);
+                const data = await res.json();
+
+                statusText.textContent = data.message;
+
+                if (data.status === 'completed') {
+                    clearInterval(interval);
+                    statusContainer.classList.add('hidden');
+                    resultContainer.classList.remove('hidden');
+                    resultVideo.src = data.video_url;
+                    resultPrompt.textContent = `"${promptText}"`;
+                    submitBtn.disabled = false;
+                } else if (data.status === 'error') {
+                    clearInterval(interval);
+                    statusText.textContent = `Error: ${data.message}`;
+                    statusText.classList.add('text-red-400');
+                    submitBtn.disabled = false;
+                }
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

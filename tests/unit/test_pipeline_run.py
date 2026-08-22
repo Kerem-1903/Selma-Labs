@@ -88,7 +88,8 @@ def test_artifact_manifest_is_a_deep_immutable_snapshot():
     assert isinstance(manifest, MappingProxyType)
     with pytest.raises(TypeError):
         manifest["RENDER"] = {}  # type: ignore[index]
-    manifest["AUDIO_ANALYSIS"]["timings"][0]["start_ms"] = 999
+    with pytest.raises(TypeError):
+        manifest["AUDIO_ANALYSIS"]["timings"][0]["start_ms"] = 999
     assert run.get_stage_artifact("AUDIO_ANALYSIS")["timings"][0]["start_ms"] == 10
 
 

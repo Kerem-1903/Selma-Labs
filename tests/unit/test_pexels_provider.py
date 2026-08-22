@@ -161,3 +161,12 @@ def test_raise_for_status_other_error_raises_provider_error():
 def test_constructor_requires_api_key():
     with pytest.raises(ProviderAuthError):
         PexelsProvider(api_key="")
+
+def test_map_video_drops_malformed():
+    malformed = [
+        {"width": 1080}, # no id
+        {"id": 123}, # no url
+    ]
+    for m in malformed:
+        with pytest.raises(ValueError):
+            PexelsProvider._map_video(m, query="ship")

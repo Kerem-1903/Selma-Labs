@@ -123,6 +123,8 @@ class PipelineOrchestrator:
         caption_ux_service: CaptionUxService | None = None,
         video_search_service: VideoSearchService | None = None,
         vision_asset_scoring_service: VisionAssetScoringService | None = None,
+        video_generation_port: VideoGenerationPort | None = None,
+        vision_safety_gate: VisionSafetyGate | None = None,
         asset_diversity_service: AssetDiversityService | None = None,
         editorial_rhythm_service: EditorialRhythmService | None = None,
         render_port: RenderPort | None = None,
@@ -130,6 +132,8 @@ class PipelineOrchestrator:
         media_inspection_port: MediaInspectionPort | None = None,
         media_quality_analysis_port: MediaQualityAnalysisPort | None = None,
         post_render_quality_service: PostRenderQualityService | None = None,
+        youtube_upload_port: YoutubeUploadPort | None = None,
+        youtube_upload_privacy: str = "unlisted",
         remotion_timeline_service: RemotionTimelineService | None = None,
         script_service: ScriptService | None = None,
         script_fact_check_service: ScriptFactCheckService | None = None,
@@ -177,6 +181,8 @@ class PipelineOrchestrator:
             )
         self._video_search_service = video_search_service
         self._vision_asset_scoring_service = vision_asset_scoring_service
+        self._video_generation_port = video_generation_port
+        self._vision_safety_gate = vision_safety_gate
         self._asset_diversity_service = asset_diversity_service
         self._editorial_rhythm_service = editorial_rhythm_service
         self._render_port = render_port
@@ -190,6 +196,8 @@ class PipelineOrchestrator:
             )
         self._media_quality_analysis_port = media_quality_analysis_port
         self._post_render_quality_service = post_render_quality_service
+        self._youtube_upload_port = youtube_upload_port
+        self._youtube_upload_privacy = youtube_upload_privacy
         self._remotion_timeline_service = remotion_timeline_service
         topic_dependencies = (
             script_service,
@@ -644,6 +652,15 @@ class PipelineOrchestrator:
                 ),
             )
             result["upload_package"] = package_artifact
+
+        if self._youtube_upload_port is not None and render_artifact and "output_path" in render_artifact:
+            upload_artifact = await self._executor.execute_stage(
+                run_id,
+                "YOUTUBE_UPLOAD",
+                lambda: self._run_youtube_upload(str(render_artifact["output_path"]), package_context.get("script") if package_context else None, self._youtube_upload_privacy)
+            )
+            result["youtube_upload"] = upload_artifact
+
         await self._executor.complete_run(run_id)
         return result
 
@@ -923,40 +940,65 @@ class PipelineOrchestrator:
                 ScoredAsset(asset=asset, score=AssetScore(final_score=0.50))
                 for asset in scoring_candidates
             ]
+            accepted_asset = None
             try:
-                accepted = await self._vision_asset_scoring_service.score_visual_intent(
+                accepted_scores = await self._vision_asset_scoring_service.score_visual_intent(
                     intent,
                     scored_candidates,
                 )
+
+                if self._vision_safety_gate:
+                    is_safe = await self._vision_safety_gate.evaluate(accepted_scores[0].asset, intent, intent.narration_text)
+                    if not is_safe:
+                        raise VisualAssetNotFoundError("Asset rejected by Vision Safety Gate")
+
+                accepted_asset = accepted_scores[0]
             except (LowVisionConfidenceError, VisualAssetNotFoundError):
-                # Editorial quality beats artificial uniqueness. If the
-                # unused tail is weak, reuse a previously verified clip while
-                # still preventing an immediately adjacent duplicate.
-                reusable = [
-                    asset for asset in candidates if asset.id != last_selected_asset_id
-                ]
-                if not reusable:
-                    raise
-                try:
-                    accepted = await self._vision_asset_scoring_service.score_visual_intent(
-                        intent,
-                        [
-                            ScoredAsset(asset=asset, score=AssetScore(final_score=0.50))
-                            for asset in reusable
-                        ],
-                    )
-                except (LowVisionConfidenceError, VisualAssetNotFoundError):
-                    # A different phase of the same verified source is still
-                    # preferable to lowering the visual confidence threshold.
-                    if last_selected_asset_id is None:
+                # Try Text-to-Video generation if stock videos fail safety or aren't found
+                if self._video_generation_port and getattr(intent, 'generation_prompt', None):
+                    duration_sec = (intent.end_ms - intent.start_ms) / 1000.0
+                    if duration_sec <= 0:
+                        duration_sec = 5.0
+                    try:
+                        gen_asset = await self._video_generation_port.generate_video(intent.generation_prompt, duration_sec)
+                        accepted_asset = ScoredAsset(asset=gen_asset, score=AssetScore(final_score=1.0))
+                    except Exception as e:
+                        pass # Fallback to stock reuse if T2V fails
+
+                # If still not accepted, do the stock fallback
+                if not accepted_asset:
+                    reusable = [
+                        asset for asset in candidates if asset.id != last_selected_asset_id
+                    ]
+                    if not reusable:
                         raise
-                    accepted = await self._vision_asset_scoring_service.score_visual_intent(
-                        intent,
-                        [
-                            ScoredAsset(asset=asset, score=AssetScore(final_score=0.50))
-                            for asset in candidates
-                        ],
-                    )
+                    try:
+                        fallback_scores = await self._vision_asset_scoring_service.score_visual_intent(
+                            intent,
+                            [
+                                ScoredAsset(asset=asset, score=AssetScore(final_score=0.50))
+                                for asset in reusable
+                            ],
+                        )
+                        if self._vision_safety_gate:
+                            is_safe = await self._vision_safety_gate.evaluate(fallback_scores[0].asset, intent, intent.narration_text)
+                            if not is_safe:
+                                raise VisualAssetNotFoundError("Asset rejected by Vision Safety Gate")
+                        accepted_asset = fallback_scores[0]
+                    except (LowVisionConfidenceError, VisualAssetNotFoundError):
+                        if last_selected_asset_id is None:
+                            raise
+                        final_scores = await self._vision_asset_scoring_service.score_visual_intent(
+                            intent,
+                            [
+                                ScoredAsset(asset=asset, score=AssetScore(final_score=0.50))
+                                for asset in candidates
+                            ],
+                        )
+                        accepted_asset = final_scores[0]
+
+            # The downstream code expects a list called `accepted`
+            accepted = [accepted_asset]
             selected_usage: AssetUsage | None = None
             if self._asset_diversity_service is None:
                 selected = await self._video_search_service.download(accepted[0].asset)
@@ -1269,6 +1311,32 @@ class PipelineOrchestrator:
         )
         return package.to_dict()
 
+    async def _run_youtube_upload(self, video_path: str, script: dict[str, Any] | None, privacy: str = "unlisted") -> dict[str, Any]:
+        if self._youtube_upload_port is None:
+            return {"status": "skipped"}
+
+        title = "Automated Video"
+        description = "Automated Video Upload"
+        tags = ["Science", "Mystery"]
+
+        if script:
+            # Script dictionary contains "topic" if generated, but the narrative content is often in "narration" or "title"
+            title = script.get("title", script.get("topic", title))[:100]
+            description = script.get("narration", description)
+            tags = list(set(script.get("topic", "").split() + ["StrangeThingsLab", "Science", "Mystery"]))
+
+        video_id = await self._youtube_upload_port.upload_video(
+            video_path=video_path,
+            title=title,
+            description=description,
+            tags=tags,
+            privacy_status=privacy
+        )
+        return {
+            "youtube_video_id": video_id,
+            "url": f"https://youtu.be/{video_id}"
+        }
+
     def _run_creative_quality(
         self,
         *,
@@ -1386,13 +1454,29 @@ class PipelineOrchestrator:
             visual_jobs=[intent.visual_job for intent in visual_intents],
             background_music_path=background_music_path,
             procedural_audio_accents=procedural_audio_accents,
-            sound_design_plan=sound_design_artifact,
-            creative_timeline_path=(
-                str(creative_timeline_path)
-                if creative_timeline_path is not None
-                else None
-            ),
+            sound_design_plan=(sound_design_artifact["plan"] if sound_design_artifact else None),
+            creative_timeline_path=str(creative_timeline_path) if creative_timeline_path else None
         )
+
+        # --- QUALITY GATE: Cinematic Mastering ---
+        from config.settings import get_settings
+        settings = get_settings()
+        if getattr(settings, "apply_cinematic_mastering", False):
+            import logging
+            from core.application.services.video_mastering_service import VideoMasteringService
+            logger = logging.getLogger(__name__)
+            logger.info("Applying Quality Gate: Cinematic Mastering to rendered video...")
+
+            mastering_service = VideoMasteringService()
+            mastered_path = await mastering_service.apply_cinematic_mastering(
+                input_video_path=rendered_path,
+                output_dir=str(self._output_directory),
+                enhance_colors=True,
+                normalize_audio=True
+            )
+            rendered_path = mastered_path
+        # -----------------------------------------
+
         inspection = None
         if self._media_inspection_port is not None:
             assert self._post_render_quality_service is not None

@@ -93,7 +93,7 @@ class SceneAssetMatchingService:
         video_search_service: VideoSearchService,
         candidates_per_scene: int = DEFAULT_CANDIDATES_PER_SCENE,
         asset_selection_service: AssetSelectionService | None = None,
-        vision_scoring_service: VisionAssetScoringService | None = None,
+        vision_scoring_service: VisionAssetScoringService | None = None
     ) -> None:
         self._video_search_service = video_search_service
         self._candidates_per_scene = candidates_per_scene

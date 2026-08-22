@@ -8,9 +8,7 @@ from core.application.services.youtube_performance_learning_service import (
     YoutubePerformanceLearningService,
 )
 from core.domain.value_objects.youtube_performance import YoutubePerformanceRecord
-from infrastructure.repositories.local_json_youtube_performance_repository import (
-    LocalJsonYoutubePerformanceRepository,
-)
+from infrastructure.repositories.sqlite_youtube_performance_repository import SQLiteYoutubePerformanceRepository
 from core.domain.exceptions import PerformanceDataError
 
 
@@ -45,7 +43,7 @@ def _record(
 
 @pytest.mark.asyncio
 async def test_learning_loop_compares_only_matching_channel_history(tmp_path):
-    repository = LocalJsonYoutubePerformanceRepository(tmp_path / "metrics.json")
+    repository = SQLiteYoutubePerformanceRepository(":memory:")
     service = YoutubePerformanceLearningService(repository)
     await service.record_and_compare(_record("control", 60.0))
     await service.record_and_compare(_record("other-hook", 90.0, hook_type="contrast"))
@@ -63,7 +61,7 @@ async def test_learning_loop_compares_only_matching_channel_history(tmp_path):
 
 @pytest.mark.asyncio
 async def test_repository_updates_same_video_without_duplicate(tmp_path):
-    repository = LocalJsonYoutubePerformanceRepository(tmp_path / "metrics.json")
+    repository = SQLiteYoutubePerformanceRepository(":memory:")
     await repository.save(_record("same", 50.0))
     await repository.save(_record("same", 70.0))
 
@@ -75,15 +73,16 @@ async def test_repository_updates_same_video_without_duplicate(tmp_path):
 
 @pytest.mark.asyncio
 async def test_repository_serializes_concurrent_writers_across_instances(tmp_path):
-    path = tmp_path / "metrics.json"
-    repositories = [LocalJsonYoutubePerformanceRepository(path) for _ in range(12)]
+    path = ":memory:"
+    master = SQLiteYoutubePerformanceRepository(path)
+    repositories = [SQLiteYoutubePerformanceRepository(master.db_path) for _ in range(12)]
 
     await asyncio.gather(*(
         repository.save(_record(f"video-{index}", 50.0 + index))
         for index, repository in enumerate(repositories)
     ))
 
-    records = await LocalJsonYoutubePerformanceRepository(path).list_records()
+    records = await SQLiteYoutubePerformanceRepository(master.db_path).list_records()
     assert len(records) == 12
     assert {record.video_id for record in records} == {
         f"video-{index}" for index in range(12)
@@ -91,39 +90,8 @@ async def test_repository_serializes_concurrent_writers_across_instances(tmp_pat
 
 
 @pytest.mark.asyncio
-async def test_repository_detects_checksum_corruption_and_preserves_backup(tmp_path):
-    path = tmp_path / "metrics.json"
-    repository = LocalJsonYoutubePerformanceRepository(path)
-    await repository.save(_record("first", 50.0))
-    await repository.save(_record("second", 60.0))
-    assert path.with_suffix(".json.bak").is_file()
-
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    payload["records"][0]["viewed_percentage"] = 99.0
-    path.write_text(json.dumps(payload), encoding="utf-8")
-
-    with pytest.raises(PerformanceDataError, match="checksum mismatch"):
-        await repository.list_records()
-
-
-@pytest.mark.asyncio
-async def test_repository_reads_legacy_list_and_migrates_on_next_save(tmp_path):
-    path = tmp_path / "metrics.json"
-    legacy = [_record("legacy", 55.0).to_dict()]
-    path.write_text(json.dumps(legacy), encoding="utf-8")
-    repository = LocalJsonYoutubePerformanceRepository(path)
-
-    assert (await repository.list_records())[0].video_id == "legacy"
-    await repository.save(_record("new", 65.0))
-
-    migrated = json.loads(path.read_text(encoding="utf-8"))
-    assert migrated["schema_version"] == 1
-    assert len(migrated["records"]) == 2
-
-
-@pytest.mark.asyncio
 async def test_build_guidance_returns_channel_specific_production_inputs(tmp_path):
-    repository = LocalJsonYoutubePerformanceRepository(tmp_path / "metrics.json")
+    repository = SQLiteYoutubePerformanceRepository(":memory:")
     service = YoutubePerformanceLearningService(repository)
     for index in range(10):
         await repository.save(

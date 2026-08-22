@@ -41,6 +41,15 @@ class FakeStorage(StoragePort):
     async def save(self, key: str, data: bytes, content_type: str) -> StorageReference:
         return StorageReference(key=key, path=f"C:/output/{key}", size_bytes=len(data))
 
+    def upload_file(self, file_stream, destination_path: str, content_type: str = "video/mp4") -> str:
+        return f"fake://{destination_path}"
+
+    def download_file(self, source_path: str, local_destination: str) -> bool:
+        return True
+
+    def delete_file(self, file_path: str) -> bool:
+        return True
+
 
 @pytest.mark.asyncio
 async def test_local_music_provider_requires_license_metadata(tmp_path):

@@ -34,6 +34,7 @@ class Scene:
     # model returns into one of these three; the domain layer just carries
     # the already-normalized value through.
     visual_priority: str
+    generation_prompt: str | None = None
     visual_job: str = "support_context"
     required_subjects: list[str] = field(default_factory=list)
     required_actions: list[str] = field(default_factory=list)

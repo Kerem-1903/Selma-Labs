@@ -17,6 +17,27 @@ from config.settings import get_settings
 from core.application.services.trend_topic_service import TrendTopicService
 
 
+async def get_trending_topic(settings) -> str:
+    """Helper for the Scheduler Bot to fetch a topic directly without CLI args."""
+    trend_provider = get_trend_source_provider(settings)
+    selection_provider = get_topic_selection_provider(settings)
+    service = TrendTopicService(
+        trend_provider,
+        selection_provider,
+        settings.trend_candidate_limit,
+    )
+    result = await service.select_topic(
+        region_code=settings.trend_region_code,
+        language=settings.trend_relevance_language,
+        category_ids=[
+            c.strip() for c in settings.trend_category_ids.split(",") if c.strip()
+        ]
+        if settings.trend_category_ids
+        else None,
+        max_results_per_category=settings.trend_max_results_per_category,
+    )
+    return result.topic
+
 async def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
