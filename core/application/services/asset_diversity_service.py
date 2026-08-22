@@ -208,8 +208,10 @@ class AssetDiversityService:
 
     @staticmethod
     def _difference_hash(image: Image.Image) -> str:
+        import numpy as np
         resized = image.resize((9, 8), Image.Resampling.LANCZOS)
-        pixels = list(resized.getdata())
+        # Replacing getdata() with numpy array representation to avoid deprecation warnings
+        pixels = np.array(resized).flatten()
         value = 0
         for row in range(8):
             for column in range(8):
