@@ -1,14 +1,14 @@
 {
   "3": {
     "inputs": {
-      "seed": 1056589332219983,
+      "seed": 15654645645,
       "steps": 20,
       "cfg": 8,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.85,
+      "denoise": 1,
       "model": [
-        "4",
+        "10",
         0
       ],
       "positive": [
@@ -20,7 +20,7 @@
         0
       ],
       "latent_image": [
-        "12",
+        "5",
         0
       ]
     },
@@ -38,9 +38,20 @@
       "title": "Load Checkpoint"
     }
   },
+  "5": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "batch_size": 16
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
+    }
+  },
   "6": {
     "inputs": {
-      "text": "Cinematic shot, highly detailed, masterpiece",
+      "text": "cinematic shot, 4k, masterpiece",
       "clip": [
         "4",
         1
@@ -53,7 +64,7 @@
   },
   "7": {
     "inputs": {
-      "text": "watermark, text, blurry, low quality",
+      "text": "watermark, text, low quality, blurry, deformed",
       "clip": [
         "4",
         1
@@ -80,39 +91,40 @@
       "title": "VAE Decode"
     }
   },
+  "9": {
+    "inputs": {
+      "model_name": "mm_sd_v15_v2.ckpt",
+      "beta_schedule": "sqrt_linear (AnimateDiff)",
+      "motion_scale": 1,
+      "apply_v2_models_properly": true,
+      "model": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "ADE_AnimateDiffLoaderWithContext",
+    "_meta": {
+      "title": "AnimateDiff Loader \ud83e\udd8d\ud83c\udfad"
+    }
+  },
   "10": {
     "inputs": {
-      "video": "input_video.mp4",
-      "force_rate": 0,
-      "force_size": "Disabled",
-      "custom_width": 512,
-      "custom_height": 512,
-      "frame_load_cap": 0,
-      "skip_first_frames": 0,
-      "select_every_nth": 1
+      "context_length": 16,
+      "context_stride": 1,
+      "context_overlap": 4,
+      "context_schedule": "uniform",
+      "closed_loop": false,
+      "model": [
+        "9",
+        0
+      ]
     },
-    "class_type": "VHS_LoadVideo",
+    "class_type": "ADE_AnimateDiffUniformContextOptions",
     "_meta": {
-      "title": "Load Video (Upload)"
+      "title": "Context Options \u25c6\ud83e\udd8d"
     }
   },
   "12": {
-    "inputs": {
-      "pixels": [
-        "10",
-        0
-      ],
-      "vae": [
-        "4",
-        2
-      ]
-    },
-    "class_type": "VAEEncode",
-    "_meta": {
-      "title": "VAE Encode"
-    }
-  },
-  "15": {
     "inputs": {
       "frame_rate": 8,
       "loop_count": 0,
@@ -131,16 +143,6 @@
     "class_type": "VHS_VideoCombine",
     "_meta": {
       "title": "Video Combine"
-    }
-  },
-  "16": {
-    "inputs": {
-      "image": "input_image.png",
-      "upload": "image"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "Load Image"
     }
   }
 }
