@@ -47,11 +47,28 @@ async def build_dataset():
                 "assistant": item["narration"]
             })
     else:
-        # Eğer gerçek veriler olsaydı (YouTube upload portuyla gerçek veriler SQLite'a işlendiyse)
-        # Sadece AVD (Average View Duration) puanı ve Click-Through Rate (CTR) yüksek olanları seçip eğitime katacaktık.
-        print(f"{len(records)} adet gerçek YouTube performansı bulundu. Sadece 'Viral' olanlar filtreleniyor...")
-        # (Bu örnekte, pipeline yapısının içindeki veriler çekilebilir)
-        pass
+        # Gerçek veriler SQLite'a işlendiyse, AVD (Average View Duration) yüksek olanları seçip eğitime katıyoruz
+        print(f"{len(records)} adet gerçek YouTube performansı bulundu. Sadece 'Viral' (> 70% AVD) olanlar filtreleniyor...")
+        from config.settings import get_settings
+        from infrastructure.repositories.local_json_run_repository import LocalJsonRunRepository
+        settings = get_settings()
+        run_repo = LocalJsonRunRepository(settings.storage_root_dir)
+
+        for record in records:
+            if record.average_percentage_viewed >= 70.0:
+                try:
+                    pipeline_run = await run_repo.get_by_id(record.run_id)
+                    # Pipeline run üzerinden script ve konuyu çekiyoruz (örnek yapıya göre)
+                    script_text = pipeline_run.get_artifact_manifest().get("narrative_script")
+                    topic = pipeline_run.get_artifact_manifest().get("topic", "Trending Topic")
+                    if script_text:
+                        dataset.append({
+                            "system": "You are SelmaGPT, a highly specialized AI designed to write viral, engaging, and high-retention YouTube Shorts scripts.",
+                            "user": f"Write a 30-second engaging YouTube Shorts script about: '{topic}'. Only output the raw spoken narration text. No stage directions.",
+                            "assistant": script_text
+                        })
+                except Exception as e:
+                    print(f"Skipping run {record.run_id} due to error: {e}")
 
     # JSONL formatında kaydet (HuggingFace, Unsloth, Llama-Factory uyumlu)
     output_file = "data/selmagpt_training_dataset.jsonl"

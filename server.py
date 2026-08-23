@@ -92,10 +92,18 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
 async def generate(
     background_tasks: BackgroundTasks,
     prompt: str = Form(...),
+    llm_provider: str = Form("nvidia"),
     image: Optional[UploadFile] = File(None)
 ):
     job_id = str(uuid.uuid4())
     image_path = None
+
+    settings = get_settings()
+    settings.script_provider = llm_provider
+    if llm_provider == "selmagpt":
+        # Override to ensure it hits the local model on alternate port if needed
+        # Fallback to .env defaults if set, otherwise assume 8001
+        settings.selmagpt_api_url = os.getenv("SELMAGPT_API_URL", "http://127.0.0.1:8001/v1/chat/completions")
 
     if image and image.filename:
         import werkzeug.utils
