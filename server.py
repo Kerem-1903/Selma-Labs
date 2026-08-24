@@ -147,6 +147,12 @@ async def generate(
 async def get_status(job_id: str):
     return JSONResponse(JOB_STATUS.get(job_id, {"status": "not_found", "message": "Bulunamadı"}))
 
+@app.get("/api/telemetry")
+async def get_telemetry():
+    from core.application.services.system_monitor import get_system_stats
+    stats = get_system_stats()
+    return JSONResponse(stats)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=7860)

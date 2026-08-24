@@ -282,16 +282,36 @@
             });
         }
 
-        function updateTelemetry(msg) {
-            // Mock VRAM updates to make the studio feel alive
-            const vramEl = document.getElementById('vram-usage');
-            if(msg.includes("ComfyUI") || msg.includes("Render")) {
-                vramEl.textContent = (Math.random() * (7.8 - 6.5) + 6.5).toFixed(1) + " GB / 8.0 GB";
-                vramEl.classList.add('text-red-400');
-            } else {
-                vramEl.textContent = (Math.random() * (2.1 - 1.2) + 1.2).toFixed(1) + " GB / 8.0 GB";
-                vramEl.classList.remove('text-red-400');
-                vramEl.classList.add('text-yellow-400');
+        async function fetchRealTelemetry() {
+            try {
+                const res = await fetch('/api/telemetry');
+                const data = await res.json();
+
+                const vramEl = document.getElementById('vram-usage');
+
+                // data.gpu_info format: "GPU 0: NVIDIA GeForce RTX 4060 | Kullanım: 45% | VRAM: 3000MB / 8192MB"
+                if (data.gpu_info && data.gpu_info.includes("VRAM:")) {
+                    const parts = data.gpu_info.split("VRAM: ")[1].split(" / ");
+                    const usedMB = parseInt(parts[0]);
+                    const totalMB = parseInt(parts[1]);
+
+                    const usedGB = (usedMB / 1024).toFixed(1);
+                    const totalGB = (totalMB / 1024).toFixed(1);
+
+                    vramEl.textContent = `${usedGB} GB / ${totalGB} GB`;
+
+                    if (usedMB / totalMB > 0.8) {
+                        vramEl.classList.add('text-red-400');
+                        vramEl.classList.remove('text-yellow-400');
+                    } else {
+                        vramEl.classList.remove('text-red-400');
+                        vramEl.classList.add('text-yellow-400');
+                    }
+                } else {
+                    vramEl.textContent = "IDLE";
+                }
+            } catch (e) {
+                // Ignore telemetry errors
             }
         }
 
@@ -341,8 +361,12 @@
         });
 
         let lastMessage = "";
+        let telemetryInterval = null;
 
         async function pollStatus(jobId, promptText) {
+            // Start real telemetry polling
+            telemetryInterval = setInterval(fetchRealTelemetry, 2000);
+
             const interval = setInterval(async () => {
                 const res = await fetch(`/api/status/${jobId}`);
                 const data = await res.json();
@@ -371,6 +395,7 @@
                     updateProgress(4);
                     appendLog("[SUCCESS] Video successfully rendered and saved.", "success");
                     clearInterval(interval);
+                    clearInterval(telemetryInterval);
 
                     // Add a slight delay before showing the final result so user can read the success log
                     setTimeout(() => {
@@ -383,6 +408,7 @@
 
                 } else if (data.status === 'error') {
                     clearInterval(interval);
+                    clearInterval(telemetryInterval);
                     statusText.textContent = `PIPELINE HALTED`;
                     statusText.classList.remove('text-blue-400');
                     statusText.classList.add('text-red-500');
