@@ -91,31 +91,80 @@
         </div>
 
         <!-- Workbench (Status & Loader) -->
-        <div id="workbench-container" class="hidden w-full mt-8 flex flex-col">
-            <div class="glass-panel rounded-2xl p-6 border border-white/10 shadow-2xl relative overflow-hidden">
-                <div class="flex items-center gap-4 mb-6 border-b border-white/10 pb-4">
-                    <div class="w-8 h-8 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
-                    <div>
-                        <h3 class="text-lg font-semibold text-white">SELMA Studio Workbench</h3>
-                        <p id="status-text" class="text-blue-400 text-sm font-medium animate-pulse">Initializing orchestration...</p>
+        <div id="workbench-container" class="hidden w-full mt-8 flex flex-col max-w-4xl mx-auto">
+            <div class="glass-panel rounded-2xl p-6 border border-blue-500/30 shadow-[0_0_40px_rgba(0,120,255,0.15)] relative overflow-hidden bg-black/60">
+                <!-- Top Status Bar -->
+                <div class="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
+                    <div class="flex items-center gap-4">
+                        <div class="relative flex justify-center items-center w-10 h-10">
+                            <div class="absolute inset-0 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin"></div>
+                            <div class="w-4 h-4 bg-blue-500 rounded-full animate-pulse shadow-[0_0_15px_#4facfe]"></div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold text-white tracking-widest">DIRECTOR'S STUDIO</h3>
+                            <p id="status-text" class="text-blue-400 text-sm font-semibold tracking-wider animate-pulse">BOOTING AI ORCHESTRATION...</p>
+                        </div>
+                    </div>
+                    <!-- Telemetry (Mock) -->
+                    <div class="hidden md:flex gap-6 text-right">
+                        <div>
+                            <div class="text-[10px] text-gray-500 uppercase tracking-widest">Engine</div>
+                            <div class="text-xs text-green-400 font-mono" id="engine-status">ComfyUI Online</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] text-gray-500 uppercase tracking-widest">VRAM Allocation</div>
+                            <div class="text-xs text-yellow-400 font-mono">14.2 GB / MAX</div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="space-y-4">
-                        <div class="bg-black/40 rounded-xl p-4 border border-white/5">
-                            <h4 class="text-xs uppercase tracking-wider text-gray-500 mb-2">Original Idea</h4>
-                            <p id="original-prompt-display" class="text-sm text-gray-300 italic">...</p>
+                <!-- Stage Progress Indicators -->
+                <div class="flex gap-2 mb-6" id="progress-stages">
+                    <div id="stage-1" class="flex-1 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#4facfe] transition-all duration-500"></div>
+                    <div id="stage-2" class="flex-1 h-2 rounded-full bg-gray-700 transition-all duration-500"></div>
+                    <div id="stage-3" class="flex-1 h-2 rounded-full bg-gray-700 transition-all duration-500"></div>
+                    <div id="stage-4" class="flex-1 h-2 rounded-full bg-gray-700 transition-all duration-500"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <!-- Left Column: Scripts -->
+                    <div class="space-y-4 md:col-span-5 flex flex-col">
+                        <div class="bg-[#0a0a0a] rounded-xl p-4 border border-white/5 relative group h-full">
+                            <div class="absolute top-0 right-0 p-2 text-gray-600 group-hover:text-blue-400 transition-colors">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </div>
+                            <h4 class="text-[10px] font-bold text-gray-500 tracking-[0.2em] mb-2 flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+                                RAW IDEA
+                            </h4>
+                            <p id="original-prompt-display" class="text-sm text-gray-400 italic">...</p>
                         </div>
-                        <div class="bg-black/40 rounded-xl p-4 border border-white/5">
-                            <h4 class="text-xs uppercase tracking-wider text-blue-500 mb-2">Cinematic Enhanced Prompt (Sent to ComfyUI)</h4>
-                            <p id="enhanced-prompt-display" class="text-sm text-white">Waiting for Prompt Enhancer...</p>
+
+                        <div class="bg-gradient-to-b from-[#0a1526] to-[#050a14] rounded-xl p-4 border border-blue-500/20 relative shadow-[inset_0_0_20px_rgba(0,120,255,0.05)] h-full">
+                            <div class="absolute top-0 right-0 p-2 text-blue-500 animate-pulse">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            </div>
+                            <h4 class="text-[10px] font-bold text-blue-400 tracking-[0.2em] mb-2 flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                CINEMATIC DIRECTOR SCRIPT
+                            </h4>
+                            <p id="enhanced-prompt-display" class="text-sm text-blue-100 font-medium leading-relaxed">Awaiting LLM enhancement...</p>
                         </div>
                     </div>
 
-                    <div class="bg-black/60 rounded-xl p-4 border border-white/5 font-mono text-xs text-gray-400 overflow-y-auto max-h-48" id="log-terminal">
-                        <div class="text-green-400 mb-1">> System booted. AI engines online.</div>
-                        <div id="log-content"></div>
+                    <!-- Right Column: Terminal -->
+                    <div class="md:col-span-7 bg-[#050505] rounded-xl p-5 border border-white/10 font-mono text-xs overflow-y-auto max-h-64 shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)] relative" id="log-terminal">
+                        <!-- Terminal header decoration -->
+                        <div class="sticky top-0 left-0 w-full bg-[#050505]/90 backdrop-blur pb-2 mb-2 border-b border-gray-800 flex items-center gap-2">
+                            <div class="w-2 h-2 rounded-full bg-red-500"></div>
+                            <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
+                            <div class="w-2 h-2 rounded-full bg-green-500"></div>
+                            <span class="text-gray-600 ml-2 text-[10px]">selma_orchestrator.exe - VERBOSE</span>
+                        </div>
+
+                        <div class="text-green-500 mb-1">user@selma-labs:~$ initiate_pipeline --auto</div>
+                        <div class="text-blue-400 mb-2">[INFO] System booted. Connecting to neural rendering engines...</div>
+                        <div id="log-content" class="space-y-1"></div>
                     </div>
                 </div>
             </div>
@@ -158,11 +207,34 @@
             submitBtn.disabled = false;
         }
 
-        function appendLog(msg) {
+        function appendLog(msg, type="info") {
             const time = new Date().toLocaleTimeString();
-            logContent.innerHTML += `<div><span class="text-gray-500">[${time}]</span> ${msg}</div>`;
+            let color = "text-gray-400";
+            if(type === "success") color = "text-green-400";
+            if(type === "warning") color = "text-yellow-400";
+            if(type === "error") color = "text-red-400";
+            if(type === "system") color = "text-blue-400";
+
+            logContent.innerHTML += `<div class="${color} hover:bg-white/5 px-1 rounded transition-colors"><span class="text-gray-600 mr-2">[${time}]</span> ${msg}</div>`;
             const terminal = document.getElementById('log-terminal');
             terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        function updateProgress(stage) {
+            const stages = [
+                document.getElementById('stage-1'),
+                document.getElementById('stage-2'),
+                document.getElementById('stage-3'),
+                document.getElementById('stage-4')
+            ];
+
+            stages.forEach((el, index) => {
+                if (index < stage) {
+                    el.className = "flex-1 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#4facfe] transition-all duration-500";
+                } else {
+                    el.className = "flex-1 h-2 rounded-full bg-gray-800 transition-all duration-500";
+                }
+            });
         }
 
         fileInput.addEventListener('change', (e) => {
@@ -185,8 +257,9 @@
             originalPromptDisplay.textContent = prompt || "(Image to Video - No text)";
             enhancedPromptDisplay.textContent = "Waiting for AI Director to enhance the prompt...";
             logContent.innerHTML = "";
-            appendLog(`Starting request... LLM: ${llmProvider}`);
-            statusText.textContent = "Analyzing input concept...";
+            updateProgress(1);
+            appendLog(`[INIT] Starting generation pipeline. Selected Engine: ${llmProvider.toUpperCase()}`, "system");
+            statusText.textContent = "ANALYZING INPUT CONCEPT...";
 
             const formData = new FormData();
             formData.append('prompt', prompt);
@@ -220,7 +293,15 @@
 
                 // Only append to log if the message changes
                 if (data.message !== lastMessage) {
-                    appendLog(data.message);
+                    let msgType = "info";
+                    if (data.message.includes("ComfyUI") || data.message.includes("Render")) msgType = "warning";
+                    if (data.message.includes("Enhancer")) {
+                        msgType = "success";
+                        updateProgress(2);
+                    }
+                    if (data.message.includes("aktif")) updateProgress(3);
+
+                    appendLog(data.message, msgType);
                     lastMessage = data.message;
                 }
 
@@ -229,17 +310,25 @@
                 }
 
                 if (data.status === 'completed') {
+                    updateProgress(4);
+                    appendLog("[SUCCESS] Video successfully rendered and saved.", "success");
                     clearInterval(interval);
-                    workbenchContainer.classList.add('hidden');
-                    resultContainer.classList.remove('hidden');
-                    resultVideo.src = data.video_url;
-                    resultPrompt.textContent = `Original: "${promptText}"`;
-                    submitBtn.disabled = false;
+
+                    // Add a slight delay before showing the final result so user can read the success log
+                    setTimeout(() => {
+                        workbenchContainer.classList.add('hidden');
+                        resultContainer.classList.remove('hidden');
+                        resultVideo.src = data.video_url;
+                        resultPrompt.textContent = `Original: "${promptText}"`;
+                        submitBtn.disabled = false;
+                    }, 1500);
+
                 } else if (data.status === 'error') {
                     clearInterval(interval);
-                    statusText.textContent = `Pipeline Halted: ${data.message}`;
-                    statusText.classList.add('text-red-400');
-                    appendLog(`<span class='text-red-400'>CRITICAL FAILURE: ${data.message}</span>`);
+                    statusText.textContent = `PIPELINE HALTED`;
+                    statusText.classList.remove('text-blue-400');
+                    statusText.classList.add('text-red-500');
+                    appendLog(`CRITICAL FAILURE: ${data.message}`, "error");
                     submitBtn.disabled = false;
                 }
             }, 2000);
