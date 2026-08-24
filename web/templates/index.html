@@ -90,21 +90,49 @@
             </form>
         </div>
 
-        <!-- Status & Loader -->
-        <div id="status-container" class="hidden w-full mt-8 flex flex-col items-center">
-            <div class="w-12 h-12 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-            <p id="status-text" class="text-gray-300 font-medium animate-pulse">Initializing dream matrix...</p>
+        <!-- Workbench (Status & Loader) -->
+        <div id="workbench-container" class="hidden w-full mt-8 flex flex-col">
+            <div class="glass-panel rounded-2xl p-6 border border-white/10 shadow-2xl relative overflow-hidden">
+                <div class="flex items-center gap-4 mb-6 border-b border-white/10 pb-4">
+                    <div class="w-8 h-8 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-white">SELMA Studio Workbench</h3>
+                        <p id="status-text" class="text-blue-400 text-sm font-medium animate-pulse">Initializing orchestration...</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div class="bg-black/40 rounded-xl p-4 border border-white/5">
+                            <h4 class="text-xs uppercase tracking-wider text-gray-500 mb-2">Original Idea</h4>
+                            <p id="original-prompt-display" class="text-sm text-gray-300 italic">...</p>
+                        </div>
+                        <div class="bg-black/40 rounded-xl p-4 border border-white/5">
+                            <h4 class="text-xs uppercase tracking-wider text-blue-500 mb-2">Cinematic Enhanced Prompt (Sent to ComfyUI)</h4>
+                            <p id="enhanced-prompt-display" class="text-sm text-white">Waiting for Prompt Enhancer...</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-black/60 rounded-xl p-4 border border-white/5 font-mono text-xs text-gray-400 overflow-y-auto max-h-48" id="log-terminal">
+                        <div class="text-green-400 mb-1">> System booted. AI engines online.</div>
+                        <div id="log-content"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Video Result Gallery -->
-        <div id="result-container" class="hidden w-full mt-12 mb-20 animate-fade-in">
+        <div id="result-container" class="hidden w-full mt-8 mb-20 animate-fade-in">
             <div class="glass-panel rounded-2xl overflow-hidden aspect-video relative shadow-2xl border border-white/10">
                 <video id="result-video" class="w-full h-full object-cover" controls autoplay loop playsinline></video>
                 <div class="absolute top-4 left-4 bg-black/50 backdrop-blur px-3 py-1 rounded-full text-xs font-medium border border-white/10 flex items-center gap-2">
                     <span class="w-2 h-2 rounded-full bg-green-400"></span> Generation Complete
                 </div>
             </div>
-            <p id="result-prompt" class="mt-4 text-gray-400 text-sm px-2 italic"></p>
+            <div class="mt-4 flex justify-between items-center px-2">
+                <p id="result-prompt" class="text-gray-400 text-sm italic"></p>
+                <button onclick="resetWorkbench()" class="text-sm text-blue-400 hover:text-white transition-colors underline">Create Another</button>
+            </div>
         </div>
 
     </div>
@@ -113,12 +141,29 @@
         const form = document.getElementById('generate-form');
         const fileInput = document.getElementById('image-upload');
         const uploadLabel = document.getElementById('upload-label');
-        const statusContainer = document.getElementById('status-container');
+        const workbenchContainer = document.getElementById('workbench-container');
         const statusText = document.getElementById('status-text');
+        const originalPromptDisplay = document.getElementById('original-prompt-display');
+        const enhancedPromptDisplay = document.getElementById('enhanced-prompt-display');
+        const logContent = document.getElementById('log-content');
         const resultContainer = document.getElementById('result-container');
         const resultVideo = document.getElementById('result-video');
         const resultPrompt = document.getElementById('result-prompt');
         const submitBtn = document.getElementById('submit-btn');
+
+        function resetWorkbench() {
+            resultContainer.classList.add('hidden');
+            workbenchContainer.classList.add('hidden');
+            document.getElementById('prompt-input').value = '';
+            submitBtn.disabled = false;
+        }
+
+        function appendLog(msg) {
+            const time = new Date().toLocaleTimeString();
+            logContent.innerHTML += `<div><span class="text-gray-500">[${time}]</span> ${msg}</div>`;
+            const terminal = document.getElementById('log-terminal');
+            terminal.scrollTop = terminal.scrollHeight;
+        }
 
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
@@ -135,8 +180,13 @@
 
             submitBtn.disabled = true;
             resultContainer.classList.add('hidden');
-            statusContainer.classList.remove('hidden');
-            statusText.textContent = "Connecting to SELMA AI cluster...";
+            workbenchContainer.classList.remove('hidden');
+
+            originalPromptDisplay.textContent = prompt || "(Image to Video - No text)";
+            enhancedPromptDisplay.textContent = "Waiting for AI Director to enhance the prompt...";
+            logContent.innerHTML = "";
+            appendLog(`Starting request... LLM: ${llmProvider}`);
+            statusText.textContent = "Analyzing input concept...";
 
             const formData = new FormData();
             formData.append('prompt', prompt);
@@ -154,9 +204,12 @@
                 pollStatus(data.job_id, prompt);
             } catch (err) {
                 statusText.textContent = "Error: Could not connect to server.";
+                appendLog("<span class='text-red-400'>Fatal Error: Connection to backend failed.</span>");
                 submitBtn.disabled = false;
             }
         });
+
+        let lastMessage = "";
 
         async function pollStatus(jobId, promptText) {
             const interval = setInterval(async () => {
@@ -165,17 +218,28 @@
 
                 statusText.textContent = data.message;
 
+                // Only append to log if the message changes
+                if (data.message !== lastMessage) {
+                    appendLog(data.message);
+                    lastMessage = data.message;
+                }
+
+                if (data.enhanced_prompt) {
+                    enhancedPromptDisplay.textContent = data.enhanced_prompt;
+                }
+
                 if (data.status === 'completed') {
                     clearInterval(interval);
-                    statusContainer.classList.add('hidden');
+                    workbenchContainer.classList.add('hidden');
                     resultContainer.classList.remove('hidden');
                     resultVideo.src = data.video_url;
-                    resultPrompt.textContent = `"${promptText}"`;
+                    resultPrompt.textContent = `Original: "${promptText}"`;
                     submitBtn.disabled = false;
                 } else if (data.status === 'error') {
                     clearInterval(interval);
-                    statusText.textContent = `Error: ${data.message}`;
+                    statusText.textContent = `Pipeline Halted: ${data.message}`;
                     statusText.classList.add('text-red-400');
+                    appendLog(`<span class='text-red-400'>CRITICAL FAILURE: ${data.message}</span>`);
                     submitBtn.disabled = false;
                 }
             }, 2000);

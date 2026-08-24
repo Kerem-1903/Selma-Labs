@@ -33,10 +33,30 @@ JOB_STATUS = {}
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None):
+async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None, llm_provider: str = "nvidia"):
     try:
-        JOB_STATUS[job_id] = {"status": "generating", "message": "Senaryo ve görsel planlama başlatılıyor...", "video_url": None}
+        from core.application.services.prompt_enhancer_service import prompt_enhancer_service
         settings = get_settings()
+
+        # Determine endpoint based on provider selection
+        llm_endpoint = "http://localhost:11434/api/generate" if llm_provider == "ollama" else settings.selmagpt_api_url if llm_provider == "selmagpt" else None
+        model_name = "llama3" if llm_provider == "ollama" else "SelmaGPT-v1"
+
+        JOB_STATUS[job_id] = {"status": "enhancing", "message": "Prompt Enhancer: Senaryo sinematik dile çevriliyor...", "video_url": None, "enhanced_prompt": None}
+
+        # 1. Enhance Prompt dynamically
+        enhanced_prompt = prompt
+        if llm_endpoint:
+            try:
+                enhanced_prompt = await prompt_enhancer_service.enhance(prompt, llm_endpoint, model_name)
+                JOB_STATUS[job_id]["enhanced_prompt"] = enhanced_prompt
+            except Exception as e:
+                JOB_STATUS[job_id]["message"] = f"Prompt geliştirilemedi, orijinal metin kullanılıyor: {e}"
+        else:
+            # If using API providers like NVIDIA or Claude, we skip local enhance for now or implement their specific clients
+            JOB_STATUS[job_id]["enhanced_prompt"] = f"(Using default script pipeline for {llm_provider}): {prompt}"
+
+        JOB_STATUS[job_id]["message"] = "Gelişmiş senaryo hazırlandı. Planlama başlatılıyor..."
 
         # Luma tarzı I2V/T2V konfigürasyonu
         settings.video_generation_provider = "comfyui"
@@ -67,8 +87,8 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
             content_language="tr",
         )
 
-        JOB_STATUS[job_id]["message"] = "Yapay Zeka filmi renderlıyor... Lütfen bekleyin."
-        await orchestrator.run_topic_factory(run_id=run_id, topic=prompt)
+        JOB_STATUS[job_id]["message"] = "Yapay Zeka (Orchestrator) aktif. Video renderlanıyor... Lütfen bekleyin."
+        await orchestrator.run_topic_factory(run_id=run_id, topic=enhanced_prompt)
 
         # Pipeline is done. Let's find the generated MP4
         # Orchestrator saves to output_dir
@@ -118,8 +138,8 @@ async def generate(
             shutil.copyfileobj(image.file, buffer)
 
     # Arka planda Luma (ComfyUI) motorunu tetikle
-    JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None}
-    background_tasks.add_task(run_pipeline, job_id, prompt, image_path)
+    JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None, "enhanced_prompt": None}
+    background_tasks.add_task(run_pipeline, job_id, prompt, image_path, llm_provider)
 
     return JSONResponse({"job_id": job_id})
 
