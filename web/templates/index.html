@@ -6,15 +6,21 @@
     <title>SELMA Dream Machine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #050505; color: #ffffff; font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+
+        body { background-color: #020203; color: #ffffff; font-family: 'Inter', sans-serif; }
         .glass-panel {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(10, 15, 30, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(0, 242, 254, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 242, 254, 0.05);
         }
         .glow-text {
-            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+            text-shadow: 0 0 25px rgba(0,242,254,0.6);
+        }
+        .terminal-font {
+            font-family: 'JetBrains Mono', monospace;
         }
         .gradient-text {
             background: linear-gradient(to right, #4facfe, #00f2fe);
@@ -23,12 +29,49 @@
         }
         .shimmer {
             animation: shimmer 2s linear infinite;
-            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 100%);
+            background: linear-gradient(90deg, rgba(0,242,254,0) 0%, rgba(0,242,254,0.15) 50%, rgba(0,242,254,0) 100%);
             background-size: 200% 100%;
         }
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
-        #drop-zone.dragover { border-color: #4facfe; background: rgba(79, 172, 254, 0.1); }
+        /* Neon Progress Bar */
+        .neon-bar {
+            box-shadow: 0 0 10px #00f2fe, 0 0 20px #00f2fe;
+            position: relative;
+            overflow: hidden;
+        }
+        .neon-bar::after {
+            content: "";
+            position: absolute;
+            top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+            animation: light-beam 2s infinite;
+        }
+        @keyframes light-beam { 100% { left: 200%; } }
+
+        /* Glitch Effect for Errors */
+        .glitch-error {
+            animation: glitch 0.3s cubic-bezier(.25, .46, .45, .94) both infinite;
+            color: #ff3366 !important;
+            border-color: rgba(255, 51, 102, 0.5) !important;
+            box-shadow: inset 0 0 30px rgba(255, 51, 102, 0.2) !important;
+        }
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+
+        /* Terminal Cursor */
+        .blinking-cursor::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
@@ -113,7 +156,7 @@
                         </div>
                         <div>
                             <div class="text-[10px] text-gray-500 uppercase tracking-widest">VRAM Allocation</div>
-                            <div class="text-xs text-yellow-400 font-mono">14.2 GB / MAX</div>
+                            <div class="text-xs text-yellow-400 font-mono transition-colors" id="vram-usage">1.2 GB / 8.0 GB</div>
                         </div>
                     </div>
                 </div>
@@ -153,18 +196,19 @@
                     </div>
 
                     <!-- Right Column: Terminal -->
-                    <div class="md:col-span-7 bg-[#050505] rounded-xl p-5 border border-white/10 font-mono text-xs overflow-y-auto max-h-64 shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)] relative" id="log-terminal">
+                    <div class="md:col-span-7 bg-[#050505] rounded-xl p-5 border border-white/10 terminal-font text-xs overflow-y-auto max-h-64 shadow-[inset_0_4px_20px_rgba(0,0,0,0.5)] relative" id="log-terminal">
                         <!-- Terminal header decoration -->
-                        <div class="sticky top-0 left-0 w-full bg-[#050505]/90 backdrop-blur pb-2 mb-2 border-b border-gray-800 flex items-center gap-2">
-                            <div class="w-2 h-2 rounded-full bg-red-500"></div>
-                            <div class="w-2 h-2 rounded-full bg-yellow-500"></div>
-                            <div class="w-2 h-2 rounded-full bg-green-500"></div>
-                            <span class="text-gray-600 ml-2 text-[10px]">selma_orchestrator.exe - VERBOSE</span>
+                        <div class="sticky top-0 left-0 w-full bg-[#050505]/90 backdrop-blur pb-2 mb-2 border-b border-gray-800 flex items-center gap-2 z-10">
+                            <div class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_5px_red]"></div>
+                            <div class="w-2 h-2 rounded-full bg-yellow-500 shadow-[0_0_5px_yellow]"></div>
+                            <div class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_green]"></div>
+                            <span class="text-gray-600 ml-2 text-[10px] tracking-widest">selma_orchestrator.exe - VERBOSE</span>
                         </div>
 
                         <div class="text-green-500 mb-1">user@selma-labs:~$ initiate_pipeline --auto</div>
                         <div class="text-blue-400 mb-2">[INFO] System booted. Connecting to neural rendering engines...</div>
                         <div id="log-content" class="space-y-1"></div>
+                        <div class="text-gray-400 mt-1 blinking-cursor"></div>
                     </div>
                 </div>
             </div>
@@ -203,6 +247,7 @@
         function resetWorkbench() {
             resultContainer.classList.add('hidden');
             workbenchContainer.classList.add('hidden');
+            workbenchContainer.querySelector('.glass-panel').classList.remove('glitch-error');
             document.getElementById('prompt-input').value = '';
             submitBtn.disabled = false;
         }
@@ -230,11 +275,24 @@
 
             stages.forEach((el, index) => {
                 if (index < stage) {
-                    el.className = "flex-1 h-2 rounded-full bg-blue-500 shadow-[0_0_10px_#4facfe] transition-all duration-500";
+                    el.className = "flex-1 h-2 rounded-full bg-blue-500 neon-bar transition-all duration-500";
                 } else {
                     el.className = "flex-1 h-2 rounded-full bg-gray-800 transition-all duration-500";
                 }
             });
+        }
+
+        function updateTelemetry(msg) {
+            // Mock VRAM updates to make the studio feel alive
+            const vramEl = document.getElementById('vram-usage');
+            if(msg.includes("ComfyUI") || msg.includes("Render")) {
+                vramEl.textContent = (Math.random() * (7.8 - 6.5) + 6.5).toFixed(1) + " GB / 8.0 GB";
+                vramEl.classList.add('text-red-400');
+            } else {
+                vramEl.textContent = (Math.random() * (2.1 - 1.2) + 1.2).toFixed(1) + " GB / 8.0 GB";
+                vramEl.classList.remove('text-red-400');
+                vramEl.classList.add('text-yellow-400');
+            }
         }
 
         fileInput.addEventListener('change', (e) => {
@@ -328,6 +386,7 @@
                     statusText.textContent = `PIPELINE HALTED`;
                     statusText.classList.remove('text-blue-400');
                     statusText.classList.add('text-red-500');
+                    workbenchContainer.querySelector('.glass-panel').classList.add('glitch-error');
                     appendLog(`CRITICAL FAILURE: ${data.message}`, "error");
                     submitBtn.disabled = false;
                 }
