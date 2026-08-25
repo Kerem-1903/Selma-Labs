@@ -31,11 +31,18 @@ class OllamaScriptProvider(ScriptGeneratorPort):
         max_words = int(expected_words * 1.6)
 
         prompt = (
-            f"Write a {target_duration_seconds}-second engaging YouTube Shorts script about: '{topic}'.\n"
-            f"You MUST write exactly between {min_words} and {max_words} words.\n"
+            f"You are an elite YouTube Shorts scriptwriter. Your sole purpose is to output highly engaging, viral spoken narration.\n"
+            f"Topic: {topic}\n"
+            f"Target duration: {target_duration_seconds} seconds.\n"
+            f"Word count constraint: You MUST write exactly between {min_words} and {max_words} words.\n"
+            f"Output language: {language_instruction.strip()}\n"
+            "CRITICAL RULES:\n"
+            "1. NO PREAMBLE. NO STAGE DIRECTIONS. NO QUOTES. NO EMOJIS. Output ONLY the raw spoken text.\n"
+            "2. Start with a massive curiosity hook or a shocking statement.\n"
+            "3. Keep the pacing extremely fast. Eliminate all filler words.\n"
+            "4. End with a strong call to action or a thought-provoking consequence.\n"
             f"STRATEGY INSTRUCTION: {strategy}\n"
-            f"Only output the raw spoken narration text. No stage directions, no markdown, no quotes, no preamble."
-            f"{language_instruction}"
+            "Write the raw narration text now, starting immediately with the first spoken word."
         )
 
         payload = {

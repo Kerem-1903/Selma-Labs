@@ -30,16 +30,29 @@ class SelmaGPTProvider(ScriptGeneratorPort):
         from core.application.services.analytics_strategy_service import analytics_strategy_service
         strategy = await analytics_strategy_service.get_current_strategy()
 
-        system_prompt = (
-            "You are SelmaGPT, a highly specialized AI designed to write viral, engaging, and high-retention YouTube Shorts scripts.\n"
-            f"STRATEGY INSTRUCTION: {strategy}"
-        )
-
         # Explicit word bounds logic to fix short-generation bug
         WORDS_PER_MINUTE_TARGET = 150
         expected_words = (target_duration_seconds / 60) * WORDS_PER_MINUTE_TARGET
         min_words = int(expected_words * 0.5)
         max_words = int(expected_words * 1.6)
+
+        system_prompt = (
+            "You are SelmaGPT, an elite YouTube Shorts scriptwriter. Your sole purpose is to output highly engaging, viral spoken narration.\n"
+            "CRITICAL RULES:\n"
+            "1. NO PREAMBLE. NO STAGE DIRECTIONS. NO QUOTES. NO EMOJIS.\n"
+            "2. Start with a massive curiosity hook or a shocking statement.\n"
+            "3. Keep the pacing extremely fast. Eliminate all filler words.\n"
+            "4. End with a strong call to action or a thought-provoking consequence.\n"
+            f"STRATEGY INSTRUCTION: {strategy}"
+        )
+
+        user_prompt = (
+            f"Topic: {topic}\n"
+            f"Target duration: {target_duration_seconds} seconds.\n"
+            f"Word count constraint: You MUST write exactly between {min_words} and {max_words} words.\n"
+            f"Output language: {language_instruction.strip()}\n"
+            "Write the raw narration text now, starting immediately with the first spoken word."
+        )
 
         # SelmaGPT eğitim verisine sadık (Instruction formatında) prompt hazırlama
         messages = [
@@ -49,7 +62,7 @@ class SelmaGPTProvider(ScriptGeneratorPort):
             },
             {
                 "role": "user",
-                "content": f"Write a {target_duration_seconds}-second engaging YouTube Shorts script about: '{topic}'. You MUST write exactly between {min_words} and {max_words} words. Only output the raw spoken narration text. No stage directions.{language_instruction}"
+                "content": user_prompt
             }
         ]
 

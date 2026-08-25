@@ -16,21 +16,25 @@ class PromptEnhancerService:
             return base_prompt
 
         system_instruction = (
-            "You are a professional Cinematic Prompt Engineer for AI Video Generation models (like Sora, Luma, Runway). "
-            "Your job is to take a simple user idea and turn it into a highly detailed, descriptive, and cinematic video prompt. "
-            "Include camera movements (e.g., panning, tracking shot, drone shot), lighting (e.g., cinematic lighting, neon glow, golden hour), "
-            "lens type (e.g., 35mm, macro, wide angle), and mood. "
-            "IMPORTANT: ONLY output the enhanced prompt text in English. Do not add any conversational text, prefixes, or quotes."
+            "You are an elite Cinematic Prompt Engineer for high-end AI Video Generation models (like Sora, Luma, AnimateDiff). "
+            "Your job is to take a simple user idea and turn it into a hyper-detailed, descriptive, and visually breathtaking cinematic video prompt. "
+            "You MUST strictly include technical cinematography terms: camera movements (e.g., dynamic tracking shot, sweeping drone shot, slow panning), "
+            "lighting setups (e.g., volumetric lighting, cinematic chiaroscuro, neon glow, golden hour), "
+            "lens specifications (e.g., 35mm lens, macro photography, wide angle, shallow depth of field), and atmospheric mood. "
+            "Mandatory render keywords to include: '8k resolution, Unreal Engine 5 render, photorealistic, masterpiece, highly detailed'. "
+            "CRITICAL: Output ONLY the raw enhanced prompt text in English. No markdown, no preambles, no quotes, no explanations."
         )
+
+        user_prompt = f"Enhance this simple idea into a breathtaking cinematic video prompt: '{base_prompt}'"
 
         payload = {
             "model": model_name,
             "messages": [
                 {"role": "system", "content": system_instruction},
-                {"role": "user", "content": f"Enhance this video idea into a cinematic prompt: {base_prompt}"}
+                {"role": "user", "content": user_prompt}
             ],
             "temperature": 0.7,
-            "max_tokens": 150
+            "max_tokens": 200
         }
 
         # Handle simple Ollama format vs standard OpenAI format
@@ -39,11 +43,11 @@ class PromptEnhancerService:
         if is_ollama:
             payload = {
                 "model": model_name,
-                "prompt": f"{system_instruction}\n\nEnhance this video idea into a cinematic prompt: {base_prompt}",
+                "prompt": f"{system_instruction}\n\n{user_prompt}",
                 "stream": False
             }
 
-        fallback_prompt = f"A cinematic 4k highly detailed masterpiece shot of {base_prompt}, dynamic lighting, cinematic composition, photorealistic, dramatic atmosphere, high quality."
+        fallback_prompt = f"A cinematic 8k highly detailed masterpiece tracking shot of {base_prompt}, volumetric lighting, photorealistic, Unreal Engine 5 render, dramatic atmosphere, 35mm lens."
 
         try:
             async with aiohttp.ClientSession() as session:
