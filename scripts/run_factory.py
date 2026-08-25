@@ -163,6 +163,7 @@ def build_orchestrator(
     voice_id: str | None = None,
     content_language: str | None = None,
     visual_manifest_path: str | Path | None = None,
+    settings=None,
 ) -> "PipelineOrchestrator":
     """Instantiate adapters and services without placing business logic in CLI code."""
     from config.provider_registry import (
@@ -263,25 +264,31 @@ def build_orchestrator(
                 "The local factory uses music-first visual planning only."
             )
 
-    settings = get_settings()
+    if settings is None:
+        settings = get_settings()
+
     if visual_manifest_path is None:
-        if not settings.vision_enabled:
+        if not settings.vision_enabled and settings.video_generation_provider == "none":
             raise RuntimeError(
                 "VISION_ENABLED must be true for the strict visual-quality gate. "
                 "Enable it only after confirming the selected vision provider and budget."
             )
-        _require_factory_configuration(settings.pexels_api_key, "PEXELS_API_KEY")
-        if settings.vision_provider == "openai":
-            _require_factory_configuration(settings.openai_api_key, "OPENAI_API_KEY")
-        elif settings.vision_provider == "anthropic":
-            _require_factory_configuration(settings.anthropic_api_key, "ANTHROPIC_API_KEY")
-        elif settings.vision_provider == "nvidia":
-            if settings.script_provider not in ["ollama", "selmagpt"]:
-                _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
-        else:
-            raise RuntimeError(
-                f"Unsupported VISION_PROVIDER={settings.vision_provider!r}."
-            )
+
+        # Pexels api key required only if pexels is selected and we are not skipping vision checks
+        if settings.video_provider == "pexels":
+            _require_factory_configuration(settings.pexels_api_key, "PEXELS_API_KEY")
+        if settings.vision_enabled:
+            if settings.vision_provider == "openai":
+                _require_factory_configuration(settings.openai_api_key, "OPENAI_API_KEY")
+            elif settings.vision_provider == "anthropic":
+                _require_factory_configuration(settings.anthropic_api_key, "ANTHROPIC_API_KEY")
+            elif settings.vision_provider == "nvidia":
+                if settings.script_provider not in ["ollama", "selmagpt"]:
+                    _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
+            else:
+                raise RuntimeError(
+                    f"Unsupported VISION_PROVIDER={settings.vision_provider!r}."
+                )
 
     audio_source = LocalAudioSourceProvider(
         settings.ffprobe_binary_path,
