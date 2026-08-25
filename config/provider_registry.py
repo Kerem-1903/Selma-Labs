@@ -350,10 +350,17 @@ def get_vision_asset_scoring_service(settings: Settings) -> VisionAssetScoringSe
             model=settings.nvidia_vision_model,
             timeout_seconds=settings.nvidia_timeout_seconds,
         )
+    elif settings.vision_provider == "selmagpt":
+        from infrastructure.providers.vision.selmagpt_vision_provider import SelmaGPTVisionProvider
+        base_provider = SelmaGPTVisionProvider(
+            api_url=settings.selmagpt_vision_url,
+            model=settings.selmagpt_vision_model,
+            timeout_seconds=settings.provider_timeout_seconds,
+        )
     else:
         raise ValueError(
             f"Unknown vision_provider configured: {settings.vision_provider!r}. "
-            "Supported: ['anthropic', 'nvidia', 'openai']"
+            "Supported: ['anthropic', 'nvidia', 'openai', 'selmagpt']"
         )
     fallback_provider = None
     if (
