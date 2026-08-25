@@ -123,10 +123,12 @@ class Settings(BaseSettings):
     # cannot unexpectedly multiply API usage; enable explicitly via config or
     # the pipeline CLI once credentials and a budget are in place.
     vision_enabled: bool = False
-    vision_provider: Literal["anthropic", "nvidia", "openai"] = "openai"
+    vision_provider: Literal["anthropic", "nvidia", "openai", "selmagpt"] = "selmagpt"
     vision_fallback_provider: Literal["nvidia", "openai", "none"] = "nvidia"
     vision_model: str = "claude-haiku-4-5"
     openai_vision_model: str = "gpt-5.6-luna"
+    selmagpt_vision_model: str = "llava"
+    selmagpt_vision_url: str = "http://localhost:11434/api/generate"
     vision_frames_per_asset: int = 3
     vision_top_candidates: int = 5
     vision_max_concurrency: int = 2

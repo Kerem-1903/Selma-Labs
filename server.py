@@ -108,6 +108,44 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
     except Exception as e:
         JOB_STATUS[job_id] = {"status": "error", "message": str(e), "video_url": None}
 
+@app.post("/api/vision/analyze")
+async def analyze_vision(
+    image: UploadFile = File(...),
+    context: str = Form("")
+):
+    """
+    Endpoint for the UI to request a quick Vision AI analysis of an uploaded image.
+    Used to pre-analyze context before full video generation.
+    """
+    if not image.filename:
+        return JSONResponse(status_code=400, content={"error": "No image provided."})
+
+    try:
+        from config.provider_registry import get_vision_asset_scoring_service
+        settings = get_settings().model_copy()
+
+        # Ensure vision is enabled for this endpoint
+        settings.vision_enabled = True
+
+        scoring_service = get_vision_asset_scoring_service(settings)
+        vision_provider = scoring_service._vision_provider
+
+        image_bytes = await image.read()
+
+        result = await vision_provider.analyze(
+            frame_bytes=[image_bytes],
+            scene_context=context or "General analysis"
+        )
+
+        return JSONResponse(content={
+            "status": "success",
+            "provider": vision_provider.provider_identity,
+            "analysis": result.to_dict()
+        })
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.post("/api/generate")
 async def generate(
     background_tasks: BackgroundTasks,
