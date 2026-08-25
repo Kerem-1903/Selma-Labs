@@ -84,6 +84,17 @@
         <h2 class="text-5xl font-medium tracking-tight mb-4 text-center glow-text">Imagine the impossible.</h2>
         <p class="text-gray-400 mb-12 text-center text-lg">Generate high-quality cinematic videos from text or images using SELMA AI.</p>
 
+        <!-- Vision Results Panel -->
+        <div id="vision-results-panel" class="hidden w-full glass-panel rounded-xl p-4 mb-4 border border-purple-500/30 bg-purple-900/10 shadow-[0_0_15px_rgba(168,85,247,0.15)] text-sm animate-fade-in relative">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-600 to-blue-500 opacity-50 rounded-t-xl"></div>
+            <div class="flex items-center gap-2 mb-2 text-purple-300 font-semibold">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                SelmaGPT Visual Analysis
+            </div>
+            <div id="vision-results-content" class="text-gray-300 leading-relaxed">
+            </div>
+        </div>
+
         <!-- Prompt Bar (Glassmorphism) -->
         <div class="w-full glass-panel rounded-3xl p-2 flex flex-col transition-all duration-300 hover:border-gray-600 focus-within:border-blue-500 shadow-2xl relative" id="prompt-container">
 
@@ -126,16 +137,16 @@
                         </div>
 
                         <!-- Image Upload & Vision AI -->
-                        <div class="flex items-center gap-1 border-l border-white/10 pl-4 ml-2">
+                        <div class="flex items-center gap-2 border-l border-white/10 pl-4 ml-2">
                             <input type="file" id="image-upload" class="hidden" accept="image/*">
-                            <button type="button" onclick="document.getElementById('image-upload').click()" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-medium px-3 py-1.5 rounded-full hover:bg-white/10">
+                            <button type="button" onclick="document.getElementById('image-upload').click()" class="flex items-center gap-2 text-gray-400 hover:text-white transition-all transform hover:scale-105 text-sm font-medium px-3 py-1.5 rounded-full hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.2)]">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                 <span id="upload-label">Start with Image</span>
                             </button>
 
-                            <button type="button" id="analyze-btn" class="hidden flex items-center gap-2 text-purple-400 hover:text-purple-300 transition-colors text-sm font-medium px-3 py-1.5 rounded-full hover:bg-purple-900/30 border border-purple-500/30">
+                            <button type="button" id="analyze-btn" class="hidden flex items-center gap-2 text-purple-300 hover:text-white transition-all transform hover:scale-105 text-sm font-medium px-4 py-1.5 rounded-full bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/50 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)] animate-pulse">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                <span>Analyze</span>
+                                <span>SelmaGPT Vision</span>
                             </button>
                         </div>
                     </div>
@@ -262,14 +273,30 @@
                 if (data.status === 'success') {
                     const sceneType = data.analysis.scene_type || "Unknown scene";
                     const dominantSubj = data.analysis.dominant_subject || "Unknown subject";
-                    const promptInput = document.getElementById('prompt-input');
+                    const colors = data.analysis.dominant_colors ? data.analysis.dominant_colors.join(', ') : "N/A";
+                    const lighting = data.analysis.lighting || "Unknown";
 
+                    const panel = document.getElementById('vision-results-panel');
+                    const content = document.getElementById('vision-results-content');
+
+                    content.innerHTML = `
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><span class="text-purple-400/70">Scene Type:</span> ${sceneType}</div>
+                            <div><span class="text-purple-400/70">Subject:</span> ${dominantSubj}</div>
+                            <div><span class="text-purple-400/70">Colors:</span> ${colors}</div>
+                            <div><span class="text-purple-400/70">Lighting:</span> ${lighting}</div>
+                        </div>
+                    `;
+                    panel.classList.remove('hidden');
+
+                    const promptInput = document.getElementById('prompt-input');
                     if (!promptInput.value.includes(sceneType)) {
-                        promptInput.value = `[Vision: ${sceneType}, ${dominantSubj}] ` + promptInput.value;
+                        promptInput.value = `[Vision Context: ${sceneType}, ${dominantSubj}, ${lighting} lighting] ` + promptInput.value;
                     }
+
                     analyzeBtn.querySelector('span').textContent = "Analyzed!";
                     analyzeBtn.classList.add('text-green-400', 'border-green-500/30');
-                    analyzeBtn.classList.remove('text-purple-400', 'border-purple-500/30');
+                    analyzeBtn.classList.remove('text-purple-300', 'border-purple-500/50');
                 } else {
                     analyzeBtn.querySelector('span').textContent = "Error";
                 }
@@ -278,9 +305,9 @@
             } finally {
                 setTimeout(() => {
                     analyzeBtn.disabled = false;
-                    analyzeBtn.querySelector('span').textContent = "Analyze";
+                    analyzeBtn.querySelector('span').textContent = "SelmaGPT Vision";
                     analyzeBtn.classList.remove('text-green-400', 'border-green-500/30');
-                    analyzeBtn.classList.add('text-purple-400', 'border-purple-500/30');
+                    analyzeBtn.classList.add('text-purple-300', 'border-purple-500/50');
                 }, 3000);
             }
         });
