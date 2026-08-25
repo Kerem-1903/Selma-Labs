@@ -43,6 +43,8 @@ class PromptEnhancerService:
                 "stream": False
             }
 
+        fallback_prompt = f"A cinematic 4k highly detailed masterpiece shot of {base_prompt}, dynamic lighting, cinematic composition, photorealistic, dramatic atmosphere, high quality."
+
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(llm_endpoint, json=payload, timeout=20) as response:
@@ -52,12 +54,12 @@ class PromptEnhancerService:
                             enhanced = data.get("response", "").strip()
                         else:
                             enhanced = data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
-                        return enhanced if enhanced else base_prompt
+                        return enhanced if enhanced else fallback_prompt
                     else:
-                        logger.warning(f"Enhancer API failed with status {response.status}")
-                        return base_prompt
+                        logger.warning(f"Enhancer API failed with status {response.status}. Using fallback.")
+                        return fallback_prompt
         except Exception as e:
-            logger.error(f"Prompt Enhancer failed: {e}")
-            return base_prompt
+            logger.error(f"Prompt Enhancer failed: {e}. Using fallback.")
+            return fallback_prompt
 
 prompt_enhancer_service = PromptEnhancerService()
