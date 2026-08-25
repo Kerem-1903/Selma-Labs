@@ -15,8 +15,11 @@ from fastapi.requests import Request
 from config.settings import get_settings
 from scripts.run_factory import build_orchestrator
 from core.application.services.analytics_strategy_service import analytics_strategy_service
+from core.application.services.system_monitor import get_system_stats
+from core.application.services.scheduler_bot import scheduler_bot_instance
 from core.domain.entities.pipeline_run import PipelineRun
 from infrastructure.repositories.local_json_run_repository import LocalJsonRunRepository
+from pydantic import BaseModel
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 app = FastAPI(title="SELMA Labs - Luma Edition")
@@ -49,7 +52,7 @@ async def index(request: Request):
         context={},
     )
 
-async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None, script_provider: str = "selmagpt"):
+async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None, script_provider: str = "selmagpt", voice_provider: str = "elevenlabs"):
     try:
         JOB_STATUS[job_id] = {"status": "generating", "message": f"{script_provider} senaryo ve görsel planlama başlatıyor...", "video_url": None}
 
@@ -63,6 +66,9 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
 
         # SelmaGPT veya diğer LLM entegrasyonu
         local_settings.script_provider = script_provider
+
+        # Voice Provider entegrasyonu (ElevenLabs veya Local XTTS)
+        local_settings.voice_provider = voice_provider
 
         if image_path:
             local_settings.comfyui_mode = "i2v"
@@ -121,10 +127,20 @@ async def generate(
     background_tasks: BackgroundTasks,
     prompt: str = Form(...),
     image: Optional[UploadFile] = File(None),
-    script_provider: str = Form("selmagpt")
+    script_provider: str = Form("selmagpt"),
+    voice_provider: str = Form("elevenlabs"),
+    voice_file: Optional[UploadFile] = File(None)
 ):
     job_id = str(uuid.uuid4())
     image_path = None
+
+    if voice_provider == "local_xtts" and voice_file and voice_file.filename:
+        import werkzeug.utils
+        settings = get_settings()
+        voice_ref_path = PROJECT_ROOT / settings.local_voice_reference_path
+        os.makedirs(voice_ref_path.parent, exist_ok=True)
+        with open(voice_ref_path, "wb") as buffer:
+            shutil.copyfileobj(voice_file.file, buffer)
 
     if image and image.filename:
         import werkzeug.utils
@@ -140,7 +156,7 @@ async def generate(
 
     # Arka planda Luma (ComfyUI) motorunu tetikle
     JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None}
-    background_tasks.add_task(run_pipeline, job_id, prompt, image_path, script_provider)
+    background_tasks.add_task(run_pipeline, job_id, prompt, image_path, script_provider, voice_provider)
 
     return JSONResponse({"job_id": job_id})
 
@@ -152,6 +168,33 @@ async def get_status(job_id: str):
 async def get_stats():
     stats = await analytics_strategy_service.get_dashboard_stats()
     return JSONResponse(stats)
+
+@app.get("/api/system-metrics")
+async def system_metrics():
+    stats = get_system_stats()
+    return JSONResponse(stats)
+
+@app.get("/api/autopilot/status")
+async def autopilot_status():
+    return JSONResponse({
+        "is_running": scheduler_bot_instance.is_running,
+        "interval_hours": scheduler_bot_instance.interval_hours
+    })
+
+class AutopilotToggleRequest(BaseModel):
+    interval_hours: int = 24
+
+@app.post("/api/autopilot/toggle")
+async def autopilot_toggle(req: AutopilotToggleRequest):
+    if scheduler_bot_instance.is_running:
+        scheduler_bot_instance.stop()
+    else:
+        scheduler_bot_instance.start(interval_hours=req.interval_hours)
+
+    return JSONResponse({
+        "is_running": scheduler_bot_instance.is_running,
+        "interval_hours": scheduler_bot_instance.interval_hours
+    })
 
 if __name__ == "__main__":
     import uvicorn

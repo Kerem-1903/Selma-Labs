@@ -43,8 +43,23 @@
             <h1 class="text-xl font-bold tracking-tight">SELMA <span class="text-gray-400 font-light">Dream Machine</span></h1>
         </div>
 
+        <!-- Header Controls -->
+        <div class="hidden md:flex gap-6 items-center">
+        <!-- Autopilot Controls -->
+        <div class="glass-panel px-4 py-2 rounded-full text-sm flex items-center gap-3">
+            <span class="text-gray-400 font-medium">Autopilot</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="autopilot-toggle" class="sr-only peer">
+                <div class="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-500"></div>
+            </label>
+            <div class="flex items-center gap-1 text-gray-500">
+                <input type="number" id="autopilot-interval" value="24" min="1" max="168" class="w-12 bg-transparent text-center text-white border-b border-gray-600 focus:border-blue-500 outline-none">
+                <span>hrs</span>
+            </div>
+        </div>
+
         <!-- Stats Dashboard -->
-        <div id="stats-panel" class="hidden md:flex gap-6 glass-panel px-6 py-2 rounded-full text-sm">
+        <div id="stats-panel" class="flex gap-6 glass-panel px-6 py-2 rounded-full text-sm">
             <div class="flex flex-col items-center">
                 <span class="text-gray-400 text-xs">Total Videos</span>
                 <span id="stat-total" class="font-semibold text-blue-400">...</span>
@@ -59,6 +74,7 @@
                 <span class="text-gray-400 text-xs">Best Format</span>
                 <span id="stat-format" class="font-semibold text-purple-400">...</span>
             </div>
+        </div>
         </div>
     </div>
 
@@ -91,6 +107,24 @@
                             </select>
                         </div>
 
+                        <!-- Voice Provider -->
+                        <div class="flex items-center gap-2 text-gray-400 text-sm font-medium border border-white/10 px-3 py-1.5 rounded-full bg-black/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path></svg>
+                            <select id="voice-provider" class="bg-transparent outline-none text-white appearance-none cursor-pointer">
+                                <option value="elevenlabs">ElevenLabs</option>
+                                <option value="local_xtts">Local Voice Clone</option>
+                            </select>
+                        </div>
+
+                        <!-- Voice File Upload (Hidden by default) -->
+                        <div id="voice-upload-container" class="hidden items-center">
+                            <input type="file" id="voice-upload" class="hidden" accept="audio/*">
+                            <button type="button" onclick="document.getElementById('voice-upload').click()" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-medium px-3 py-1.5 rounded-full hover:bg-white/10">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c-1.105 0-2-.895-2-2s.895-2 2-2 2 .895 2 2-.895 2-2 2zm12-3c-1.105 0-2-.895-2-2s.895-2 2-2 2 .895 2 2-.895 2-2 2zM9 10l12-3"></path></svg>
+                                <span id="voice-upload-label">Upload Reference Audio</span>
+                            </button>
+                        </div>
+
                         <!-- Image Upload -->
                         <div class="flex items-center">
                             <input type="file" id="image-upload" class="hidden" accept="image/*">
@@ -112,8 +146,12 @@
 
         <!-- Status & Loader -->
         <div id="status-container" class="hidden w-full mt-8 flex flex-col items-center">
-            <div class="w-12 h-12 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-            <p id="status-text" class="text-gray-300 font-medium animate-pulse">Initializing dream matrix...</p>
+            <div class="relative flex items-center justify-center w-16 h-16 mb-4">
+                <div class="absolute w-full h-full rounded-full border-4 border-gray-700 border-t-blue-500 animate-spin"></div>
+                <div class="absolute w-12 h-12 rounded-full bg-blue-500/30 animate-ping"></div>
+                <div class="absolute w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 shadow-[0_0_15px_rgba(79,172,254,0.8)]"></div>
+            </div>
+            <p id="status-text" class="text-gray-300 font-medium tracking-wide animate-pulse bg-gradient-to-r from-blue-400 to-purple-400 -webkit-background-clip-text text-transparent">Initializing dream matrix...</p>
         </div>
 
         <!-- Video Result Gallery -->
@@ -129,16 +167,64 @@
 
     </div>
 
+    <!-- System Health Panel -->
+    <div class="fixed bottom-6 right-6 glass-panel p-4 rounded-2xl flex flex-col gap-2 z-50 text-xs w-64 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-1">
+            <span class="text-gray-300 font-semibold tracking-wide flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                System Health
+            </span>
+        </div>
+        <div class="flex justify-between items-center">
+            <span class="text-gray-500">CPU</span>
+            <span id="stat-cpu" class="text-white font-mono">--%</span>
+        </div>
+        <div class="flex justify-between items-center">
+            <span class="text-gray-500">RAM</span>
+            <span id="stat-ram" class="text-white font-mono">--%</span>
+        </div>
+        <div class="flex justify-between items-center">
+            <span class="text-gray-500">Disk</span>
+            <span id="stat-disk" class="text-white font-mono">--%</span>
+        </div>
+        <div class="mt-1 pt-2 border-t border-white/10 text-gray-400 font-mono text-[10px]" id="stat-gpu">
+            Checking GPU...
+        </div>
+    </div>
+
     <script>
         const form = document.getElementById('generate-form');
         const fileInput = document.getElementById('image-upload');
         const uploadLabel = document.getElementById('upload-label');
+
+        const voiceProvider = document.getElementById('voice-provider');
+        const voiceUploadContainer = document.getElementById('voice-upload-container');
+        const voiceInput = document.getElementById('voice-upload');
+        const voiceUploadLabel = document.getElementById('voice-upload-label');
+
         const statusContainer = document.getElementById('status-container');
         const statusText = document.getElementById('status-text');
         const resultContainer = document.getElementById('result-container');
         const resultVideo = document.getElementById('result-video');
         const resultPrompt = document.getElementById('result-prompt');
         const submitBtn = document.getElementById('submit-btn');
+
+        voiceProvider.addEventListener('change', (e) => {
+            if (e.target.value === 'local_xtts') {
+                voiceUploadContainer.classList.remove('hidden');
+                voiceUploadContainer.classList.add('flex');
+            } else {
+                voiceUploadContainer.classList.add('hidden');
+                voiceUploadContainer.classList.remove('flex');
+            }
+        });
+
+        voiceInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                voiceUploadLabel.textContent = e.target.files[0].name;
+                voiceUploadLabel.classList.add('text-blue-400');
+            }
+        });
 
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
@@ -151,6 +237,7 @@
             e.preventDefault();
             const prompt = document.getElementById('prompt-input').value;
             const scriptProvider = document.getElementById('script-provider').value;
+            const selectedVoiceProvider = document.getElementById('voice-provider').value;
 
             if (!prompt && fileInput.files.length === 0) return;
 
@@ -164,8 +251,12 @@
             const formData = new FormData();
             formData.append('prompt', prompt);
             formData.append('script_provider', scriptProvider);
+            formData.append('voice_provider', selectedVoiceProvider);
             if (fileInput.files.length > 0) {
                 formData.append('image', fileInput.files[0]);
+            }
+            if (selectedVoiceProvider === 'local_xtts' && voiceInput.files.length > 0) {
+                formData.append('voice_file', voiceInput.files[0]);
             }
 
             try {
@@ -180,6 +271,61 @@
                 submitBtn.disabled = false;
             }
         });
+
+        const autopilotToggle = document.getElementById('autopilot-toggle');
+        const autopilotInterval = document.getElementById('autopilot-interval');
+
+        // Fetch Autopilot Status
+        async function fetchAutopilotStatus() {
+            try {
+                const res = await fetch('/api/autopilot/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    autopilotToggle.checked = data.is_running;
+                    autopilotInterval.value = data.interval_hours;
+                }
+            } catch (e) {
+                console.error("Could not fetch autopilot status", e);
+            }
+        }
+
+        // Toggle Autopilot
+        autopilotToggle.addEventListener('change', async (e) => {
+            autopilotToggle.disabled = true;
+            try {
+                const res = await fetch('/api/autopilot/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ interval_hours: parseInt(autopilotInterval.value) })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    autopilotToggle.checked = data.is_running;
+                    autopilotInterval.value = data.interval_hours;
+                }
+            } catch (err) {
+                console.error("Failed to toggle autopilot", err);
+                autopilotToggle.checked = !autopilotToggle.checked; // revert
+            } finally {
+                autopilotToggle.disabled = false;
+            }
+        });
+
+        // Polling for System Health
+        async function pollSystemHealth() {
+            try {
+                const res = await fetch('/api/system-metrics');
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('stat-cpu').textContent = data.cpu_percent;
+                    document.getElementById('stat-ram').textContent = data.ram_percent;
+                    document.getElementById('stat-disk').textContent = data.disk_percent;
+                    document.getElementById('stat-gpu').textContent = data.gpu_info;
+                }
+            } catch (e) {
+                console.error("Could not fetch system health", e);
+            }
+        }
 
         // Fetch stats on load
         async function fetchStats() {
@@ -196,17 +342,44 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', fetchStats);
+        window.addEventListener('DOMContentLoaded', () => {
+            fetchStats();
+            pollSystemHealth();
+            fetchAutopilotStatus();
+            setInterval(pollSystemHealth, 5000);
+        });
+
+        const loadingMessages = [
+            "Initializing dream matrix...",
+            "Synthesizing voice tracks...",
+            "Planning cinematic angles...",
+            "Composing visual effects...",
+            "Rendering final cut..."
+        ];
 
         async function pollStatus(jobId, promptText) {
+            let msgIndex = 0;
+            const msgInterval = setInterval(() => {
+                if(statusContainer.classList.contains('hidden')) {
+                    clearInterval(msgInterval);
+                    return;
+                }
+                statusText.textContent = loadingMessages[msgIndex % loadingMessages.length];
+                msgIndex++;
+            }, 3000);
+
             const interval = setInterval(async () => {
                 const res = await fetch(`/api/status/${jobId}`);
                 const data = await res.json();
 
-                statusText.textContent = data.message;
+                // Override our cycling messages with backend real status if available and meaningful
+                if (data.message && data.message !== "Görev sıraya alındı...") {
+                     statusText.textContent = data.message;
+                }
 
                 if (data.status === 'completed') {
                     clearInterval(interval);
+                    clearInterval(msgInterval);
                     statusContainer.classList.add('hidden');
                     resultContainer.classList.remove('hidden');
                     resultVideo.src = data.video_url;
@@ -214,6 +387,7 @@
                     submitBtn.disabled = false;
                 } else if (data.status === 'error') {
                     clearInterval(interval);
+                    clearInterval(msgInterval);
                     statusText.textContent = `Error: ${data.message}`;
                     statusText.classList.add('text-red-400');
                     submitBtn.disabled = false;
