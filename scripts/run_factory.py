@@ -163,6 +163,7 @@ def build_orchestrator(
     voice_id: str | None = None,
     content_language: str | None = None,
     visual_manifest_path: str | Path | None = None,
+    settings: "Settings" | None = None,
 ) -> "PipelineOrchestrator":
     """Instantiate adapters and services without placing business logic in CLI code."""
     from config.provider_registry import (
@@ -263,7 +264,7 @@ def build_orchestrator(
                 "The local factory uses music-first visual planning only."
             )
 
-    settings = get_settings()
+    settings = settings or get_settings()
     if visual_manifest_path is None:
         if not settings.vision_enabled:
             raise RuntimeError(
