@@ -25,8 +25,14 @@ class OllamaScriptProvider(ScriptGeneratorPort):
 
         language_instruction = f" Please write it in {language}." if language else " Please write it in English."
 
+        WORDS_PER_MINUTE_TARGET = 150
+        expected_words = (target_duration_seconds / 60) * WORDS_PER_MINUTE_TARGET
+        min_words = int(expected_words * 0.5)
+        max_words = int(expected_words * 1.6)
+
         prompt = (
             f"Write a {target_duration_seconds}-second engaging YouTube Shorts script about: '{topic}'.\n"
+            f"You MUST write exactly between {min_words} and {max_words} words.\n"
             f"STRATEGY INSTRUCTION: {strategy}\n"
             f"Only output the raw spoken narration text. No stage directions, no markdown, no quotes, no preamble."
             f"{language_instruction}"
@@ -51,10 +57,11 @@ class OllamaScriptProvider(ScriptGeneratorPort):
                     data = await response.json()
                     narration = data.get("response", "").strip()
 
-                    return Script(
+                    return Script.create(
                         topic=topic,
-                        narration=narration,
+                        full_text=narration,
                         target_duration_seconds=target_duration_seconds,
+                        provider_used=f"ollama:{self.model}"
                     )
         except aiohttp.ClientError as e:
             logger.error(f"Ollama connection error: {e}")

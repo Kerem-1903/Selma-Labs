@@ -35,6 +35,12 @@ class SelmaGPTProvider(ScriptGeneratorPort):
             f"STRATEGY INSTRUCTION: {strategy}"
         )
 
+        # Explicit word bounds logic to fix short-generation bug
+        WORDS_PER_MINUTE_TARGET = 150
+        expected_words = (target_duration_seconds / 60) * WORDS_PER_MINUTE_TARGET
+        min_words = int(expected_words * 0.5)
+        max_words = int(expected_words * 1.6)
+
         # SelmaGPT eğitim verisine sadık (Instruction formatında) prompt hazırlama
         messages = [
             {
@@ -43,7 +49,7 @@ class SelmaGPTProvider(ScriptGeneratorPort):
             },
             {
                 "role": "user",
-                "content": f"Write a {target_duration_seconds}-second engaging YouTube Shorts script about: '{topic}'. Only output the raw spoken narration text. No stage directions.{language_instruction}"
+                "content": f"Write a {target_duration_seconds}-second engaging YouTube Shorts script about: '{topic}'. You MUST write exactly between {min_words} and {max_words} words. Only output the raw spoken narration text. No stage directions.{language_instruction}"
             }
         ]
 
@@ -67,10 +73,11 @@ class SelmaGPTProvider(ScriptGeneratorPort):
                     data = await response.json()
                     narration = data["choices"][0]["message"]["content"].strip()
 
-                    return Script(
+                    return Script.create(
                         topic=topic,
-                        narration=narration,
+                        full_text=narration,
                         target_duration_seconds=target_duration_seconds,
+                        provider_used=f"selmagpt:{self.model_name}"
                     )
         except aiohttp.ClientError as e:
             logger.error(f"SelmaGPT connection error: {e}")
