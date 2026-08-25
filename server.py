@@ -28,6 +28,7 @@ app.mount("/output", StaticFiles(directory=PROJECT_ROOT / "output"), name="outpu
 
 templates = Jinja2Templates(directory=PROJECT_ROOT / "web" / "templates")
 
+import time
 # In-memory status tracker for the UI to poll
 JOB_STATUS = {}
 
@@ -50,21 +51,21 @@ async def index(request: Request):
 
 async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None):
     try:
-        JOB_STATUS[job_id] = {"status": "generating", "message": "Senaryo ve görsel planlama başlatılıyor...", "video_url": None}
-        settings = get_settings()
+        JOB_STATUS[job_id] = {"status": "generating", "message": "Senaryo ve görsel planlama başlatılıyor...", "video_url": None, "timestamp": time.time()}
+        request_settings = get_settings().model_copy()
 
         # Luma tarzı I2V/T2V konfigürasyonu
-        settings.video_generation_provider = "comfyui"
-        settings.video_provider = "pexels"
+        request_settings.video_generation_provider = "comfyui"
+        request_settings.video_provider = "pexels"
 
         if image_path:
-            settings.comfyui_mode = "i2v"
-            settings.i2v_image_path = image_path
+            request_settings.comfyui_mode = "i2v"
+            request_settings.i2v_image_path = image_path
         else:
-            settings.comfyui_mode = "t2v"
+            request_settings.comfyui_mode = "t2v"
 
-        settings.youtube_upload_enabled = False # Demo UI'da hızlı test için kapalı tutuyoruz, istenirse açılabilir
-        settings.apply_cinematic_mastering = True
+        request_settings.youtube_upload_enabled = False # Demo UI'da hızlı test için kapalı tutuyoruz, istenirse açılabilir
+        request_settings.apply_cinematic_mastering = True
 
         run_id = job_id
         os.makedirs(PROJECT_ROOT / ".selma_runs", exist_ok=True)
@@ -72,7 +73,7 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
         pipeline_run = PipelineRun(run_id=run_id)
         await repo.save(pipeline_run)
 
-        output_dir = PROJECT_ROOT / settings.storage_root_dir / run_id
+        output_dir = PROJECT_ROOT / request_settings.storage_root_dir / run_id
 
         orchestrator = build_orchestrator(
             repo,
@@ -80,6 +81,7 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
             target_duration_ms=10000, # Luma tarzı kısa 10s klipler
             enable_topic_pipeline=True,
             content_language="tr",
+            settings=request_settings,
         )
 
         JOB_STATUS[job_id]["message"] = "Yapay Zeka filmi renderlıyor... Lütfen bekleyin."
@@ -146,6 +148,7 @@ async def analyze_vision(
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
+
 @app.post("/api/generate")
 async def generate(
     background_tasks: BackgroundTasks,
@@ -168,13 +171,22 @@ async def generate(
             shutil.copyfileobj(image.file, buffer)
 
     # Arka planda Luma (ComfyUI) motorunu tetikle
-    JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None}
+    JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None, "timestamp": time.time()}
     background_tasks.add_task(run_pipeline, job_id, prompt, image_path)
 
     return JSONResponse({"job_id": job_id})
 
 @app.get("/api/status/{job_id}")
 async def get_status(job_id: str):
+    current_time = time.time()
+    # Bellek sızıntısını önlemek için 10 dakikadan eski tamamlanmış veya hatalı işleri temizle
+    stale_jobs = [
+        jid for jid, info in JOB_STATUS.items()
+        if info.get("status") in ("completed", "error") and current_time - info.get("timestamp", current_time) > 600
+    ]
+    for jid in stale_jobs:
+        del JOB_STATUS[jid]
+
     return JSONResponse(JOB_STATUS.get(job_id, {"status": "not_found", "message": "Bulunamadı"}))
 
 if __name__ == "__main__":
