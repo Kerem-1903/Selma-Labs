@@ -72,6 +72,45 @@
             animation: blink 1s step-end infinite;
         }
         @keyframes blink { 50% { opacity: 0; } }
+
+        /* Floating Words Animation */
+        .floating-word {
+            position: absolute;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.8);
+            font-size: 1rem;
+            animation: floatUp 3s ease-out forwards;
+            pointer-events: none;
+            z-index: 5;
+        }
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(20px) scale(0.8); }
+            20% { opacity: 1; transform: translateY(0px) scale(1.1); }
+            80% { opacity: 1; transform: translateY(-30px) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(0.9); }
+        }
+
+        /* Floating Images Animation */
+        .floating-image {
+            position: absolute;
+            width: 80px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5), 0 0 15px rgba(0,242,254,0.3);
+            animation: popIn 4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            pointer-events: none;
+            z-index: 6;
+            opacity: 0;
+        }
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.5) rotate(-10deg) translateY(50px); }
+            15% { opacity: 1; transform: scale(1) rotate(Math.random() * 20 - 10) translateY(0); }
+            80% { opacity: 1; transform: scale(1.05) translateY(-10px); }
+            100% { opacity: 0; transform: scale(0.8) translateY(-30px); }
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
@@ -134,7 +173,11 @@
         </div>
 
         <!-- Workbench (Status & Loader) -->
-        <div id="workbench-container" class="hidden w-full mt-8 flex flex-col max-w-4xl mx-auto">
+        <div id="workbench-container" class="hidden w-full mt-8 flex flex-col max-w-4xl mx-auto relative">
+
+            <!-- Animation Overlay (Words & Images) -->
+            <div id="animation-layer" class="absolute inset-0 z-20 pointer-events-none overflow-hidden rounded-2xl"></div>
+
             <div class="glass-panel rounded-2xl p-6 border border-blue-500/30 shadow-[0_0_40px_rgba(0,120,255,0.15)] relative overflow-hidden bg-black/60">
                 <!-- Top Status Bar -->
                 <div class="flex items-center justify-between mb-6 border-b border-white/10 pb-4">
@@ -282,6 +325,42 @@
             });
         }
 
+        function spawnFloatingWord(word) {
+            const layer = document.getElementById('animation-layer');
+            const el = document.createElement('div');
+            el.className = 'floating-word';
+            el.textContent = word;
+
+            // Random positioning
+            const left = Math.random() * 80 + 10;
+            const top = Math.random() * 60 + 20;
+
+            el.style.left = `${left}%`;
+            el.style.top = `${top}%`;
+
+            layer.appendChild(el);
+            setTimeout(() => el.remove(), 3000);
+        }
+
+        function spawnFloatingImage() {
+            const layer = document.getElementById('animation-layer');
+            const el = document.createElement('img');
+            el.className = 'floating-image';
+
+            // Unsplash random image just for the cool search effect
+            const randomId = Math.floor(Math.random() * 1000);
+            el.src = `https://picsum.photos/200/300?random=${randomId}`;
+
+            const left = Math.random() * 70 + 15;
+            const top = Math.random() * 50 + 25;
+
+            el.style.left = `${left}%`;
+            el.style.top = `${top}%`;
+
+            layer.appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
+
         async function fetchRealTelemetry() {
             try {
                 const res = await fetch('/api/telemetry');
@@ -376,12 +455,36 @@
                 // Only append to log if the message changes
                 if (data.message !== lastMessage) {
                     let msgType = "info";
-                    if (data.message.includes("ComfyUI") || data.message.includes("Render")) msgType = "warning";
-                    if (data.message.includes("Enhancer")) {
+                    const lowerMsg = data.message.toLowerCase();
+
+                    if (lowerMsg.includes("comfyui") || lowerMsg.includes("render")) {
+                        msgType = "warning";
+                        // Simulate finding images when starting to render/plan
+                        if (Math.random() > 0.3) spawnFloatingImage();
+                    }
+
+                    if (lowerMsg.includes("enhancer") || lowerMsg.includes("senaryo")) {
                         msgType = "success";
                         updateProgress(2);
+                        // Extract a random word from the prompt to float
+                        const words = promptText.split(" ");
+                        if (words.length > 0) {
+                            const randomWord = words[Math.floor(Math.random() * words.length)];
+                            if (randomWord.length > 3) spawnFloatingWord(randomWord);
+                        }
                     }
-                    if (data.message.includes("aktif")) updateProgress(3);
+
+                    if (lowerMsg.includes("aktif")) {
+                        updateProgress(3);
+                        spawnFloatingImage();
+                        spawnFloatingImage();
+                    }
+
+                    // Extra random eye-candy triggers
+                    if (Math.random() > 0.8) {
+                        const techWords = ["SYNTHESIZING", "MATRIX", "VRAM", "CUDA", "TENSOR", "RENDER", "UPSCALE"];
+                        spawnFloatingWord(techWords[Math.floor(Math.random() * techWords.length)]);
+                    }
 
                     appendLog(data.message, msgType);
                     lastMessage = data.message;
