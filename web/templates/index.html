@@ -37,9 +37,29 @@
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/20 rounded-full blur-[120px] -z-10 pointer-events-none"></div>
 
     <!-- Header -->
-    <div class="absolute top-6 left-8 flex items-center gap-3">
-        <div class="w-8 h-8 rounded bg-gradient-to-tr from-blue-500 to-purple-600"></div>
-        <h1 class="text-xl font-bold tracking-tight">SELMA <span class="text-gray-400 font-light">Dream Machine</span></h1>
+    <div class="absolute top-6 left-8 flex items-center gap-3 w-full justify-between pr-16">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded bg-gradient-to-tr from-blue-500 to-purple-600"></div>
+            <h1 class="text-xl font-bold tracking-tight">SELMA <span class="text-gray-400 font-light">Dream Machine</span></h1>
+        </div>
+
+        <!-- Stats Dashboard -->
+        <div id="stats-panel" class="hidden md:flex gap-6 glass-panel px-6 py-2 rounded-full text-sm">
+            <div class="flex flex-col items-center">
+                <span class="text-gray-400 text-xs">Total Videos</span>
+                <span id="stat-total" class="font-semibold text-blue-400">...</span>
+            </div>
+            <div class="w-px bg-white/10"></div>
+            <div class="flex flex-col items-center">
+                <span class="text-gray-400 text-xs">Avg View Rate</span>
+                <span id="stat-avd" class="font-semibold text-green-400">...</span>
+            </div>
+            <div class="w-px bg-white/10"></div>
+            <div class="flex flex-col items-center">
+                <span class="text-gray-400 text-xs">Best Format</span>
+                <span id="stat-format" class="font-semibold text-purple-400">...</span>
+            </div>
+        </div>
     </div>
 
     <!-- Main Container -->
@@ -58,13 +78,27 @@
                 <!-- Action Row -->
                 <div class="flex justify-between items-center px-4 py-2 mt-2">
 
-                    <!-- Image Upload -->
-                    <div class="flex items-center">
-                        <input type="file" id="image-upload" class="hidden" accept="image/*">
-                        <button type="button" onclick="document.getElementById('image-upload').click()" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-medium px-3 py-1.5 rounded-full hover:bg-white/10">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            <span id="upload-label">Start with Image</span>
-                        </button>
+                    <!-- Controls Group -->
+                    <div class="flex items-center gap-4">
+                        <!-- Script Provider -->
+                        <div class="flex items-center gap-2 text-gray-400 text-sm font-medium border border-white/10 px-3 py-1.5 rounded-full bg-black/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            <select id="script-provider" class="bg-transparent outline-none text-white appearance-none cursor-pointer">
+                                <option value="selmagpt">SelmaGPT</option>
+                                <option value="ollama">Ollama</option>
+                                <option value="nvidia">NVIDIA</option>
+                                <option value="claude">Claude</option>
+                            </select>
+                        </div>
+
+                        <!-- Image Upload -->
+                        <div class="flex items-center">
+                            <input type="file" id="image-upload" class="hidden" accept="image/*">
+                            <button type="button" onclick="document.getElementById('image-upload').click()" class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm font-medium px-3 py-1.5 rounded-full hover:bg-white/10">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                <span id="upload-label">Start with Image</span>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Submit Button -->
@@ -116,15 +150,20 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const prompt = document.getElementById('prompt-input').value;
+            const scriptProvider = document.getElementById('script-provider').value;
+
             if (!prompt && fileInput.files.length === 0) return;
 
             submitBtn.disabled = true;
             resultContainer.classList.add('hidden');
             statusContainer.classList.remove('hidden');
-            statusText.textContent = "Connecting to SELMA AI cluster...";
+
+            const providerName = document.querySelector(`#script-provider option[value="${scriptProvider}"]`).textContent;
+            statusText.textContent = `Connecting to ${providerName}...`;
 
             const formData = new FormData();
             formData.append('prompt', prompt);
+            formData.append('script_provider', scriptProvider);
             if (fileInput.files.length > 0) {
                 formData.append('image', fileInput.files[0]);
             }
@@ -141,6 +180,23 @@
                 submitBtn.disabled = false;
             }
         });
+
+        // Fetch stats on load
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/stats');
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('stat-total').textContent = data.total_videos;
+                    document.getElementById('stat-avd').textContent = data.avg_view_rate;
+                    document.getElementById('stat-format').textContent = data.best_format;
+                }
+            } catch (e) {
+                console.error("Could not fetch stats", e);
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', fetchStats);
 
         async function pollStatus(jobId, promptText) {
             const interval = setInterval(async () => {

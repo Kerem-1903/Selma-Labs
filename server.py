@@ -14,6 +14,7 @@ from fastapi.requests import Request
 
 from config.settings import get_settings
 from scripts.run_factory import build_orchestrator
+from core.application.services.analytics_strategy_service import analytics_strategy_service
 from core.domain.entities.pipeline_run import PipelineRun
 from infrastructure.repositories.local_json_run_repository import LocalJsonRunRepository
 
@@ -48,23 +49,29 @@ async def index(request: Request):
         context={},
     )
 
-async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None):
+async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None, script_provider: str = "selmagpt"):
     try:
-        JOB_STATUS[job_id] = {"status": "generating", "message": "Senaryo ve görsel planlama başlatılıyor...", "video_url": None}
-        settings = get_settings()
+        JOB_STATUS[job_id] = {"status": "generating", "message": f"{script_provider} senaryo ve görsel planlama başlatıyor...", "video_url": None}
+
+        # Memory constraint: Do not mutate global settings
+        # Instead, create a request-scoped copy and pass it down
+        local_settings = get_settings().model_copy()
 
         # Luma tarzı I2V/T2V konfigürasyonu
-        settings.video_generation_provider = "comfyui"
-        settings.video_provider = "pexels"
+        local_settings.video_generation_provider = "comfyui"
+        local_settings.video_provider = "pexels"
+
+        # SelmaGPT veya diğer LLM entegrasyonu
+        local_settings.script_provider = script_provider
 
         if image_path:
-            settings.comfyui_mode = "i2v"
-            settings.i2v_image_path = image_path
+            local_settings.comfyui_mode = "i2v"
+            local_settings.i2v_image_path = image_path
         else:
-            settings.comfyui_mode = "t2v"
+            local_settings.comfyui_mode = "t2v"
 
-        settings.youtube_upload_enabled = False # Demo UI'da hızlı test için kapalı tutuyoruz, istenirse açılabilir
-        settings.apply_cinematic_mastering = True
+        local_settings.youtube_upload_enabled = False # Demo UI'da hızlı test için kapalı tutuyoruz, istenirse açılabilir
+        local_settings.apply_cinematic_mastering = True
 
         run_id = job_id
         os.makedirs(PROJECT_ROOT / ".selma_runs", exist_ok=True)
@@ -72,7 +79,7 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
         pipeline_run = PipelineRun(run_id=run_id)
         await repo.save(pipeline_run)
 
-        output_dir = PROJECT_ROOT / settings.storage_root_dir / run_id
+        output_dir = PROJECT_ROOT / local_settings.storage_root_dir / run_id
 
         orchestrator = build_orchestrator(
             repo,
@@ -80,6 +87,7 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
             target_duration_ms=10000, # Luma tarzı kısa 10s klipler
             enable_topic_pipeline=True,
             content_language="tr",
+            settings=local_settings, # Pass request-scoped settings
         )
 
         JOB_STATUS[job_id]["message"] = "Yapay Zeka filmi renderlıyor... Lütfen bekleyin."
@@ -112,7 +120,8 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
 async def generate(
     background_tasks: BackgroundTasks,
     prompt: str = Form(...),
-    image: Optional[UploadFile] = File(None)
+    image: Optional[UploadFile] = File(None),
+    script_provider: str = Form("selmagpt")
 ):
     job_id = str(uuid.uuid4())
     image_path = None
@@ -131,13 +140,18 @@ async def generate(
 
     # Arka planda Luma (ComfyUI) motorunu tetikle
     JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None}
-    background_tasks.add_task(run_pipeline, job_id, prompt, image_path)
+    background_tasks.add_task(run_pipeline, job_id, prompt, image_path, script_provider)
 
     return JSONResponse({"job_id": job_id})
 
 @app.get("/api/status/{job_id}")
 async def get_status(job_id: str):
     return JSONResponse(JOB_STATUS.get(job_id, {"status": "not_found", "message": "Bulunamadı"}))
+
+@app.get("/api/stats")
+async def get_stats():
+    stats = await analytics_strategy_service.get_dashboard_stats()
+    return JSONResponse(stats)
 
 if __name__ == "__main__":
     import uvicorn
