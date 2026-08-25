@@ -15,14 +15,15 @@ from core.domain.entities.pipeline_run import PipelineRun
 from infrastructure.repositories.sqlite_video_repository import SQLiteVideoRepository
 import uuid
 
-async def generate_short(topic: str, language: str, music_theme: str, privacy: str, generation_engine: str, voice_provider: str, apply_mastering: bool = True, i2v_image: str = None):
-    settings = get_settings()
+async def generate_short(topic: str, language: str, music_theme: str, privacy: str, generation_engine: str, voice_provider_ui: str, apply_mastering: bool = True, i2v_image: str = None, voice_reference_path: str = None):
+    from config.settings import get_settings
+    request_settings = get_settings().model_copy()
 
     if not topic.strip():
         yield "Konu girilmedi. İnternetteki bugünün trend konusu aranıyor...", None, None
         from scripts.discover_trending_topic import get_trending_topic
         try:
-            topic = await get_trending_topic(settings)
+            topic = await get_trending_topic(request_settings)
             yield f"Trend konu bulundu: '{topic}'. Yapay zeka senaryo yazımına başlıyor...", None, None
         except Exception as e:
             yield f"Trend bulunamadı: {e}. Lütfen elle bir konu girin.", None, None
@@ -30,61 +31,70 @@ async def generate_short(topic: str, language: str, music_theme: str, privacy: s
     else:
         yield f"'{topic}' konulu video için yapay zeka senaryo yazımına başlıyor...", None, None
 
-
-    settings = get_settings()
     # Force some settings for UI
-    settings.youtube_upload_enabled = True
-    settings.youtube_upload_privacy = privacy
+    request_settings.youtube_upload_enabled = True
+    request_settings.youtube_upload_privacy = privacy
     # Map UI engine to backend providers
-    settings.apply_cinematic_mastering = apply_mastering
-    # Map UI engine to backend providers
-    if voice_provider == "Local Ses Klonlama (Kendi Sesim)":
-        settings.voice_provider = "local_xtts"
-    else:
-        settings.voice_provider = "elevenlabs"
+    request_settings.apply_cinematic_mastering = apply_mastering
 
-    # Map UI engine to backend providers
-    settings.apply_cinematic_mastering = apply_mastering
+    if voice_provider_ui == "Local Ses Klonlama (Kendi Sesim)":
+        request_settings.voice_provider = "local_xtts"
+        if voice_reference_path:
+            request_settings.local_voice_reference_path = voice_reference_path
+    else:
+        request_settings.voice_provider = "elevenlabs"
+
     # Map UI engine to backend providers
     if generation_engine == "Kişisel Havuzdan Seç (Sadece Benim Yüklediklerim)":
-        settings.video_provider = "user_uploads"
-        settings.video_generation_provider = "none"
+        request_settings.video_provider = "user_uploads"
+        request_settings.video_generation_provider = "none"
     elif generation_engine == "Pexels (Stok Video)":
-        settings.video_provider = "pexels"
-        settings.video_generation_provider = "none"
+        request_settings.video_provider = "pexels"
+        request_settings.video_generation_provider = "none"
     elif generation_engine == "ComfyUI (T2V - Üret)":
-        settings.video_provider = "pexels" # fallback search
-        settings.video_generation_provider = "comfyui"
+        request_settings.video_provider = "pexels" # fallback search
+        request_settings.video_generation_provider = "comfyui"
     elif generation_engine == "ComfyUI (Image-to-Video)":
-        settings.video_provider = "pexels" # fallback search
-        settings.video_generation_provider = "comfyui"
-        settings.comfyui_mode = "i2v"
+        request_settings.video_provider = "pexels" # fallback search
+        request_settings.video_generation_provider = "comfyui"
+        request_settings.comfyui_mode = "i2v"
         if i2v_image:
             import shutil
             os.makedirs("output/user_uploads/images", exist_ok=True)
             dest = os.path.join("output/user_uploads/images", os.path.basename(i2v_image))
             shutil.copy(i2v_image, dest)
-            settings.i2v_image_path = dest
+            request_settings.i2v_image_path = dest
     elif generation_engine == "ComfyUI (Video-to-Video)":
-        settings.video_provider = "user_uploads" # Use local
-        settings.video_generation_provider = "comfyui"
-        settings.comfyui_mode = "v2v"
+        request_settings.video_provider = "user_uploads" # Use local
+        request_settings.video_generation_provider = "comfyui"
+        request_settings.comfyui_mode = "v2v"
 
-    settings.vision_enabled = True
-    settings.vision_provider = "openai" # Or nvidia, just to pass config test
+    request_settings.vision_enabled = True
+    request_settings.vision_provider = "openai" # Or nvidia, just to pass config test
 
-    # Avoid crashing on missing API keys during UI initialization testing
-    if not settings.pexels_api_key: settings.pexels_api_key = "mock"
-    if not settings.elevenlabs_api_key: settings.elevenlabs_api_key = "mock"
-    if not settings.nvidia_api_key: settings.nvidia_api_key = "mock"
-    if not settings.openai_api_key: settings.openai_api_key = "mock"
-    if not settings.anthropic_api_key: settings.anthropic_api_key = "mock"
-    if not settings.youtube_data_api_key: settings.youtube_data_api_key = "mock"
+    # Hata Gizleyen "Mock" Atamalarını Kaldırıyoruz ve Gerçek Kontrol Yapıyoruz (Fail Fast)
+    missing_keys = []
 
+    if generation_engine in ["Pexels (Stok Video)", "ComfyUI (T2V - Üret)", "ComfyUI (Image-to-Video)"]:
+        if not request_settings.pexels_api_key:
+            missing_keys.append("PEXELS_API_KEY")
+
+    if voice_provider_ui != "Local Ses Klonlama (Kendi Sesim)":
+        if not request_settings.elevenlabs_api_key:
+            missing_keys.append("ELEVENLABS_API_KEY")
+
+    if not request_settings.anthropic_api_key and request_settings.scene_planning_provider == "claude":
+        missing_keys.append("ANTHROPIC_API_KEY")
+
+    # Not: vision_provider "openai" varsayılan ayarlı; ancak UI'da vizyon kullanılmıyorsa check esnetilebilir.
+    # Şimdilik ana mantık: eksik anahtar varsa işlem yapma.
+    if missing_keys:
+        yield f"Hata: Gerekli API anahtarları eksik: {', '.join(missing_keys)}. Lütfen .env dosyasından bu anahtarları tanımlayın!", None, None
+        return
 
     # Init repository
     run_id = str(uuid.uuid4())
-    os.makedirs(settings.storage_root_dir, exist_ok=True)
+    os.makedirs(request_settings.storage_root_dir, exist_ok=True)
 
     from infrastructure.repositories.local_json_run_repository import LocalJsonRunRepository
     os.makedirs(".selma_runs", exist_ok=True)
@@ -92,7 +102,7 @@ async def generate_short(topic: str, language: str, music_theme: str, privacy: s
     pipeline_run = PipelineRun(run_id=run_id)
     await repo.save(pipeline_run)
 
-    output_dir = Path(settings.storage_root_dir) / run_id
+    output_dir = Path(request_settings.storage_root_dir) / run_id
 
     orchestrator = build_orchestrator(
         repo,
@@ -100,6 +110,7 @@ async def generate_short(topic: str, language: str, music_theme: str, privacy: s
         target_duration_ms=25000,
         enable_topic_pipeline=True,
         content_language=language,
+        settings=request_settings,
     )
 
     # Yielding progress updates
@@ -128,9 +139,11 @@ async def generate_short(topic: str, language: str, music_theme: str, privacy: s
 
         yield success_msg, final_video_path, youtube_url
     except Exception as e:
+        import logging
         import traceback
         err = traceback.format_exc()
-        yield f"Hata Oluştu:\n{e}\n\n{err}", None, None
+        logging.error(f"Job failed: {err}")
+        yield f"Sunucuda bir hata oluştu: {e}", None, None
 
 
 
@@ -269,22 +282,27 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
         return paths
 
     def update_audio_gallery(files):
-        if not files: return []
+        if not files: return [], None
         import shutil
         upload_dir = "output/user_uploads"
         os.makedirs(upload_dir, exist_ok=True)
         res = []
+        dest = None
         for f in files:
             file_path = f.name if hasattr(f, 'name') else f
-            # Always save as voice_reference.wav so the backend can easily pick it up for cloning
-            dest = os.path.join(upload_dir, "voice_reference.wav")
+            # Sabit bir dosya ismi yerine, çakışmayı önlemek için benzersiz bir UUID kullanıyoruz.
+            unique_filename = f"voice_reference_{uuid.uuid4().hex}.wav"
+            dest = os.path.join(upload_dir, unique_filename)
             shutil.copy(file_path, dest)
-            res.append(["voice_reference.wav (Ses Klonlama Referansı)", f"{os.path.getsize(dest)/1024:.1f} KB"])
+            res.append([f"{unique_filename} (Ses Klonlama Referansı)", f"{os.path.getsize(dest)/1024:.1f} KB"])
             break # Sadece ilk yüklenen dosyayı referans kabul et
-        return res
+        return res, dest
 
     user_videos.change(fn=update_video_gallery, inputs=user_videos, outputs=video_gallery)
-    user_audio.change(fn=update_audio_gallery, inputs=user_audio, outputs=audio_gallery)
+
+    # Görünmez state değişkeni oluşturup ses klonlama dosyasının referans yolunu saklayacağız.
+    voice_reference_path_state = gr.State(None)
+    user_audio.change(fn=update_audio_gallery, inputs=user_audio, outputs=[audio_gallery, voice_reference_path_state])
 
 
 
@@ -316,6 +334,7 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
 
     # Logging capture setup
     import logging
+    import collections
     log_file = "output/system.log"
     os.makedirs("output", exist_ok=True)
     file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
@@ -328,8 +347,9 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
         logs = ""
         try:
             with open(log_file, "r", encoding="utf-8") as lf:
-                lines = lf.readlines()
-                logs = "".join(lines[-15:]) # Son 15 log
+                # Tüm dosyayı belleğe yüklemek (readlines) yerine sadece son 15 satırı al
+                last_lines = collections.deque(lf, maxlen=15)
+                logs = "".join(last_lines)
         except:
             pass
         return stats["cpu_percent"], stats["ram_percent"], stats["gpu_info"], stats["disk_percent"], logs
@@ -354,7 +374,7 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
 
     generate_btn.click(
         fn=generate_short,
-        inputs=[topic_input, language_input, theme_input, privacy_input, generation_engine, voice_provider, mastering_checkbox, i2v_image_input],
+        inputs=[topic_input, language_input, theme_input, privacy_input, generation_engine, voice_provider, mastering_checkbox, i2v_image_input, voice_reference_path_state],
         outputs=[status_output, video_output, youtube_link]
     )
 
