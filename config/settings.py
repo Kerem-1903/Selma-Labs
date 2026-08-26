@@ -110,6 +110,7 @@ class Settings(BaseSettings):
     comfyui_api_url: str = "http://127.0.0.1:8188"
     comfyui_workflow_path: str = "assets/comfyui_workflow.json"
     comfyui_mode: str = "t2v"
+    i2v_image_path: str = ""
     vision_safety_gate_enabled: bool = False
     vision_relevance_threshold: float = 0.70
     youtube_upload_enabled: bool = False

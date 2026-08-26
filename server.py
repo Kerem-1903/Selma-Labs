@@ -104,11 +104,12 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
         JOB_STATUS[job_id] = {
             "status": "completed",
             "message": "Film hazır!",
-            "video_url": expected_mp4 or "/static/dummy.mp4"
+            "video_url": expected_mp4 or "/static/dummy.mp4",
+            "timestamp": time.time()
         }
 
     except Exception as e:
-        JOB_STATUS[job_id] = {"status": "error", "message": str(e), "video_url": None}
+        JOB_STATUS[job_id] = {"status": "error", "message": str(e), "video_url": None, "timestamp": time.time()}
 
 @app.post("/api/vision/analyze")
 async def analyze_vision(

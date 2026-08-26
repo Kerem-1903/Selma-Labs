@@ -20,7 +20,7 @@
         0
       ],
       "latent_image": [
-        "12",
+        "5",
         0
       ]
     },
@@ -99,7 +99,7 @@
   "12": {
     "inputs": {
       "pixels": [
-        "10",
+        "16",
         0
       ],
       "vae": [
@@ -141,6 +141,17 @@
     "class_type": "LoadImage",
     "_meta": {
       "title": "Load Image"
+    }
+  },
+  "5": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "batch_size": 16
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Empty Latent Image"
     }
   }
 }
