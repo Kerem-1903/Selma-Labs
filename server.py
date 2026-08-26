@@ -177,7 +177,29 @@ async def generate(
 
     return JSONResponse({"job_id": job_id})
 
+
+@app.get("/api/system-metrics")
+async def system_metrics():
+    try:
+        from core.application.services.system_monitor import get_system_stats
+        return JSONResponse(get_system_stats())
+    except Exception as e:
+        return JSONResponse({"cpu": "--", "ram": "--", "disk": "--", "gpu": "N/A"})
+
+@app.get("/api/stats")
+async def stats():
+    try:
+        # Just mock stats for now to prevent 404s
+        return JSONResponse({
+            "total_videos": 0,
+            "avg_view_rate": "0%",
+            "best_format": "N/A"
+        })
+    except Exception as e:
+        return JSONResponse({"total_videos": 0, "avg_view_rate": "0%", "best_format": "N/A"})
+
 @app.get("/api/status/{job_id}")
+
 async def get_status(job_id: str):
     current_time = time.time()
     # Bellek sızıntısını önlemek için 10 dakikadan eski tamamlanmış veya hatalı işleri temizle
