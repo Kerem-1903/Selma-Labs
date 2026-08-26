@@ -160,7 +160,7 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
 
                     gr.Markdown("### Yapay Zeka Video Motoru")
                     generation_engine = gr.Radio(
-                        choices=["Kişisel Havuzdan Seç", "Pexels (Stok)", "ComfyUI (Text-to-Video)", "ComfyUI (Image-to-Video)", "ComfyUI (Video-to-Video)"],
+                        choices=["Kişisel Havuzdan Seç (Sadece Benim Yüklediklerim)", "Pexels (Stok Video)", "ComfyUI (T2V - Üret)", "ComfyUI (Image-to-Video)", "ComfyUI (Video-to-Video)"],
                         value="Pexels (Stok Video)",
                         label="Görsel Kaynağı Seçimi"
                     )
