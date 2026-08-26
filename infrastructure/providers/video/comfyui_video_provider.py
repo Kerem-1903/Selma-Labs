@@ -38,16 +38,22 @@ class ComfyUIVideoProvider(VideoGenerationPort):
                 data = await response.json()
                 return data["prompt_id"]
 
-    async def _wait_for_completion(self, prompt_id: str) -> dict:
-        """Polls ComfyUI history to get the output filenames."""
+    async def _wait_for_completion(self, prompt_id: str, timeout: int = 600) -> dict:
+        """Polls ComfyUI history to get the output filenames with a timeout."""
+        start_time = asyncio.get_event_loop().time()
         async with aiohttp.ClientSession() as session:
             while True:
-                async with session.get(f"{self.api_url}/history/{prompt_id}") as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if prompt_id in data:
-                            # Workflow finished
-                            return data[prompt_id]
+                if asyncio.get_event_loop().time() - start_time > timeout:
+                    raise ProviderError(f"ComfyUI generation timed out after {timeout} seconds for prompt_id: {prompt_id}")
+                try:
+                    async with session.get(f"{self.api_url}/history/{prompt_id}") as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            if prompt_id in data:
+                                # Workflow finished
+                                return data[prompt_id]
+                except aiohttp.ClientError as e:
+                    logger.warning(f"Error polling ComfyUI: {e}. Retrying...")
                 await asyncio.sleep(2.0)
 
     async def _download_video(self, filename: str, subfolder: str, folder_type: str) -> str:
@@ -80,29 +86,52 @@ class ComfyUIVideoProvider(VideoGenerationPort):
         # This will look at the global settings to see if V2V is active and use the first user asset.
         from config.settings import get_settings
         settings = get_settings()
+
         if hasattr(settings, "comfyui_mode") and settings.comfyui_mode == "v2v":
             upload_dir = "output/user_uploads/videos"
             if os.path.exists(upload_dir):
-                # Sort files by creation time to get the most recently uploaded one instead of arbitrary order
                 files = [f for f in os.listdir(upload_dir) if f.endswith(('.mp4', '.mov'))]
                 if files:
                     files.sort(key=lambda x: os.path.getmtime(os.path.join(upload_dir, x)), reverse=True)
                     source_video = os.path.join(upload_dir, files[0])
+                    video_node_id = None
                     for node_id, node_data in workflow.items():
                         if node_data.get("class_type") in ["LoadVideo", "VHS_LoadVideo"]:
                             node_data["inputs"]["video"] = source_video
+                            video_node_id = node_id
                             logger.info(f"Injected source video {source_video} into V2V workflow.")
                             break
+                    if video_node_id:
+                        vae_encode_id = None
+                        for node_id, node_data in workflow.items():
+                            if node_data.get("class_type") == "VAEEncode":
+                                node_data["inputs"]["pixels"] = [video_node_id, 0]
+                                vae_encode_id = node_id
+                                break
+                        if vae_encode_id:
+                            for node_id, node_data in workflow.items():
+                                if node_data.get("class_type") == "KSampler":
+                                    node_data["inputs"]["latent_image"] = [vae_encode_id, 0]
+                                    break
 
         if hasattr(settings, "comfyui_mode") and settings.comfyui_mode == "i2v":
             if hasattr(settings, "i2v_image_path") and settings.i2v_image_path:
-                source_image = settings.i2v_image_path
+                source_image = os.path.abspath(settings.i2v_image_path)
                 for node_id, node_data in workflow.items():
                     if node_data.get("class_type") in ["LoadImage"]:
                         node_data["inputs"]["image"] = source_image
                         logger.info(f"Injected source image {source_image} into I2V workflow.")
                         break
-
+                vae_encode_id = None
+                for node_id, node_data in workflow.items():
+                    if node_data.get("class_type") == "VAEEncode":
+                        vae_encode_id = node_id
+                        break
+                if vae_encode_id:
+                    for node_id, node_data in workflow.items():
+                        if node_data.get("class_type") == "KSampler":
+                            node_data["inputs"]["latent_image"] = [vae_encode_id, 0]
+                            break
         # --- DYNAMIC PROMPT INJECTION ---
         # Note: ComfyUI workflows have node IDs (e.g., "6", "15").
         # You MUST edit this section to match your specific workflow's Text Prompt Node ID.
