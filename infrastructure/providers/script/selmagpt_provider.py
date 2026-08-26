@@ -13,7 +13,7 @@ class SelmaGPTProvider(ScriptGeneratorPort):
     üzerinde çalıştığını varsayar.
     """
 
-    def __init__(self, api_url: str = "http://localhost:8000/v1/chat/completions", model_name: str = "SelmaGPT-v1"):
+    def __init__(self, api_url: str = "http://localhost:8001/v1/chat/completions", model_name: str = "SelmaGPT-v1"):
         self.api_url = api_url
         self.model_name = model_name
 
