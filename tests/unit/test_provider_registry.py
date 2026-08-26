@@ -57,7 +57,7 @@ def test_get_nvidia_script_provider_success():
 def test_get_fact_check_providers_success():
     settings = Settings(
         nvidia_api_key="test-key",
-        fact_check_fallback_provider="none",
+        fact_check_fallback_provider="none", fact_check_provider="nvidia",
     )
     assert isinstance(get_fact_source_provider(settings), WikipediaFactSourceProvider)
     assert isinstance(get_fact_check_provider(settings), NvidiaFactCheckProvider)
@@ -78,7 +78,7 @@ def test_fact_source_uses_content_language_and_default_as_fallback():
 def test_fact_check_uses_fast_primary_and_independent_audit_models():
     settings = Settings(
         nvidia_api_key="test-key",
-        fact_check_fallback_provider="none",
+        fact_check_fallback_provider="none", fact_check_provider="nvidia",
         nvidia_fact_check_model="meta/llama-3.1-8b-instruct",
         nvidia_fact_check_audit_model="nvidia/llama-3.1-nemotron-nano-8b-v1",
     )

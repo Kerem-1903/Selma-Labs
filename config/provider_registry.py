@@ -164,7 +164,15 @@ def get_fact_source_provider(
 
 
 def get_fact_check_provider(settings: Settings) -> FactCheckPort:
-    if settings.fact_check_provider == "nvidia":
+    from infrastructure.providers.fact_check.selmagpt_fact_check_provider import SelmaGPTFactCheckProvider
+    if settings.fact_check_provider == "selmagpt":
+        primary = SelmaGPTFactCheckProvider(
+            api_url=settings.selmagpt_api_url,
+            model=settings.selmagpt_model_name,
+            timeout_seconds=settings.fact_check_primary_timeout_seconds,
+            max_retries=settings.fact_check_primary_max_retries,
+        )
+    elif settings.fact_check_provider == "nvidia":
         primary = NvidiaFactCheckProvider(
             api_key=settings.nvidia_api_key,
             base_url=settings.nvidia_base_url,
@@ -431,6 +439,13 @@ def get_scene_planning_provider(settings: Settings) -> ScenePlanningPort:
         return ClaudeScenePlanningProvider(
             api_key=settings.anthropic_api_key, model=settings.scene_planner_model
         )
+    if settings.scene_planning_provider == "selmagpt":
+        from infrastructure.providers.scene_planning.selmagpt_scene_planning_provider import SelmaGPTScenePlanningProvider
+        return SelmaGPTScenePlanningProvider(
+            api_url=settings.selmagpt_api_url,
+            model=settings.selmagpt_model_name,
+            timeout_seconds=settings.provider_timeout_seconds,
+        )
     if settings.scene_planning_provider == "nvidia":
         return NvidiaScenePlanningProvider(
             api_key=settings.nvidia_api_key,
@@ -516,6 +531,14 @@ def get_translation_provider(settings: Settings | None = None) -> TranslationPor
         settings = get_settings()
     if settings.translation_provider == "claude":
         base_provider = ClaudeTranslationProvider(api_key=settings.anthropic_api_key)
+        return CachingTranslationProvider(base_provider)
+    if settings.translation_provider == "selmagpt":
+        from infrastructure.providers.translation.selmagpt_translation_provider import SelmaGPTTranslationProvider
+        base_provider = SelmaGPTTranslationProvider(
+            api_url=settings.selmagpt_api_url,
+            model=settings.selmagpt_model_name,
+            timeout_seconds=settings.provider_timeout_seconds,
+        )
         return CachingTranslationProvider(base_provider)
     if settings.translation_provider == "nvidia":
         base_provider = NvidiaTranslationProvider(

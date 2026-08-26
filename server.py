@@ -49,10 +49,23 @@ async def index(request: Request):
         context={},
     )
 
-async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None):
+async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None, script_provider: Optional[str] = None, voice_provider: Optional[str] = None, voice_file_path: Optional[str] = None):
     try:
         JOB_STATUS[job_id] = {"status": "generating", "message": "Senaryo ve görsel planlama başlatılıyor...", "video_url": None, "timestamp": time.time()}
         request_settings = get_settings().model_copy()
+
+        if script_provider:
+            request_settings.script_provider = script_provider
+            request_settings.scene_planning_provider = script_provider
+            request_settings.fact_check_provider = script_provider
+            request_settings.translation_provider = script_provider
+
+        if voice_provider:
+            request_settings.voice_provider = voice_provider
+            if voice_file_path and voice_provider == "local_xtts":
+                # Assuming setting property or handle logic here
+                pass
+
 
         # Luma tarzı I2V/T2V konfigürasyonu
         request_settings.video_generation_provider = "comfyui"
@@ -150,30 +163,55 @@ async def analyze_vision(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+
+@app.get("/api/autopilot/status")
+async def autopilot_status():
+    return JSONResponse({"status": "inactive"})
+
+@app.post("/api/autopilot/toggle")
+async def autopilot_toggle():
+    return JSONResponse({"status": "inactive"})
+
 @app.post("/api/generate")
 async def generate(
     background_tasks: BackgroundTasks,
     prompt: str = Form(...),
-    image: Optional[UploadFile] = File(None)
+    image: Optional[UploadFile] = File(None),
+    script_provider: Optional[str] = Form(None),
+    voice_provider: Optional[str] = Form(None),
+    voice_file: Optional[UploadFile] = File(None)
 ):
     job_id = str(uuid.uuid4())
     image_path = None
+    voice_file_path = None
+
+    upload_dir_base = PROJECT_ROOT / "output" / "user_uploads"
 
     if image and image.filename:
-        import werkzeug.utils
-        upload_dir = PROJECT_ROOT / "output" / "user_uploads" / "images"
-        os.makedirs(upload_dir, exist_ok=True)
-        # Safely extract the filename
-        safe_filename = werkzeug.utils.secure_filename(image.filename)
+        upload_dir_img = upload_dir_base / "images"
+        os.makedirs(upload_dir_img, exist_ok=True)
+        safe_filename = "".join(c for c in image.filename if c.isalnum() or c in "._-")
         if not safe_filename:
             safe_filename = "upload.jpg"
-        image_path = str(upload_dir / f"{job_id}_{safe_filename}")
+        image_path = str(upload_dir_img / f"{job_id}_{safe_filename}")
         with open(image_path, "wb") as buffer:
+            import shutil
             shutil.copyfileobj(image.file, buffer)
+
+    if voice_file and voice_file.filename:
+        upload_dir_voice = upload_dir_base / "voices"
+        os.makedirs(upload_dir_voice, exist_ok=True)
+        safe_voice_name = "".join(c for c in voice_file.filename if c.isalnum() or c in "._-")
+        if not safe_voice_name:
+            safe_voice_name = "voice.wav"
+        voice_file_path = str(upload_dir_voice / f"{job_id}_{safe_voice_name}")
+        with open(voice_file_path, "wb") as buffer:
+            import shutil
+            shutil.copyfileobj(voice_file.file, buffer)
 
     # Arka planda Luma (ComfyUI) motorunu tetikle
     JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None, "timestamp": time.time()}
-    background_tasks.add_task(run_pipeline, job_id, prompt, image_path)
+    background_tasks.add_task(run_pipeline, job_id, prompt, image_path, script_provider, voice_provider, voice_file_path)
 
     return JSONResponse({"job_id": job_id})
 
