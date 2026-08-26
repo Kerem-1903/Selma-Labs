@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     ollama_api_url: str = "http://localhost:11434/api/generate"
     ollama_script_model: str = "llama3"
 
-    selmagpt_api_url: str = "http://localhost:8001/v1/chat/completions"
-    selmagpt_model_name: str = "SelmaGPT-v1"
+    selmagpt_api_url: str = "http://localhost:11434/v1/chat/completions"
+    selmagpt_model_name: str = "llama3.1:8b"
 
     # Check https://docs.claude.com for the current recommended model string
     # before running — model identifiers change over time.
