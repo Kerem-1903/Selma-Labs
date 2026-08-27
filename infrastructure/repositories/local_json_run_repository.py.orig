@@ -106,21 +106,6 @@ class LocalJsonRunRepository(RunRepositoryPort):
             )
         return run
 
-    async def get_all(self) -> list[PipelineRun]:
-        """Retrieve all pipeline runs."""
-        runs = []
-        if not self._base_directory.exists():
-            return runs
-        for file_path in self._base_directory.glob("*.json"):
-            try:
-                run_id = file_path.stem
-                data = self._read_run(run_id)
-                runs.append(PipelineRun.from_dict(data))
-            except Exception:
-                import traceback; traceback.print_exc()
-                continue
-        return runs
-
     def _write_run(self, data: dict[str, Any]) -> None:
         run_id = str(data["run_id"])
         self._validate_run_id(run_id)

@@ -1,0 +1,12 @@
+--- server.py
++++ server.py
+@@ -138,7 +139,8 @@
+                 prompt,
+                 duration,
+                 str(image_path) if image_path else None,
+-                str(voice_file_path) if voice_file_path else None
++                str(voice_file_path) if voice_file_path else None,
++                style
+             )
+         except Exception as e:
+             logging.error(f"Error starting pipeline for {job_id}: {e}")

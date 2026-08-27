@@ -9,3 +9,12 @@ INFO:     127.0.0.1:37260 - "GET /api/autopilot/status HTTP/1.1" 200 OK
 INFO:     127.0.0.1:37260 - "POST /api/generate HTTP/1.1" 200 OK
 INFO:     127.0.0.1:37260 - "GET /workspace/9c7fce98-87d1-4776-b16f-bcf0d2c871f6 HTTP/1.1" 200 OK
 INFO:     127.0.0.1:37260 - "GET /api/status/9c7fce98-87d1-4776-b16f-bcf0d2c871f6 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59754 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59754 - "GET /api/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59760 - "GET /api/system-metrics HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59768 - "GET /api/autopilot/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59768 - "GET /gallery HTTP/1.1" 404 Not Found
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [2569213]

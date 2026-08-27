@@ -1,0 +1,27 @@
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [3588405]
+INFO:     Started server process [3826704]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7860 (Press CTRL+C to quit)
+INFO:     127.0.0.1:39884 - "GET /api/gallery HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39900 - "GET /workspace/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39900 - "GET /api/status/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52470 - "GET /api/gallery HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52484 - "GET /workspace/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52484 - "GET /api/status/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40588 - "GET /api/gallery HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40592 - "GET /workspace/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40592 - "GET /api/status/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34964 - "GET /api/gallery HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34966 - "GET /workspace/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34966 - "GET /api/status/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56604 - "GET /api/gallery HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56620 - "GET /workspace/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56620 - "GET /api/status/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54318 - "GET /api/gallery HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54320 - "GET /workspace/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54320 - "GET /api/status/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54318 - "POST /api/publish/80a15d16-53de-4f93-b6d5-8df241caa9d5 HTTP/1.1" 200 OK

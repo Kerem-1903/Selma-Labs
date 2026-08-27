@@ -1,0 +1,10 @@
+--- server.py
++++ server.py
+@@ -264,7 +264,7 @@
+
+     # Arka planda Luma (ComfyUI) motorunu tetikle
+     JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None, "timestamp": time.time()}
+-    background_tasks.add_task(run_pipeline, job_id, prompt, duration, image_path, script_provider, voice_provider, voice_file_path)
++    background_tasks.add_task(run_pipeline, job_id, prompt, duration, image_path, script_provider, voice_provider, voice_file_path, style)
+
+     return JSONResponse({"job_id": job_id})

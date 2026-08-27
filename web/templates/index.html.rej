@@ -1,0 +1,18 @@
+--- index.html
++++ index.html
+@@ -191,6 +199,7 @@
+             const prompt = document.getElementById('prompt-input').value;
+             const duration = document.getElementById('duration-input').value;
+             const style = document.getElementById('style-input').value;
++            const storyboard = document.getElementById('storyboard-toggle').checked;
+
+             if(!prompt.trim() && !fileInput.files.length) {
+                 alert("Please enter a prompt or upload an image.");
+@@ -201,6 +210,7 @@
+             formData.append('prompt', prompt);
+             formData.append('duration', duration);
+             formData.append('style', style);
++            formData.append('storyboard', storyboard);
+
+             if (fileInput.files.length > 0) {
+                 formData.append('image', fileInput.files[0]);

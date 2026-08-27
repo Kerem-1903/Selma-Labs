@@ -1,0 +1,21 @@
+--- infrastructure/repositories/local_json_run_repository.py
++++ infrastructure/repositories/local_json_run_repository.py
+@@ -104,6 +104,18 @@
+         data = self._read_run(run_id)
+         return PipelineRun.model_validate(data)
+
++    async def get_all(self) -> list[PipelineRun]:
++        """Retrieve all pipeline runs."""
++        runs = []
++        for file_path in self._base_path.glob("*.json"):
++            try:
++                run_id = file_path.stem
++                data = self._read_run(run_id)
++                runs.append(PipelineRun.model_validate(data))
++            except Exception:
++                continue
++        return runs
++
+     def _write_run(self, data: dict[str, Any]) -> None:
+         # Thread-blocking I/O
+         run_id = data["run_id"]

@@ -176,14 +176,6 @@
                             </div>
                         </div>
 
-                        <!-- Storyboard Mode -->
-                        <label class="flex items-center gap-2 cursor-pointer group">
-                            <div class="relative flex items-center justify-center w-8 h-5 bg-black/40 border border-white/20 rounded-full group-hover:border-indigo-500/50 transition-colors">
-                                <input type="checkbox" id="storyboard-toggle" class="peer sr-only">
-                                <div class="absolute left-1 w-3 h-3 bg-gray-400 rounded-full transition-transform peer-checked:translate-x-3 peer-checked:bg-indigo-400"></div>
-                            </div>
-                            <span class="text-xs text-gray-400 font-medium group-hover:text-white transition-colors">Storyboard Mode</span>
-                        </label>
                     </div>
 
                     <!-- Submit Button -->
@@ -346,7 +338,6 @@
             const prompt = document.getElementById('prompt-input').value;
             const duration = document.getElementById('duration-input').value;
             const style = document.getElementById('style-input').value;
-            const storyboard = document.getElementById('storyboard-toggle').checked;
             const scriptProvider = document.getElementById('script-provider').value;
             const selectedVoiceProvider = document.getElementById('voice-provider').value;
 
@@ -360,7 +351,6 @@
             formData.append('prompt', prompt);
             formData.append('duration', duration);
             formData.append('style', style);
-            formData.append('storyboard', storyboard);
             formData.append('script_provider', scriptProvider);
             formData.append('voice_provider', selectedVoiceProvider);
             if (fileInput.files.length > 0) {

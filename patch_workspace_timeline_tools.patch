@@ -1,0 +1,14 @@
+--- web/templates/workspace.html
++++ web/templates/workspace.html
+@@ -107,6 +107,10 @@
+         <!-- Timeline Controls -->
+         <div class="h-10 border-b border-white/5 bg-[#1a1a20] flex items-center px-4 justify-between">
+             <div class="flex items-center gap-2">
+                 <button class="w-6 h-6 flex items-center justify-center rounded hover:bg-white/10 text-gray-400"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg></button>
+                 <button class="w-6 h-6 flex items-center justify-center rounded hover:bg-white/10 text-gray-400"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"></path></svg></button>
++                <div class="h-4 w-px bg-white/10 mx-2"></div>
++                <button id="btn-split" class="px-2 py-1 text-xs font-medium rounded bg-gray-800 hover:bg-gray-700 text-gray-300 border border-white/5" title="Split Clip at Playhead">Split</button>
++                <button id="btn-delete" class="px-2 py-1 text-xs font-medium rounded bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-500/20" title="Delete Selected Clip">Delete</button>
+             </div>
+             <div class="flex items-center gap-4 text-xs font-medium text-gray-500">
+                 <span>00:00:12:15</span>
