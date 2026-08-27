@@ -33,12 +33,32 @@ import time
 JOB_STATUS = {}
 
 
-def _extract_topic(prompt: str) -> str:
+def parse_user_prompt(prompt: str) -> tuple[str, int, str]:
+    """Extracts topic, duration (in ms), and language from a free-text prompt."""
     cleaned = " ".join((prompt or "").split()).strip()
+
+    # 1. Extract Duration (Defaults to 20 seconds / 20000 ms)
+    duration_s = 20
+    duration_match = re.search(r'(\d+)\s*(saniye|sn|second|sec)', cleaned, re.IGNORECASE)
+    if duration_match:
+        duration_s = int(duration_match.group(1))
+
+    # 2. Extract Language (Defaults to tr)
+    language = "tr"
+    if re.search(r'\b(english|ingilizce)\b', cleaned, re.IGNORECASE):
+        language = "en"
+    elif re.search(r'\b(german|almanca)\b', cleaned, re.IGNORECASE):
+        language = "de"
+    elif re.search(r'\b(spanish|ispanyolca)\b', cleaned, re.IGNORECASE):
+        language = "es"
+
+    # 3. Clean up the topic (if they used 'hakkında', extract that, otherwise pass the whole instruction)
+    topic = cleaned
     match = re.search(r"(?:bana\s+)?(.+?)\s+hakkında\b", cleaned, re.IGNORECASE)
     if match:
-        return match.group(1).strip(" .,:;!?\"")
-    return cleaned
+        topic = match.group(1).strip(" .,:;!?\"")
+
+    return topic, duration_s * 1000, language
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -53,6 +73,10 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
     try:
         JOB_STATUS[job_id] = {"status": "generating", "message": "Senaryo ve görsel planlama başlatılıyor...", "video_url": None, "timestamp": time.time()}
         request_settings = get_settings().model_copy()
+
+        topic, duration_ms, lang = parse_user_prompt(prompt)
+
+        topic, duration_ms, lang = parse_user_prompt(prompt)
 
         if script_provider:
             request_settings.script_provider = script_provider
@@ -91,18 +115,17 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
         orchestrator = build_orchestrator(
             repo,
             output_dir,
-            target_duration_ms=10000, # Luma tarzı kısa 10s klipler
+            target_duration_ms=duration_ms,
             enable_topic_pipeline=True,
-            content_language="tr",
+            content_language=lang,
             settings=request_settings,
         )
 
         JOB_STATUS[job_id]["message"] = "Yapay Zeka filmi renderlıyor... Lütfen bekleyin."
-        topic = _extract_topic(prompt)
         await orchestrator.run_topic_factory(
             run_id=run_id,
             topic=topic,
-            language="tr",
+            language=lang,
         )
 
         # Pipeline is done. Let's find the generated MP4
