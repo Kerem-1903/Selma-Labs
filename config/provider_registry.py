@@ -290,9 +290,12 @@ def get_video_source_provider(settings: Settings) -> VideoSourcePort:
     if settings.video_provider == "pexels":
         from infrastructure.providers.video.pexels_provider import PexelsProvider
         return PexelsProvider(api_key=settings.pexels_api_key)
+    if settings.video_provider == "hybrid":
+        from infrastructure.providers.video.hybrid_broll_provider import HybridBRollProvider
+        return HybridBRollProvider(pexels_key=settings.pexels_api_key)
     raise ValueError(
         f"Unknown video_provider configured: {settings.video_provider!r}. "
-        "Supported: ['pexels']"
+        "Supported: ['pexels', 'user_uploads', 'hybrid']"
     )
 
 

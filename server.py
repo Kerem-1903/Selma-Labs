@@ -69,7 +69,7 @@ async def index(request: Request):
         context={},
     )
 
-async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Optional[str] = None, script_provider: Optional[str] = None, voice_provider: Optional[str] = None, voice_file_path: Optional[str] = None, style: str = "cinematic", storyboard: bool = False):
+async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Optional[str] = None, script_provider: Optional[str] = None, voice_provider: Optional[str] = None, voice_file_path: Optional[str] = None, style: str = "cinematic", subtitle_style: str = "hormozi", storyboard: bool = False):
     try:
         JOB_STATUS[job_id] = {"status": "generating", "message": "Senaryo ve görsel planlama başlatılıyor...", "video_url": None, "timestamp": time.time()}
         request_settings = get_settings().model_copy()
@@ -98,6 +98,7 @@ async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Opti
         if style in style_map:
             request_settings.comfyui_workflow_path = style_map[style]
 
+        request_settings.subtitle_style = subtitle_style
         if storyboard:
             # Bypass slow components for fast drafting
             request_settings.video_generation_provider = "none" # or set to a placeholder static image provider
@@ -109,7 +110,7 @@ async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Opti
 
         # Luma tarzı I2V/T2V konfigürasyonu
         request_settings.video_generation_provider = "comfyui"
-        request_settings.video_provider = "pexels"
+        request_settings.video_provider = "hybrid"
 
         if image_path:
             request_settings.comfyui_mode = "i2v"
@@ -248,15 +249,22 @@ async def api_publish(job_id: str, platform: str = Form(...)):
         repo = LocalJsonRunRepository(PROJECT_ROOT / ".selma_runs")
         run = await repo.get_by_id(job_id)
 
-        # In a real scenario we extract the final path from the run manifest. Here we mock finding a video file path.
-        video_path = PROJECT_ROOT / "output" / "final.mp4"
+        if not run.has_completed_stage("mastering") and not run.has_completed_stage("render"):
+            raise ValueError("Run has not completed render or mastering.")
 
-        # Just for testing if it doesn't exist, create a dummy
-        import os
-        os.makedirs(video_path.parent, exist_ok=True)
+        # Determine actual video path from artifacts
+        video_path_str = None
+        if run.has_completed_stage("mastering"):
+            video_path_str = run.get_stage_artifact("mastering").get("file_path")
+        elif run.has_completed_stage("render"):
+            video_path_str = run.get_stage_artifact("render").get("file_path")
+
+        if not video_path_str:
+             raise ValueError("Could not find video file path in artifacts.")
+
+        video_path = PROJECT_ROOT / video_path_str
         if not video_path.exists():
-            with open(video_path, "wb") as f:
-                f.write(b"dummy video data")
+             raise FileNotFoundError(f"Video missing at {video_path}")
 
         from infrastructure.providers.publish.omnichannel_upload_provider import OmnichannelUploadProvider
         uploader = OmnichannelUploadProvider()
@@ -279,6 +287,7 @@ async def generate(
     prompt: str = Form(...),
     duration: int = Form(20),
     style: str = Form("cinematic"),
+    subtitle_style: str = Form("hormozi"),
     storyboard: bool = Form(False),
     image: Optional[UploadFile] = File(None),
     script_provider: Optional[str] = Form(None),
@@ -315,7 +324,7 @@ async def generate(
 
     # Arka planda Luma (ComfyUI) motorunu tetikle
     JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None, "timestamp": time.time()}
-    background_tasks.add_task(run_pipeline, job_id, prompt, duration, image_path, script_provider, voice_provider, voice_file_path, style, storyboard)
+    background_tasks.add_task(run_pipeline, job_id, prompt, duration, image_path, script_provider, voice_provider, voice_file_path, style, subtitle_style, storyboard)
 
     return JSONResponse({"job_id": job_id})
 

@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # Check https://docs.claude.com for the current recommended model string
     # before running — model identifiers change over time.
     script_model: str = "claude-sonnet-4-5"
-    script_provider: Literal["claude", "nvidia", "ollama", "selmagpt"] = "selmagpt"
+    script_provider: Literal["claude", "nvidia", "ollama", "selmagpt", "swarm"] = "swarm"
     nvidia_api_key: str = ""
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
     nvidia_text_model: str = "meta/llama-3.3-70b-instruct"
@@ -143,6 +143,7 @@ class Settings(BaseSettings):
     scene_planner_model: str = "claude-sonnet-4-5"
     scene_min_visual_beats: int = 3
 
+    subtitle_style: str = "hormozi"
     subtitle_max_chars_per_line: int = 24
     subtitle_max_lines_per_cue: int = 1
     subtitle_min_cue_seconds: float = 0.8

@@ -31,8 +31,9 @@ Style: VisualAccent,Arial Black,38,&H0000D7FF,&H0000D7FF,&H00101010,&H00000000,-
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"""
 
-    def __init__(self, profile: CaptionSafeZoneProfile | None = None) -> None:
+    def __init__(self, profile: CaptionSafeZoneProfile | None = None, style_name: str = "hormozi") -> None:
         self._profile = profile or CaptionSafeZoneProfile()
+        self._style_name = style_name
 
     def format(
         self,

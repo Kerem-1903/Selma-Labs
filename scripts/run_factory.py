@@ -424,7 +424,7 @@ def build_orchestrator(
             maximum_low_motion_ms=settings.editorial_maximum_low_motion_ms,
         ),
         render_port=render_provider,
-        premium_subtitle_formatter=PremiumSubtitleFormatter(caption_profile),
+        premium_subtitle_formatter=PremiumSubtitleFormatter(caption_profile, style_name=getattr(settings, 'subtitle_style', 'hormozi')),
         media_inspection_port=FfprobeMediaInspectionProvider(
             ffmpeg_binary=settings.ffmpeg_binary_path,
             ffprobe_binary=settings.ffprobe_binary_path,
