@@ -107,6 +107,12 @@
 
                     <!-- Controls Group -->
                     <div class="flex items-center gap-4">
+                        <!-- Duration -->
+                        <div class="flex items-center gap-2 text-gray-400 text-sm font-medium border border-white/10 px-3 py-1.5 rounded-full bg-black/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <input type="number" id="duration-input" value="25" min="5" max="60" class="bg-transparent outline-none text-white w-12 text-center" placeholder="Sec">
+                            <span class="text-xs text-gray-500">sec</span>
+                        </div>
                         <!-- Script Provider -->
                         <div class="flex items-center gap-2 text-gray-400 text-sm font-medium border border-white/10 px-3 py-1.5 rounded-full bg-black/20">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -160,13 +166,7 @@
             </form>
         </div>
 
-        <!-- Status & Loader -->
-        <div id="status-container" class="hidden w-full mt-8 flex flex-col items-center">
-            <div class="relative flex items-center justify-center w-16 h-16 mb-4">
-                <div class="absolute w-full h-full rounded-full border-4 border-gray-700 border-t-blue-500 animate-spin"></div>
-                <div class="absolute w-12 h-12 rounded-full bg-blue-500/30 animate-ping"></div>
-                <div class="absolute w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 shadow-[0_0_15px_rgba(79,172,254,0.8)]"></div>
-            </div>
+
             <p id="status-text" class="text-gray-300 font-medium tracking-wide animate-pulse bg-gradient-to-r from-blue-400 to-purple-400 -webkit-background-clip-text text-transparent">Initializing dream matrix...</p>
         </div>
 
@@ -315,20 +315,19 @@
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             const prompt = document.getElementById('prompt-input').value;
+            const duration = document.getElementById('duration-input').value;
             const scriptProvider = document.getElementById('script-provider').value;
             const selectedVoiceProvider = document.getElementById('voice-provider').value;
 
             if (!prompt && fileInput.files.length === 0) return;
 
             submitBtn.disabled = true;
-            resultContainer.classList.add('hidden');
-            statusContainer.classList.remove('hidden');
-
-            const providerName = document.querySelector(`#script-provider option[value="${scriptProvider}"]`).textContent;
-            statusText.textContent = `Connecting to ${providerName}...`;
+            submitBtn.querySelector('span').textContent = "Initializing Workspace...";
+            submitBtn.classList.add('animate-pulse');
 
             const formData = new FormData();
             formData.append('prompt', prompt);
+            formData.append('duration', duration);
             formData.append('script_provider', scriptProvider);
             formData.append('voice_provider', selectedVoiceProvider);
             if (fileInput.files.length > 0) {
@@ -344,9 +343,19 @@
                     body: formData
                 });
                 const data = await response.json();
-                pollStatus(data.job_id, prompt);
+
+                if (data.job_id) {
+                    // Redirect to the professional timeline workspace
+                    window.location.href = `/workspace/${data.job_id}`;
+                } else {
+                    submitBtn.querySelector('span').textContent = "Error";
+                    submitBtn.classList.remove('animate-pulse');
+                    submitBtn.disabled = false;
+                }
             } catch (err) {
-                statusText.textContent = "Error: Could not connect to server.";
+                console.error(err);
+                submitBtn.querySelector('span').textContent = "Connection Failed";
+                submitBtn.classList.remove('animate-pulse');
                 submitBtn.disabled = false;
             }
         });

@@ -69,14 +69,13 @@ async def index(request: Request):
         context={},
     )
 
-async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None, script_provider: Optional[str] = None, voice_provider: Optional[str] = None, voice_file_path: Optional[str] = None):
+async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Optional[str] = None, script_provider: Optional[str] = None, voice_provider: Optional[str] = None, voice_file_path: Optional[str] = None):
     try:
         JOB_STATUS[job_id] = {"status": "generating", "message": "Senaryo ve görsel planlama başlatılıyor...", "video_url": None, "timestamp": time.time()}
         request_settings = get_settings().model_copy()
 
         topic, duration_ms, lang = parse_user_prompt(prompt)
-
-        topic, duration_ms, lang = parse_user_prompt(prompt)
+        duration_ms = duration * 1000 # Override with explicit UI duration if available
 
         if script_provider:
             request_settings.script_provider = script_provider
@@ -141,7 +140,8 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
             "status": "completed",
             "message": "Film hazır!",
             "video_url": expected_mp4 or "/static/dummy.mp4",
-            "timestamp": time.time()
+            "timestamp": time.time(),
+            "target_duration_ms": duration_ms
         }
 
     except Exception as e:
@@ -195,10 +195,20 @@ async def autopilot_status():
 async def autopilot_toggle():
     return JSONResponse({"status": "inactive"})
 
+
+@app.get("/workspace/{job_id}", response_class=HTMLResponse)
+async def workspace(request: Request, job_id: str):
+    return templates.TemplateResponse(
+        request=request,
+        name="workspace.html",
+        context={"job_id": job_id},
+    )
+
 @app.post("/api/generate")
 async def generate(
     background_tasks: BackgroundTasks,
     prompt: str = Form(...),
+    duration: int = Form(20),
     image: Optional[UploadFile] = File(None),
     script_provider: Optional[str] = Form(None),
     voice_provider: Optional[str] = Form(None),
@@ -234,7 +244,7 @@ async def generate(
 
     # Arka planda Luma (ComfyUI) motorunu tetikle
     JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None, "timestamp": time.time()}
-    background_tasks.add_task(run_pipeline, job_id, prompt, image_path, script_provider, voice_provider, voice_file_path)
+    background_tasks.add_task(run_pipeline, job_id, prompt, duration, image_path, script_provider, voice_provider, voice_file_path)
 
     return JSONResponse({"job_id": job_id})
 
