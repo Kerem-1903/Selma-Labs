@@ -1477,6 +1477,24 @@ class PipelineOrchestrator:
             rendered_path = mastered_path
         # -----------------------------------------
 
+        # --- THUMBNAIL A/B GENERATION ---
+        from config.settings import get_settings
+        settings = get_settings()
+        from core.application.services.thumbnail_generator_service import ThumbnailGeneratorService
+        import logging
+        local_logger = logging.getLogger(__name__)
+        thumb_service = ThumbnailGeneratorService(ffmpeg_binary=getattr(settings, "ffmpeg_binary_path", "ffmpeg"))
+        try:
+            thumbnails = await thumb_service.generate_ab_thumbnails(
+                video_path=rendered_path,
+                output_dir=str(self._output_directory),
+                texts=["MIND BLOWN", "WAIT FOR IT..."]
+            )
+            local_logger.info(f"Generated {len(thumbnails)} A/B thumbnails.")
+        except Exception as e:
+            local_logger.error(f"Thumbnail generation skipped: {e}")
+        # --------------------------------
+
         inspection = None
         if self._media_inspection_port is not None:
             assert self._post_render_quality_service is not None

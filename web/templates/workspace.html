@@ -202,8 +202,94 @@
             clip.style.left = `${startSec * PX_PER_SEC}px`;
             clip.style.width = `${durationSec * PX_PER_SEC}px`;
             clip.textContent = text;
-            clip.title = text;
+
+            clip.addEventListener('mousedown', () => {
+                document.querySelectorAll('.clip').forEach(c => c.classList.remove('ring-2', 'ring-indigo-500'));
+                clip.classList.add('ring-2', 'ring-indigo-500');
+            });
+
             trackElement.appendChild(clip);
+            return clip;
+        }
+
+        // Initialize interact.js for draggable and resizable clips
+        if (typeof interact !== 'undefined') {
+            interact('.clip')
+                .draggable({
+                    modifiers: [
+                        interact.modifiers.restrictRect({
+                            restriction: 'parent',
+                            endOnly: true
+                        })
+                    ],
+                    listeners: {
+                        move(event) {
+                            const target = event.target;
+                            const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                            target.style.transform = `translate(${x}px, 0px)`;
+                            target.setAttribute('data-x', x);
+
+                            const timecode = document.getElementById('timecode');
+                            if(timecode) {
+                                const currentSecs = (x + parseFloat(target.style.left)) / PX_PER_SEC;
+                                timecode.innerText = `Pos: ${currentSecs.toFixed(2)}s`;
+                            }
+                        }
+                    }
+                })
+                .resizable({
+                    edges: { left: true, right: true, bottom: false, top: false },
+                    modifiers: [
+                        interact.modifiers.restrictEdges({
+                            outer: 'parent'
+                        }),
+                        interact.modifiers.restrictSize({
+                            min: { width: PX_PER_SEC }
+                        })
+                    ],
+                    listeners: {
+                        move: function (event) {
+                            let { x, y } = event.target.dataset;
+                            x = (parseFloat(x) || 0) + event.deltaRect.left;
+                            Object.assign(event.target.style, {
+                                width: `${event.rect.width}px`,
+                                transform: `translate(${x}px, 0px)`
+                            });
+                            Object.assign(event.target.dataset, { x });
+                        }
+                    }
+                });
+        }
+
+        async function publishVideo(platform) {
+            const runId = window.location.pathname.split('/').pop();
+            const btn = event.currentTarget || event.target;
+            const originalHTML = btn.innerHTML;
+
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Publishing...`;
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('platform', platform);
+
+                const response = await fetch(`/api/publish/${runId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if(response.ok) {
+                    alert(`Successfully published to ${platform}! ID: ${data.platform_id}`);
+                } else {
+                    alert(`Failed to publish: ${data.error}`);
+                }
+            } catch(e) {
+                alert(`Error: ${e.message}`);
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
         }
 
         async function pollStatus() {

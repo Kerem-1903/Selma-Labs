@@ -263,6 +263,9 @@ class FakeScriptRewriter:
 
 
 class FakeMusicDirectorService:
+    async def decide_chapters(self, timeline_duration, scene_moods):
+        return [{'file_path': 'test.mp3', 'start_time': 0, 'end_time': timeline_duration, 'volume': 0.3}]
+
     def __init__(self, *, unavailable: bool = False) -> None:
         self.calls = 0
         self.unavailable = unavailable

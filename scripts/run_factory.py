@@ -264,7 +264,8 @@ def build_orchestrator(
                 "The local factory uses music-first visual planning only."
             )
 
-    settings = get_settings()
+    if settings is None:
+        settings = get_settings()
     if visual_manifest_path is None:
         if not settings.vision_enabled:
             raise RuntimeError(
@@ -277,7 +278,7 @@ def build_orchestrator(
         elif settings.vision_provider == "anthropic":
             _require_factory_configuration(settings.anthropic_api_key, "ANTHROPIC_API_KEY")
         elif settings.vision_provider == "nvidia":
-            if settings.script_provider not in ["ollama", "selmagpt"]:
+            if settings.script_provider not in ["ollama", "selmagpt", "swarm"]:
                 _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
         else:
             raise RuntimeError(
@@ -365,7 +366,7 @@ def build_orchestrator(
         # NVIDIA remains mandatory in topic mode because claim extraction,
         # independent audit, and grounded rewrite use its configured models
         # even when Claude generates the initial draft.
-        if settings.script_provider not in ["ollama", "selmagpt"]:
+        if settings.script_provider not in ["ollama", "selmagpt", "swarm"]:
             _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
         _require_factory_configuration(settings.elevenlabs_api_key, "ELEVENLABS_API_KEY")
         script_service = ScriptService(get_script_provider(settings))

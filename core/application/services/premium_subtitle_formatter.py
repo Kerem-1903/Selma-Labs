@@ -50,13 +50,31 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
         """
         events = [event for cue in cues for event in self._format_cue_events(cue)]
         events.extend(self._format_visual_explanations(visual_intents))
+        font_name = "Arial Black"
+        active_color = "&H0000D7FF" # Default Yellow
+        outline_w = self._profile.outline_width
+
+        style_name = getattr(self, "_style_name", "hormozi")
+        if style_name == "hormozi":
+            font_name = "Impact"
+            active_color = "&H0000D7FF" # Gold
+            outline_w = self._profile.outline_width * 1.5
+        elif style_name == "mrbeast":
+            font_name = "ObelixPro" # Or Komika
+            active_color = "&H0000FF00" # Green
+            outline_w = self._profile.outline_width * 2
+        elif style_name == "cinematic":
+            font_name = "Helvetica Neue"
+            active_color = "&H00FFFFFF" # White
+            outline_w = 0 # No outline
+
         header = self._HEADER_TEMPLATE.format(
             font_size=self._profile.font_size,
-            outline_width=self._profile.outline_width,
+            outline_width=outline_w,
             margin_left=self._profile.margin_left,
             margin_right=self._profile.margin_right,
             margin_v=self._profile.canvas_height - self._profile.caption_baseline_y,
-        )
+        ).replace("Arial Black", font_name).replace("&H0000D7FF", active_color)
         return header + ("\n" + "\n".join(events) if events else "\n")
 
     def _format_visual_explanations(

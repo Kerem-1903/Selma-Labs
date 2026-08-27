@@ -79,9 +79,11 @@ async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Opti
 
         if script_provider:
             request_settings.script_provider = script_provider
-            request_settings.scene_planning_provider = script_provider
-            request_settings.fact_check_provider = script_provider
-            request_settings.translation_provider = script_provider
+            # If swarm is chosen, it's only a script provider. Default others to ollama
+            fallback_provider = "ollama" if script_provider == "swarm" else script_provider
+            request_settings.scene_planning_provider = fallback_provider
+            request_settings.fact_check_provider = fallback_provider
+            request_settings.translation_provider = fallback_provider
 
         if voice_provider:
             request_settings.voice_provider = voice_provider
@@ -109,7 +111,8 @@ async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Opti
 
 
         # Luma tarzı I2V/T2V konfigürasyonu
-        request_settings.video_generation_provider = "comfyui"
+        if not storyboard:
+            request_settings.video_generation_provider = "comfyui"
         request_settings.video_provider = "hybrid"
 
         if image_path:
