@@ -33,12 +33,32 @@ import time
 JOB_STATUS = {}
 
 
-def _extract_topic(prompt: str) -> str:
+def parse_user_prompt(prompt: str) -> tuple[str, int, str]:
+    """Extracts topic, duration (in ms), and language from a free-text prompt."""
     cleaned = " ".join((prompt or "").split()).strip()
+
+    # 1. Extract Duration (Defaults to 20 seconds / 20000 ms)
+    duration_s = 20
+    duration_match = re.search(r'(\d+)\s*(saniye|sn|second|sec)', cleaned, re.IGNORECASE)
+    if duration_match:
+        duration_s = int(duration_match.group(1))
+
+    # 2. Extract Language (Defaults to tr)
+    language = "tr"
+    if re.search(r'\b(english|ingilizce)\b', cleaned, re.IGNORECASE):
+        language = "en"
+    elif re.search(r'\b(german|almanca)\b', cleaned, re.IGNORECASE):
+        language = "de"
+    elif re.search(r'\b(spanish|ispanyolca)\b', cleaned, re.IGNORECASE):
+        language = "es"
+
+    # 3. Clean up the topic (if they used 'hakkında', extract that, otherwise pass the whole instruction)
+    topic = cleaned
     match = re.search(r"(?:bana\s+)?(.+?)\s+hakkında\b", cleaned, re.IGNORECASE)
     if match:
-        return match.group(1).strip(" .,:;!?\"")
-    return cleaned
+        topic = match.group(1).strip(" .,:;!?\"")
+
+    return topic, duration_s * 1000, language
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -49,16 +69,21 @@ async def index(request: Request):
         context={},
     )
 
-async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = None, script_provider: Optional[str] = None, voice_provider: Optional[str] = None, voice_file_path: Optional[str] = None):
+async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Optional[str] = None, script_provider: Optional[str] = None, voice_provider: Optional[str] = None, voice_file_path: Optional[str] = None, style: str = "cinematic", subtitle_style: str = "hormozi", storyboard: bool = False):
     try:
         JOB_STATUS[job_id] = {"status": "generating", "message": "Senaryo ve görsel planlama başlatılıyor...", "video_url": None, "timestamp": time.time()}
         request_settings = get_settings().model_copy()
 
+        topic, duration_ms, lang = parse_user_prompt(prompt)
+        duration_ms = duration * 1000 # Override with explicit UI duration if available
+
         if script_provider:
             request_settings.script_provider = script_provider
-            request_settings.scene_planning_provider = script_provider
-            request_settings.fact_check_provider = script_provider
-            request_settings.translation_provider = script_provider
+            # If swarm is chosen, it's only a script provider. Default others to ollama
+            fallback_provider = "ollama" if script_provider == "swarm" else script_provider
+            request_settings.scene_planning_provider = fallback_provider
+            request_settings.fact_check_provider = fallback_provider
+            request_settings.translation_provider = fallback_provider
 
         if voice_provider:
             request_settings.voice_provider = voice_provider
@@ -66,10 +91,29 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
                 # Assuming setting property or handle logic here
                 pass
 
+        style_map = {
+            "cinematic": "assets/comfyui_workflow.json",
+            "anime": "assets/comfyui_anime_workflow.json",
+            "3d": "assets/comfyui_3d_workflow.json",
+            "cyberpunk": "assets/comfyui_cyberpunk_workflow.json"
+        }
+        if style in style_map:
+            request_settings.comfyui_workflow_path = style_map[style]
+
+        request_settings.subtitle_style = subtitle_style
+        if storyboard:
+            # Bypass slow components for fast drafting
+            request_settings.video_generation_provider = "none" # or set to a placeholder static image provider
+            request_settings.mastering_enabled = False # skip re-encoding / heavy color grading
+            JOB_STATUS[job_id]["message"] = "Storyboard mod aktif: Hızlı taslak oluşturuluyor (Video motoru atlanıyor)..."
+
+
+
 
         # Luma tarzı I2V/T2V konfigürasyonu
-        request_settings.video_generation_provider = "comfyui"
-        request_settings.video_provider = "pexels"
+        if not storyboard:
+            request_settings.video_generation_provider = "comfyui"
+        request_settings.video_provider = "hybrid"
 
         if image_path:
             request_settings.comfyui_mode = "i2v"
@@ -91,18 +135,17 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
         orchestrator = build_orchestrator(
             repo,
             output_dir,
-            target_duration_ms=10000, # Luma tarzı kısa 10s klipler
+            target_duration_ms=duration_ms,
             enable_topic_pipeline=True,
-            content_language="tr",
+            content_language=lang,
             settings=request_settings,
         )
 
         JOB_STATUS[job_id]["message"] = "Yapay Zeka filmi renderlıyor... Lütfen bekleyin."
-        topic = _extract_topic(prompt)
         await orchestrator.run_topic_factory(
             run_id=run_id,
             topic=topic,
-            language="tr",
+            language=lang,
         )
 
         # Pipeline is done. Let's find the generated MP4
@@ -118,7 +161,8 @@ async def run_pipeline(job_id: str, prompt: str, image_path: Optional[str] = Non
             "status": "completed",
             "message": "Film hazır!",
             "video_url": expected_mp4 or "/static/dummy.mp4",
-            "timestamp": time.time()
+            "timestamp": time.time(),
+            "target_duration_ms": duration_ms
         }
 
     except Exception as e:
@@ -172,10 +216,82 @@ async def autopilot_status():
 async def autopilot_toggle():
     return JSONResponse({"status": "inactive"})
 
+
+@app.get("/gallery", response_class=HTMLResponse)
+async def gallery(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="gallery.html",
+    )
+
+@app.get("/api/gallery")
+async def api_gallery():
+    try:
+        repo = LocalJsonRunRepository(PROJECT_ROOT / ".selma_runs")
+        runs = await repo.get_all()
+        return JSONResponse({
+            "runs": [run.to_dict() for run in runs]
+        })
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/workspace/{job_id}", response_class=HTMLResponse)
+async def workspace(request: Request, job_id: str):
+    return templates.TemplateResponse(
+        request=request,
+        name="workspace.html",
+        context={"job_id": job_id},
+    )
+
+
+@app.post("/api/publish/{job_id}")
+async def api_publish(job_id: str, platform: str = Form(...)):
+    try:
+        from infrastructure.repositories.local_json_run_repository import LocalJsonRunRepository
+        repo = LocalJsonRunRepository(PROJECT_ROOT / ".selma_runs")
+        run = await repo.get_by_id(job_id)
+
+        if not run.has_completed_stage("mastering") and not run.has_completed_stage("render"):
+            raise ValueError("Run has not completed render or mastering.")
+
+        # Determine actual video path from artifacts
+        video_path_str = None
+        if run.has_completed_stage("mastering"):
+            video_path_str = run.get_stage_artifact("mastering").get("file_path")
+        elif run.has_completed_stage("render"):
+            video_path_str = run.get_stage_artifact("render").get("file_path")
+
+        if not video_path_str:
+             raise ValueError("Could not find video file path in artifacts.")
+
+        video_path = PROJECT_ROOT / video_path_str
+        if not video_path.exists():
+             raise FileNotFoundError(f"Video missing at {video_path}")
+
+        from infrastructure.providers.publish.omnichannel_upload_provider import OmnichannelUploadProvider
+        uploader = OmnichannelUploadProvider()
+
+        result_id = await uploader.upload_video(
+            platform=platform,
+            video_path=str(video_path),
+            title=f"Selma AI Gen Video - {job_id[:8]}",
+            description="Auto-generated by SELMA Dream Machine",
+            tags=["AI", "Shorts", "Generated"]
+        )
+
+        return JSONResponse({"status": "success", "platform": platform, "platform_id": result_id})
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
 @app.post("/api/generate")
 async def generate(
     background_tasks: BackgroundTasks,
     prompt: str = Form(...),
+    duration: int = Form(20),
+    style: str = Form("cinematic"),
+    subtitle_style: str = Form("hormozi"),
+    storyboard: bool = Form(False),
     image: Optional[UploadFile] = File(None),
     script_provider: Optional[str] = Form(None),
     voice_provider: Optional[str] = Form(None),
@@ -211,7 +327,7 @@ async def generate(
 
     # Arka planda Luma (ComfyUI) motorunu tetikle
     JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None, "timestamp": time.time()}
-    background_tasks.add_task(run_pipeline, job_id, prompt, image_path, script_provider, voice_provider, voice_file_path)
+    background_tasks.add_task(run_pipeline, job_id, prompt, duration, image_path, script_provider, voice_provider, voice_file_path, style, subtitle_style, storyboard)
 
     return JSONResponse({"job_id": job_id})
 

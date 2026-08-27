@@ -30,9 +30,14 @@ class SelmaGPTProvider(ScriptGeneratorPort):
         from core.application.services.analytics_strategy_service import analytics_strategy_service
         strategy = await analytics_strategy_service.get_current_strategy()
 
+        max_words = int(target_duration_seconds * 2.5)
+        min_words = int(target_duration_seconds * 2.0)
+
         system_prompt = (
             "You are SelmaGPT, a highly specialized AI designed to write viral, engaging, and high-retention YouTube Shorts scripts.\n"
-            f"STRATEGY INSTRUCTION: {strategy}"
+            f"STRATEGY INSTRUCTION: {strategy}\n"
+            "CRITICAL RULE: You MUST strictly obey word count limits. Humans speak at a specific speed, "
+            "so if you write too much, the video will break. Do not write less than the minimum or more than the maximum."
         )
 
         # SelmaGPT eğitim verisine sadık (Instruction formatında) prompt hazırlama
@@ -43,7 +48,9 @@ class SelmaGPTProvider(ScriptGeneratorPort):
             },
             {
                 "role": "user",
-                "content": f"Write a {target_duration_seconds}-second engaging YouTube Shorts script about: '{topic}'. Only output the raw spoken narration text. No stage directions.{language_instruction}"
+                "content": f"Write a YouTube Shorts script about: '{topic}'. "
+                           f"Length Constraint: Write EXACTLY between {min_words} and {max_words} words. No exceptions. "
+                           f"Only output the raw spoken narration text. No stage directions.{language_instruction}"
             }
         ]
 

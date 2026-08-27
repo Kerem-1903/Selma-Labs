@@ -51,10 +51,11 @@ class OllamaScriptProvider(ScriptGeneratorPort):
                     data = await response.json()
                     narration = data.get("response", "").strip()
 
-                    return Script(
+                    return Script.create(
                         topic=topic,
-                        narration=narration,
+                        full_text=narration,
                         target_duration_seconds=target_duration_seconds,
+                        provider_used="ollama"
                     )
         except aiohttp.ClientError as e:
             logger.error(f"Ollama connection error: {e}")

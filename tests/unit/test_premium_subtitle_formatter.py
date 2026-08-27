@@ -24,7 +24,7 @@ def test_format_writes_persistent_phrase_and_active_word_overlays():
 
     assert "PlayResY: 1920" in ass
     assert "MarginV, Encoding" in ass
-    assert "Arial Black" in ass
+    assert "Impact" in ass
     assert ",120,120,500,1" in ass
     assert "Dialogue: 0,0:00:01.00,0:00:02.10,KaraokeBase" in ass
     assert "Hello world!" in ass

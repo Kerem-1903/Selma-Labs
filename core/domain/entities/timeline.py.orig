@@ -27,7 +27,6 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from core.domain.value_objects.timeline_clip import TimelineClip
-from core.domain.value_objects.timeline_sfx import TimelineSfx
 
 
 @dataclass(frozen=True)
@@ -37,7 +36,6 @@ class Timeline:
     clips: list[TimelineClip]
     total_duration_seconds: float
     created_at: datetime
-    sfx_tracks: list[TimelineSfx] = field(default_factory=list)
     # Extension point only (Sprint 6) — same reasoning as
     # TimelineClip.metadata (see that module's docstring). Reserved for
     # future render-wide settings a rendering sprint will need (e.g. fps,
@@ -51,7 +49,6 @@ class Timeline:
         *,
         asset_match_plan_id: Optional[str],
         clips: list[TimelineClip],
-        sfx_tracks: list[TimelineSfx] = None,
     ) -> "Timeline":
         total_duration_seconds = (
             max(clip.scene.end_time for clip in clips) if clips else 0.0
@@ -60,7 +57,6 @@ class Timeline:
             id=str(uuid.uuid4()),
             asset_match_plan_id=asset_match_plan_id,
             clips=clips,
-            sfx_tracks=sfx_tracks or [],
             total_duration_seconds=total_duration_seconds,
             created_at=datetime.now(timezone.utc),
         )
@@ -85,13 +81,5 @@ class Timeline:
                     "metadata": clip.metadata,
                 }
                 for clip in self.clips
-            ],
-            "sfx_tracks": [
-                {
-                    "sfx_type": sfx.sfx_type,
-                    "start_time": sfx.start_time,
-                    "volume": sfx.volume,
-                }
-                for sfx in self.sfx_tracks
             ],
         }

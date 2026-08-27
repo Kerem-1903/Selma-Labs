@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SELMA Workspace - Timeline Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f0f13; color: #e2e2e2; overflow: hidden; }
+
+        .track-row { display: flex; height: 60px; border-bottom: 1px solid rgba(255,255,255,0.05); align-items: center; position: relative; }
+        .track-header { width: 120px; flex-shrink: 0; background-color: #1a1a20; border-right: 1px solid #333; display: flex; align-items: center; padding-left: 1rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; z-index: 10; }
+        .track-content { flex-grow: 1; position: relative; background-color: #141418; overflow-x: auto; overflow-y: hidden; }
+
+        .clip { position: absolute; height: 40px; top: 10px; border-radius: 6px; display: flex; align-items: center; padding: 0 8px; font-size: 0.75rem; font-weight: 500; color: white; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid rgba(255,255,255,0.2); transition: all 0.2s; cursor: pointer; }
+        .clip:hover { filter: brightness(1.2); z-index: 20; }
+
+        .clip-video { background: linear-gradient(90deg, #3b82f6, #2563eb); }
+        .clip-audio { background: linear-gradient(90deg, #10b981, #059669); }
+        .clip-subtitle { background: linear-gradient(90deg, #f59e0b, #d97706); }
+        .clip-script { background: linear-gradient(90deg, #8b5cf6, #d946ef); }
+
+        .playhead { position: absolute; top: 0; bottom: 0; width: 2px; background-color: #ef4444; z-index: 50; box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); }
+        .playhead::before { content: ''; position: absolute; top: -5px; left: -4px; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid #ef4444; }
+
+        /* Loader */
+        .stage-loader { border-top-color: transparent; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #141418; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Top Navigation -->
+    <header class="h-14 border-b border-white/10 bg-[#141418] flex items-center justify-between px-6 shrink-0">
+        <div class="flex items-center gap-4">
+            <a href="/" class="text-gray-400 hover:text-white transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            </a>
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-md bg-gradient-to-tr from-blue-500 to-purple-600"></div>
+                <h1 class="font-bold text-white tracking-wide">SELMA <span class="text-gray-400 font-normal">Workspace</span></h1>
+            </div>
+            <span class="text-xs text-gray-500 font-mono bg-black/40 px-2 py-1 rounded ml-4">ID: {{ job_id }}</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <div id="status-badge" class="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold uppercase tracking-wider">
+                <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                <span>Initializing</span>
+            </div>
+            <button class="bg-white/10 hover:bg-white/20 text-white px-4 py-1.5 rounded text-sm font-medium transition-colors">Export</button>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex overflow-hidden">
+
+        <!-- Left Panel: Assets, Script & Publish -->
+        <aside class="w-80 border-r border-white/10 bg-[#121215] flex flex-col shrink-0 overflow-y-auto">
+            <div class="p-4 border-b border-white/10">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-400">Omnichannel Publish</h2>
+                </div>
+                <div class="flex flex-col gap-2">
+                    <button class="w-full py-2 bg-[#ff0000]/20 hover:bg-[#ff0000]/40 border border-[#ff0000]/30 text-[#ff0000] text-xs font-bold rounded flex items-center justify-center gap-2 transition-colors" onclick="publishVideo('youtube')">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+                        Publish to YouTube
+                    </button>
+                    <button class="w-full py-2 bg-[#00f2fe]/20 hover:bg-[#00f2fe]/40 border border-[#00f2fe]/30 text-[#00f2fe] text-xs font-bold rounded flex items-center justify-center gap-2 transition-colors" onclick="publishVideo('tiktok')">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93v7.2c0 1.63-.33 3.29-1.22 4.67-1.41 2.21-3.94 3.56-6.57 3.65-2.43.08-4.88-.7-6.66-2.4-1.99-1.89-2.9-4.71-2.28-7.39.49-2.13 1.83-3.99 3.66-5.04 1.83-1.04 4.04-1.31 6.01-.81v4.06c-1.39-.24-2.89.04-3.99.98-1.07.92-1.57 2.4-1.29 3.79.28 1.41 1.34 2.59 2.68 3.1 1.25.48 2.73.44 3.86-.3 1.24-.81 1.86-2.26 1.86-3.73V.02h3.87z"/></svg>
+                        Publish to TikTok
+                    </button>
+                    <button class="w-full py-2 bg-gradient-to-r from-[#833ab4]/20 via-[#fd1d1d]/20 to-[#fcb045]/20 hover:from-[#833ab4]/40 hover:via-[#fd1d1d]/40 hover:to-[#fcb045]/40 border border-[#fd1d1d]/30 text-[#fd1d1d] text-xs font-bold rounded flex items-center justify-center gap-2 transition-colors" onclick="publishVideo('instagram_reels')">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                        Publish to Reels
+                    </button>
+                </div>
+            </div>
+            <div class="p-4 border-b border-white/10">
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">Project Script</h2>
+                <div id="script-content" class="text-sm text-gray-300 leading-relaxed bg-black/40 p-4 rounded-lg border border-white/5 h-64 overflow-y-auto font-serif relative">
+                    <div class="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-10" id="script-loader">
+                        <div class="w-5 h-5 border-2 border-purple-500 rounded-full stage-loader"></div>
+                        <span class="ml-2 text-xs font-medium text-purple-400">Writing Script...</span>
+                    </div>
+                    <!-- Script text will be injected here -->
+                </div>
+            </div>
+            <div class="flex-1 p-4 overflow-y-auto">
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">Generated Assets</h2>
+                <div id="assets-grid" class="grid grid-cols-2 gap-2">
+                    <!-- Asset thumbnails will populate here -->
+                    <div class="col-span-2 text-center py-8 text-xs text-gray-600" id="assets-empty">
+                        Waiting for rendering engine...
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Right Panel: Video Preview -->
+        <section class="flex-1 bg-black flex flex-col items-center justify-center p-6 relative">
+            <div class="w-full max-w-sm aspect-[9/16] bg-[#1a1a20] rounded-lg border border-white/10 shadow-2xl overflow-hidden relative flex items-center justify-center">
+
+                <!-- Preview Loader overlay -->
+                <div id="preview-loader" class="absolute inset-0 bg-black/80 z-20 flex flex-col items-center justify-center transition-opacity duration-500">
+                    <div class="w-12 h-12 border-4 border-blue-500 rounded-full stage-loader mb-4"></div>
+                    <div id="preview-status-text" class="text-sm font-medium text-blue-400 text-center px-4">Processing Pipeline...</div>
+                </div>
+
+                <video id="preview-player" class="w-full h-full object-contain hidden" controls>
+                    <source src="" type="video/mp4">
+                </video>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Bottom Panel: Timeline -->
+    <footer class="h-64 border-t border-white/10 bg-[#121215] flex flex-col shrink-0">
+        <!-- Timeline Controls -->
+        <div class="h-10 border-b border-white/5 bg-[#1a1a20] flex items-center px-4 justify-between">
+            <div class="flex items-center gap-2">
+                <button class="w-6 h-6 flex items-center justify-center rounded hover:bg-white/10 text-gray-400"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"></path></svg></button>
+                <button class="w-6 h-6 flex items-center justify-center rounded hover:bg-white/10 text-gray-400"><svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"></path></svg></button>
+                <div class="h-4 w-px bg-white/10 mx-2"></div>
+                <button id="btn-split" class="px-2 py-1 text-xs font-medium rounded bg-gray-800 hover:bg-gray-700 text-gray-300 border border-white/5" title="Split Clip at Playhead">Split</button>
+                <button id="btn-delete" class="px-2 py-1 text-xs font-medium rounded bg-red-900/30 hover:bg-red-900/50 text-red-400 border border-red-500/20" title="Delete Selected Clip">Delete</button>
+            </div>
+            <div class="text-xs font-mono text-gray-500" id="timecode">00:00:00:00</div>
+            <div class="w-24">
+                <input type="range" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+            </div>
+        </div>
+
+        <!-- Tracks Container -->
+        <div class="flex-1 overflow-y-auto relative" id="timeline-container">
+            <div class="playhead" style="left: 120px;"></div>
+
+            <!-- Video Track -->
+            <div class="track-row">
+                <div class="track-header">Video</div>
+                <div class="track-content" id="track-video">
+                    <!-- Clips -->
+                </div>
+            </div>
+
+            <!-- Narration / Script Track -->
+            <div class="track-row">
+                <div class="track-header">Narration</div>
+                <div class="track-content" id="track-script">
+                </div>
+            </div>
+
+            <!-- Audio Track -->
+            <div class="track-row">
+                <div class="track-header">Audio</div>
+                <div class="track-content" id="track-audio">
+                </div>
+            </div>
+
+            <!-- Subtitle Track -->
+            <div class="track-row">
+                <div class="track-header">Subtitles</div>
+                <div class="track-content" id="track-subtitles">
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        const jobId = "{{ job_id }}";
+        const statusBadge = document.getElementById('status-badge');
+        const statusText = statusBadge.querySelector('span');
+        const statusDot = statusBadge.querySelector('div');
+
+        const previewLoader = document.getElementById('preview-loader');
+        const previewStatusText = document.getElementById('preview-status-text');
+        const previewPlayer = document.getElementById('preview-player');
+
+        const scriptLoader = document.getElementById('script-loader');
+        const scriptContent = document.getElementById('script-content');
+        const assetsEmpty = document.getElementById('assets-empty');
+        const assetsGrid = document.getElementById('assets-grid');
+
+        // Timeline Tracks
+        const trackVideo = document.getElementById('track-video');
+        const trackScript = document.getElementById('track-script');
+
+        // Pixel per second scale for timeline
+        const PX_PER_SEC = 20;
+
+        function addClipToTrack(trackElement, type, text, startSec, durationSec) {
+            const clip = document.createElement('div');
+            clip.className = `clip clip-${type}`;
+            clip.style.left = `${startSec * PX_PER_SEC}px`;
+            clip.style.width = `${durationSec * PX_PER_SEC}px`;
+            clip.textContent = text;
+
+            clip.addEventListener('mousedown', () => {
+                document.querySelectorAll('.clip').forEach(c => c.classList.remove('ring-2', 'ring-indigo-500'));
+                clip.classList.add('ring-2', 'ring-indigo-500');
+            });
+
+            trackElement.appendChild(clip);
+            return clip;
+        }
+
+        // Initialize interact.js for draggable and resizable clips
+        if (typeof interact !== 'undefined') {
+            interact('.clip')
+                .draggable({
+                    modifiers: [
+                        interact.modifiers.restrictRect({
+                            restriction: 'parent',
+                            endOnly: true
+                        })
+                    ],
+                    listeners: {
+                        move(event) {
+                            const target = event.target;
+                            const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+                            target.style.transform = `translate(${x}px, 0px)`;
+                            target.setAttribute('data-x', x);
+
+                            const timecode = document.getElementById('timecode');
+                            if(timecode) {
+                                const currentSecs = (x + parseFloat(target.style.left)) / PX_PER_SEC;
+                                timecode.innerText = `Pos: ${currentSecs.toFixed(2)}s`;
+                            }
+                        }
+                    }
+                })
+                .resizable({
+                    edges: { left: true, right: true, bottom: false, top: false },
+                    modifiers: [
+                        interact.modifiers.restrictEdges({
+                            outer: 'parent'
+                        }),
+                        interact.modifiers.restrictSize({
+                            min: { width: PX_PER_SEC }
+                        })
+                    ],
+                    listeners: {
+                        move: function (event) {
+                            let { x, y } = event.target.dataset;
+                            x = (parseFloat(x) || 0) + event.deltaRect.left;
+                            Object.assign(event.target.style, {
+                                width: `${event.rect.width}px`,
+                                transform: `translate(${x}px, 0px)`
+                            });
+                            Object.assign(event.target.dataset, { x });
+                        }
+                    }
+                });
+        }
+
+        async function publishVideo(platform) {
+            const runId = window.location.pathname.split('/').pop();
+            const btn = event.currentTarget || event.target;
+            const originalHTML = btn.innerHTML;
+
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Publishing...`;
+            btn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('platform', platform);
+
+                const response = await fetch(`/api/publish/${runId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if(response.ok) {
+                    alert(`Successfully published to ${platform}! ID: ${data.platform_id}`);
+                } else {
+                    alert(`Failed to publish: ${data.error}`);
+                }
+            } catch(e) {
+                alert(`Error: ${e.message}`);
+            } finally {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
+
+        async function pollStatus() {
+            try {
+                const res = await fetch(`/api/status/${jobId}`);
+                const data = await res.json();
+
+                if (data.status === 'not_found') {
+                    statusText.textContent = "Not Found";
+                    statusBadge.className = "flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold uppercase tracking-wider";
+                    statusDot.classList.remove('animate-pulse');
+                    return;
+                }
+
+                // Update text
+                previewStatusText.textContent = data.message || "Processing...";
+
+                // If script exists in the payload, show it
+                if (data.script && scriptLoader.style.display !== 'none') {
+                    scriptLoader.style.display = 'none';
+                    scriptContent.innerHTML = data.script.replace(/\n/g, '<br><br>');
+
+                    // Add dummy script block to timeline
+                    trackScript.innerHTML = '';
+                    addClipToTrack(trackScript, 'script', "AI Voice Narration", 0, data.target_duration_ms ? data.target_duration_ms/1000 : 20);
+                }
+
+                // If scenes are generated, show mock clips in timeline and assets
+                if (data.scenes && assetsEmpty.style.display !== 'none') {
+                    assetsEmpty.style.display = 'none';
+                    trackVideo.innerHTML = '';
+                    let currentSec = 0;
+                    data.scenes.forEach((scene, i) => {
+                        const dur = 4; // Mock 4s per scene
+                        addClipToTrack(trackVideo, 'video', `Scene ${i+1}: ${scene.keywords}`, currentSec, dur);
+
+                        // Add to assets grid
+                        const asset = document.createElement('div');
+                        asset.className = "aspect-square bg-gray-800 rounded flex items-center justify-center text-[10px] text-gray-500 border border-white/5 p-2 text-center";
+                        asset.textContent = `Scene ${i+1} Render`;
+                        assetsGrid.appendChild(asset);
+
+                        currentSec += dur;
+                    });
+                }
+
+                if (data.status === 'completed') {
+                    statusText.textContent = "Completed";
+                    statusBadge.className = "flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/30 text-green-400 text-xs font-semibold uppercase tracking-wider";
+                    statusDot.classList.remove('animate-pulse');
+                    statusDot.classList.add('bg-green-500');
+
+                    previewLoader.classList.add('opacity-0');
+                    setTimeout(() => {
+                        previewLoader.style.display = 'none';
+                        previewPlayer.classList.remove('hidden');
+                        previewPlayer.src = data.video_url;
+                        previewPlayer.load();
+
+                        // Drop final video into timeline
+                        trackVideo.innerHTML = '';
+                        addClipToTrack(trackVideo, 'video', "Final Mastered Video", 0, previewPlayer.duration || 20);
+                    }, 500);
+
+                } else if (data.status === 'error') {
+                    statusText.textContent = "Failed";
+                    statusBadge.className = "flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold uppercase tracking-wider";
+                    statusDot.classList.remove('animate-pulse');
+                    statusDot.classList.add('bg-red-500');
+                    previewStatusText.textContent = `Error: ${data.message}`;
+                    previewStatusText.classList.add('text-red-400');
+                    scriptLoader.style.display = 'none';
+                    scriptContent.innerHTML = `<span class="text-red-400">Failed to generate script.</span>`;
+                } else {
+                    // Continue polling
+                    setTimeout(pollStatus, 2000);
+                }
+
+            } catch (err) {
+                console.error(err);
+                setTimeout(pollStatus, 3000);
+            }
+        }
+
+        // Start polling immediately
+        pollStatus();
+    </script>
+</body>
+</html>

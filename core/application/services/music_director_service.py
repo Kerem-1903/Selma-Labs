@@ -115,3 +115,51 @@ class MusicDirectorService:
             track=track,
             overridden=overridden,
         )
+
+    async def decide_chapters(self, timeline_duration: float, scene_moods: list[str]) -> list[dict]:
+        """
+        Advanced Music Director logic.
+        Splits the timeline into chapters based on mood changes and requests tracks.
+        """
+        chapters = []
+        if not scene_moods:
+            track = await self._provider.select("wonder")
+            chapters.append({
+                "file_path": track.file_path,
+                "start_time": 0.0,
+                "end_time": timeline_duration,
+                "volume": 0.3
+            })
+            return chapters
+
+        if timeline_duration < 30:
+            mood = scene_moods[0] if scene_moods else "wonder"
+            track = await self._provider.select(mood)
+            chapters.append({
+                "file_path": track.file_path,
+                "start_time": 0.0,
+                "end_time": timeline_duration,
+                "volume": 0.3
+            })
+        else:
+            mid_point = timeline_duration / 2.0
+            mood1 = scene_moods[0]
+            mood2 = scene_moods[-1] if len(scene_moods) > 1 else mood1
+
+            track1 = await self._provider.select(mood1)
+            chapters.append({
+                "file_path": track1.file_path,
+                "start_time": 0.0,
+                "end_time": mid_point + 2.0,
+                "volume": 0.3
+            })
+
+            track2 = await self._provider.select(mood2)
+            chapters.append({
+                "file_path": track2.file_path,
+                "start_time": mid_point,
+                "end_time": timeline_duration,
+                "volume": 0.3
+            })
+
+        return chapters

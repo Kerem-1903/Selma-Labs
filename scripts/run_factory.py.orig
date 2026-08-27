@@ -163,7 +163,6 @@ def build_orchestrator(
     voice_id: str | None = None,
     content_language: str | None = None,
     visual_manifest_path: str | Path | None = None,
-    settings=None,
 ) -> "PipelineOrchestrator":
     """Instantiate adapters and services without placing business logic in CLI code."""
     from config.provider_registry import (
@@ -264,8 +263,7 @@ def build_orchestrator(
                 "The local factory uses music-first visual planning only."
             )
 
-    if settings is None:
-        settings = get_settings()
+    settings = get_settings()
     if visual_manifest_path is None:
         if not settings.vision_enabled:
             raise RuntimeError(
@@ -278,7 +276,7 @@ def build_orchestrator(
         elif settings.vision_provider == "anthropic":
             _require_factory_configuration(settings.anthropic_api_key, "ANTHROPIC_API_KEY")
         elif settings.vision_provider == "nvidia":
-            if settings.script_provider not in ["ollama", "selmagpt", "swarm"]:
+            if settings.script_provider not in ["ollama", "selmagpt"]:
                 _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
         else:
             raise RuntimeError(
@@ -366,7 +364,7 @@ def build_orchestrator(
         # NVIDIA remains mandatory in topic mode because claim extraction,
         # independent audit, and grounded rewrite use its configured models
         # even when Claude generates the initial draft.
-        if settings.script_provider not in ["ollama", "selmagpt", "swarm"]:
+        if settings.script_provider not in ["ollama", "selmagpt"]:
             _require_factory_configuration(settings.nvidia_api_key, "NVIDIA_API_KEY")
         _require_factory_configuration(settings.elevenlabs_api_key, "ELEVENLABS_API_KEY")
         script_service = ScriptService(get_script_provider(settings))
@@ -425,7 +423,7 @@ def build_orchestrator(
             maximum_low_motion_ms=settings.editorial_maximum_low_motion_ms,
         ),
         render_port=render_provider,
-        premium_subtitle_formatter=PremiumSubtitleFormatter(caption_profile, style_name=getattr(settings, 'subtitle_style', 'hormozi')),
+        premium_subtitle_formatter=PremiumSubtitleFormatter(caption_profile),
         media_inspection_port=FfprobeMediaInspectionProvider(
             ffmpeg_binary=settings.ffmpeg_binary_path,
             ffprobe_binary=settings.ffprobe_binary_path,

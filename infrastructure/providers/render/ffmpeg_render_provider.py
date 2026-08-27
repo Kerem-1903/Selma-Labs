@@ -98,6 +98,32 @@ class FfmpegRenderProvider(RenderPort):
         narration_audio_path: str,
         subtitle_path: str | None = None,
     ) -> RenderResult:
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Parse SFX into sound design plan
+        sound_design_plan = None
+        timeline_data = timeline.to_dict()
+        if timeline_data and "sfx_tracks" in timeline_data and timeline_data["sfx_tracks"]:
+            sfx_cues = []
+            for sfx in timeline_data["sfx_tracks"]:
+                kind = "transition" if sfx["sfx_type"] == "whoosh" else "hook_impact"
+                sfx_cues.append({
+                    "timestamp_ms": int(sfx["start_time"] * 1000),
+                    "kind": kind,
+                    "duration_ms": 1500,
+                    "gain_db": -6.0 if sfx.get("volume", 1.0) > 0.5 else -12.0,
+                    "reason": f"SFX: {sfx['sfx_type']}"
+                })
+
+            sound_design_plan = {
+                "duration_ms": int(timeline.total_duration_seconds * 1000),
+                "ambience_profile": "none",
+                "cues": sfx_cues,
+                "music_automation": []
+            }
+            logger.info(f"Injecting {len(sfx_cues)} dynamic SFX tracks into audio filter graph.")
+
         if not timeline.clips:
             raise RenderError(f"Cannot render Timeline '{timeline.id}': it has no clips.")
 
@@ -148,6 +174,7 @@ class FfmpegRenderProvider(RenderPort):
         procedural_audio_accents: bool = False,
         sound_design_plan: dict | None = None,
         creative_timeline_path: str | None = None,
+        timeline_data: dict | None = None,
     ) -> str:
         """Concatenate portrait footage, burn ASS captions, and mux a hook.
 

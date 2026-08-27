@@ -149,6 +149,12 @@ class TimelineService:
             asset_match_plan_id=asset_match_plan.id, clips=clips
         )
 
+        # Apply Sound Design (SFX injection)
+        from core.application.services.sound_design_service import SoundDesignService
+        sound_designer = SoundDesignService()
+        timeline = sound_designer.inject_sfx(timeline)
+
+
         logger.info(
             "timeline_creation_completed",
             extra={
