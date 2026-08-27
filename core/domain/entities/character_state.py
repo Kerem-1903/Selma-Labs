@@ -7,6 +7,8 @@ class CharacterState:
     active_outfit_id: str
     injuries: List[str]
     held_objects: List[str]
+    location: str = ""
+    emotion: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -14,6 +16,8 @@ class CharacterState:
             "active_outfit_id": self.active_outfit_id,
             "injuries": self.injuries,
             "held_objects": self.held_objects,
+            "location": self.location,
+            "emotion": self.emotion,
         }
 
     @classmethod
@@ -23,4 +27,6 @@ class CharacterState:
             active_outfit_id=data["active_outfit_id"],
             injuries=data.get("injuries", []),
             held_objects=data.get("held_objects", []),
+            location=data.get("location", ""),
+            emotion=data.get("emotion", ""),
         )

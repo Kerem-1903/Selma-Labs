@@ -5,6 +5,7 @@ import json
 import uuid
 import os
 from core.domain.ports.video_generation_port import VideoGenerationPort
+from core.domain.value_objects.video_generation_request import VideoGenerationRequest
 from core.domain.entities.media_asset import MediaAsset
 from core.domain.exceptions import ProviderError
 
@@ -71,7 +72,9 @@ class ComfyUIVideoProvider(VideoGenerationPort):
                     f.write(content)
                 return local_path
 
-    async def generate_video(self, prompt: str, duration_seconds: float = 5.0) -> MediaAsset:
+    async def generate_video(self, request: VideoGenerationRequest) -> MediaAsset:
+        # Extract prompt from constraints or default
+        prompt = request.generation_constraints.get("prompt", "A cinematic scene")
         logger.info(f"Generating video with ComfyUI. Prompt: '{prompt}'")
 
         try:
@@ -184,7 +187,7 @@ class ComfyUIVideoProvider(VideoGenerationPort):
                 media_type="video",
                 original_url=local_path, # We treat the local downloaded path as original_url for processing
                 description=prompt,
-                duration_seconds=duration_seconds, # Approximated based on request
+                duration_seconds=request.target_duration_seconds, # Approximated based on request
                 width=1080,
                 height=1920,
                 fps=30
