@@ -38,6 +38,26 @@ async def test_save_creates_nested_directories(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_load_and_exists_resolve_portable_storage_key(tmp_path):
+    storage = LocalFsStorage(root_dir=str(tmp_path))
+    key = "characters/akira/references/front/reference.png"
+
+    assert await storage.exists(key) is False
+    await storage.save(key, b"image-bytes", "image/png")
+
+    assert await storage.exists(key) is True
+    assert await storage.load(key) == b"image-bytes"
+
+
+@pytest.mark.asyncio
+async def test_load_missing_key_raises_storage_error(tmp_path):
+    storage = LocalFsStorage(root_dir=str(tmp_path))
+
+    with pytest.raises(StorageError, match="Failed to read asset"):
+        await storage.load("characters/akira/missing.png")
+
+
+@pytest.mark.asyncio
 async def test_save_raises_storage_error_on_write_failure(tmp_path):
     # Point root_dir at a location that cannot exist as a directory
     # (a file, not a directory) to force an OSError inside save().
