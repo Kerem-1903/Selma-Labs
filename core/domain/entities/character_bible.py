@@ -12,10 +12,12 @@ class CharacterBible:
     style_profile: StyleProfile
     reference_pack: Dict[ReferenceView, CharacterReference] = field(default_factory=dict)
     outfit_catalog: List[Outfit] = field(default_factory=list)
+    schema_version: int = 1
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "character_id": self.character_id,
+            "schema_version": self.schema_version,
             "identity_constraints": self.identity_constraints.to_dict(),
             "style_profile": self.style_profile.to_dict(),
             "reference_pack": {
@@ -37,6 +39,7 @@ class CharacterBible:
         ]
         return cls(
             character_id=data["character_id"],
+            schema_version=data.get("schema_version", 1),
             identity_constraints=IdentityConstraints.from_dict(data.get("identity_constraints", {})),
             style_profile=StyleProfile.from_dict(data.get("style_profile", {})),
             reference_pack=refs,
