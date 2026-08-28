@@ -5,22 +5,30 @@ def test_character_state_initialization():
         character_id="char_1",
         active_outfit_id="outfit_1",
         injuries=["cut on right cheek"],
-        held_objects=["broken sword"]
+        held_objects=["broken sword"],
+        location="rooftop",
+        emotion="angry"
     )
     assert state.character_id == "char_1"
     assert "cut on right cheek" in state.injuries
     assert "broken sword" in state.held_objects
+    assert state.location == "rooftop"
+    assert state.emotion == "angry"
 
 def test_character_state_serialization():
     state = CharacterState(
         character_id="char_1",
         active_outfit_id="outfit_1",
         injuries=["scar"],
-        held_objects=["gun"]
+        held_objects=["gun"],
+        location="street",
+        emotion="sad"
     )
     data = state.to_dict()
     assert data["active_outfit_id"] == "outfit_1"
+    assert data["location"] == "street"
 
     state_restored = CharacterState.from_dict(data)
     assert state_restored.character_id == "char_1"
     assert "scar" in state_restored.injuries
+    assert state_restored.emotion == "sad"

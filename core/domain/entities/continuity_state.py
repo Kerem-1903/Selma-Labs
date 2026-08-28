@@ -6,6 +6,7 @@ from .character_state import CharacterState
 class ContinuityState:
     id: str
     world_snapshot: Dict[str, CharacterState] = field(default_factory=dict)
+    object_states: Dict[str, str] = field(default_factory=dict)
 
     def update_character(self, state: CharacterState) -> None:
         self.world_snapshot[state.character_id] = state
@@ -16,7 +17,8 @@ class ContinuityState:
             "world_snapshot": {
                 char_id: state.to_dict()
                 for char_id, state in self.world_snapshot.items()
-            }
+            },
+            "object_states": self.object_states
         }
 
     @classmethod
@@ -27,5 +29,6 @@ class ContinuityState:
         }
         return cls(
             id=data["id"],
-            world_snapshot=snapshot
+            world_snapshot=snapshot,
+            object_states=data.get("object_states", {})
         )

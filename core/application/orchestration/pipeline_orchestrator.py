@@ -43,6 +43,7 @@ from core.application.services.youtube_performance_learning_service import (
 from core.domain.entities.audio_asset import AudioAsset
 from core.domain.entities.media_asset import MediaAsset
 from core.domain.entities.script import Script
+from core.domain.value_objects.video_generation_request import VideoGenerationRequest
 from core.domain.entities.voice_track import VoiceTrack
 from core.domain.exceptions import (
     AssetDiversityError,
@@ -960,7 +961,12 @@ class PipelineOrchestrator:
                     if duration_sec <= 0:
                         duration_sec = 5.0
                     try:
-                        gen_asset = await self._video_generation_port.generate_video(intent.generation_prompt, duration_sec)
+                        req = VideoGenerationRequest(
+                            shot_contract_id=f"intent_{i}",
+                            target_duration_seconds=duration_sec,
+                            generation_constraints={"prompt": intent.generation_prompt}
+                        )
+                        gen_asset = await self._video_generation_port.generate_video(req)
                         accepted_asset = ScoredAsset(asset=gen_asset, score=AssetScore(final_score=1.0))
                     except Exception as e:
                         pass # Fallback to stock reuse if T2V fails

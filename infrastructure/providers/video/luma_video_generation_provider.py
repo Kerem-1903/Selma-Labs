@@ -2,6 +2,7 @@ import httpx
 import logging
 import asyncio
 from core.domain.ports.video_generation_port import VideoGenerationPort
+from core.domain.value_objects.video_generation_request import VideoGenerationRequest
 from core.domain.entities.media_asset import MediaAsset
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,10 @@ class LumaVideoGenerationProvider(VideoGenerationPort):
     def name(self) -> str:
         return "luma_dream_machine"
 
-    async def generate_video(self, prompt: str, duration_seconds: float = 5.0) -> MediaAsset:
+    async def generate_video(self, request: VideoGenerationRequest) -> MediaAsset:
+        # For legacy compatibility, extract prompt from constraints if present, otherwise build a generic one.
+        prompt = request.generation_constraints.get("prompt", "A cinematic scene")
+
         logger.info(f"Triggering Text-to-Video generation using Luma for prompt: '{prompt[:50]}...'")
 
         headers = {
@@ -75,6 +79,6 @@ class LumaVideoGenerationProvider(VideoGenerationPort):
             original_url=video_url,
             width=1080,
             height=1920,
-            duration_seconds=duration_seconds,
+            duration_seconds=request.target_duration_seconds,
             fps=30.0
         )

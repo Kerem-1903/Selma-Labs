@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, AsyncMock
 
 from core.domain.entities.media_asset import MediaAsset
 from core.domain.value_objects.scene import Scene
+from core.domain.value_objects.video_generation_request import VideoGenerationRequest
 from infrastructure.providers.video.luma_video_generation_provider import LumaVideoGenerationProvider
 from core.application.services.vision_safety_gate import VisionSafetyGate
 
@@ -32,7 +33,12 @@ async def test_luma_video_generation_provider():
 
     from unittest.mock import patch
     with patch("httpx.AsyncClient", return_value=MockAsyncClient()):
-        asset = await provider.generate_video("A hyper-realistic cinematic shot of a black hole", 5.0)
+        req = VideoGenerationRequest(
+            shot_contract_id="test_1",
+            target_duration_seconds=5.0,
+            generation_constraints={"prompt": "A hyper-realistic cinematic shot of a black hole"}
+        )
+        asset = await provider.generate_video(req)
 
     assert asset.provider_asset_id == "fake_gen_id"
     assert asset.original_url == "https://luma-cdn.com/test.mp4"
