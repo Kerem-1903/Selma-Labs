@@ -51,6 +51,18 @@ class StoragePort(ABC):
             data.extend(chunk)
         return await self.save(key, bytes(data), content_type)
 
+    async def load(self, key: str) -> bytes:
+        """Return bytes stored under a portable storage key.
+
+        This concrete default preserves compatibility with older adapters
+        while making binary retrieval available to reference-asset services.
+        """
+        raise NotImplementedError
+
+    async def exists(self, key: str) -> bool:
+        """Return whether a portable storage key can be resolved."""
+        raise NotImplementedError
+
     @abstractmethod
     def upload_file(self, file_stream: typing.BinaryIO, destination_path: str, content_type: str) -> str:
         """Uploads a file to cloud storage and returns its access URL (or URI)."""

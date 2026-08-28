@@ -93,6 +93,17 @@ class LocalFsStorage(StoragePort):
             size_bytes=size_bytes,
         )
 
+    async def load(self, key: str) -> bytes:
+        source = self._destination_for(key)
+        try:
+            return await asyncio.to_thread(source.read_bytes)
+        except OSError as exc:
+            raise StorageError(f"Failed to read asset for key '{key}': {exc}") from exc
+
+    async def exists(self, key: str) -> bool:
+        source = self._destination_for(key)
+        return await asyncio.to_thread(source.is_file)
+
     def _destination_for(self, key: str) -> Path:
         relative_path = self._portable_relative_path(key)
         destination = (self._root_dir / relative_path).resolve()

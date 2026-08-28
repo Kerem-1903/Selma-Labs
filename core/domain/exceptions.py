@@ -216,6 +216,14 @@ class PipelineRunNotFoundError(SelmaError):
     """The requested durable pipeline run does not exist in the repository."""
 
 
+class CharacterBibleStateError(SelmaError):
+    """Persisted character-bible metadata is corrupt or incompatible."""
+
+
+class CharacterBibleNotFoundError(SelmaError):
+    """The requested character bible does not exist in the repository."""
+
+
 class SubtitleGenerationError(SelmaError):
     """Raised when a SubtitleTrack cannot be generated from a ScenePlan --
     specifically: the plan has no scenes at all, or one or more scenes

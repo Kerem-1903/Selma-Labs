@@ -24,6 +24,14 @@ class GCSStorageAdapter(StoragePort):
         size = await asyncio.to_thread(_save_sync)
         return StorageReference(key=key, path=f"gs://{self.bucket.name}/{key}", size_bytes=size)
 
+    async def load(self, key: str) -> bytes:
+        blob = self.bucket.blob(key)
+        return await asyncio.to_thread(blob.download_as_bytes)
+
+    async def exists(self, key: str) -> bool:
+        blob = self.bucket.blob(key)
+        return await asyncio.to_thread(blob.exists)
+
     def upload_file(self, file_stream: typing.BinaryIO, destination_path: str, content_type: str = "video/mp4") -> str:
         blob = self.bucket.blob(destination_path)
         # For large files, chunk_size tuning is memory friendly
