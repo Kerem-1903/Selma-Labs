@@ -2,7 +2,11 @@ import asyncio
 import os
 import sys
 import time
+from pathlib import Path
 from PIL import Image
+
+# Ensure the project root is in sys.path
+sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
 from core.domain.value_objects.keyframe_generation_request import KeyframeGenerationRequest
 from infrastructure.providers.keyframe.comfyui_keyframe_provider import ComfyUIKeyframeProvider
