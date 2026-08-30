@@ -213,7 +213,7 @@ async def test_provider_uploads_selected_reference_and_injects_typed_contract():
     workflow = session.queued_workflow
     assert workflow is not None
     assert workflow["10"]["inputs"]["image"] == "selma/reference.png"
-    assert workflow["3"]["inputs"]["latent_image"] == ["11", 0]
+    assert workflow["3"]["inputs"]["latent_image"] == ["13", 0]
     assert workflow["3"]["inputs"]["seed"] == 1903
     assert workflow["4"]["inputs"]["ckpt_name"] == "sd_xl_base_1.0.safetensors"
     assert workflow["12"]["inputs"]["width"] == 1280
@@ -243,6 +243,7 @@ async def test_provider_uses_empty_latent_when_shot_has_no_character_reference()
     assert session.queued_workflow["3"]["inputs"]["latent_image"] == ["5", 0]
     assert session.queued_workflow["5"]["inputs"]["width"] == 1280
     assert session.queued_workflow["5"]["inputs"]["height"] == 720
+    assert "13" in session.queued_workflow
 
 
 def test_registry_requires_shared_storage_for_comfyui():
@@ -264,6 +265,9 @@ async def test_provider_rejects_workflow_with_disconnected_reference_node(tmp_pa
     workflow_path = tmp_path / "workflow.json"
     workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
     workflow["3"]["inputs"]["latent_image"] = ["5", 0]
+    # Disconnect the reference node for the test
+    if "20" in workflow:
+        workflow["20"]["inputs"]["image"] = ["5", 0] # Break the connection to node 12 (ImageScale)
     workflow_path.write_text(json.dumps(workflow), encoding="utf-8")
     provider = ComfyUIKeyframeProvider(
         api_url="http://127.0.0.1:8188",

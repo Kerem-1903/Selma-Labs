@@ -6,49 +6,132 @@
       "cfg": 7.0,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 0.7,
-      "model": ["4", 0],
-      "positive": ["6", 0],
-      "negative": ["7", 0],
-      "latent_image": ["11", 0]
+      "denoise": 1.0,
+      "model": [
+        "20",
+        0
+      ],
+      "positive": [
+        "22",
+        0
+      ],
+      "negative": [
+        "22",
+        1
+      ],
+      "latent_image": [
+        "5",
+        0
+      ]
     },
     "class_type": "KSampler",
-    "_meta": {"title": "SELMA Sampler", "selma_role": "sampler"}
+    "_meta": {
+      "title": "SELMA Sampler",
+      "selma_role": "sampler"
+    }
   },
   "4": {
-    "inputs": {"ckpt_name": "sd_xl_base_1.0.safetensors"},
+    "inputs": {
+      "ckpt_name": "sd_xl_base_1.0.safetensors"
+    },
     "class_type": "CheckpointLoaderSimple",
-    "_meta": {"title": "Load Checkpoint", "selma_role": "checkpoint"}
+    "_meta": {
+      "title": "Load Checkpoint",
+      "selma_role": "checkpoint"
+    }
   },
   "5": {
-    "inputs": {"width": 1024, "height": 1024, "batch_size": 1},
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
     "class_type": "EmptyLatentImage",
-    "_meta": {"title": "SELMA Empty Latent", "selma_role": "empty_latent"}
+    "_meta": {
+      "title": "SELMA Empty Latent",
+      "selma_role": "empty_latent"
+    }
+  },
+  "13": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "SELMA Ref Latent (Dummy)",
+      "selma_role": "reference_latent"
+    }
   },
   "6": {
-    "inputs": {"text": "", "clip": ["4", 1]},
+    "inputs": {
+      "text": "",
+      "clip": [
+        "4",
+        1
+      ]
+    },
     "class_type": "CLIPTextEncode",
-    "_meta": {"title": "SELMA Positive Prompt", "selma_role": "positive_prompt"}
+    "_meta": {
+      "title": "SELMA Positive Prompt",
+      "selma_role": "positive_prompt"
+    }
   },
   "7": {
-    "inputs": {"text": "text, watermark", "clip": ["4", 1]},
+    "inputs": {
+      "text": "text, watermark",
+      "clip": [
+        "4",
+        1
+      ]
+    },
     "class_type": "CLIPTextEncode",
-    "_meta": {"title": "SELMA Negative Prompt", "selma_role": "negative_prompt"}
+    "_meta": {
+      "title": "SELMA Negative Prompt",
+      "selma_role": "negative_prompt"
+    }
   },
   "8": {
-    "inputs": {"samples": ["3", 0], "vae": ["4", 2]},
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    },
     "class_type": "VAEDecode",
-    "_meta": {"title": "VAE Decode"}
+    "_meta": {
+      "title": "VAE Decode"
+    }
   },
   "9": {
-    "inputs": {"filename_prefix": "SELMA-Keyframe", "images": ["8", 0]},
+    "inputs": {
+      "filename_prefix": "SELMA-Keyframe",
+      "images": [
+        "8",
+        0
+      ]
+    },
     "class_type": "SaveImage",
-    "_meta": {"title": "SELMA Output", "selma_role": "output"}
+    "_meta": {
+      "title": "SELMA Output",
+      "selma_role": "output"
+    }
   },
   "10": {
-    "inputs": {"image": "selma-reference.png", "upload": "image"},
+    "inputs": {
+      "image": "selma-reference.png",
+      "upload": "image"
+    },
     "class_type": "LoadImage",
-    "_meta": {"title": "SELMA Character Reference", "selma_role": "reference_image"}
+    "_meta": {
+      "title": "SELMA Character Reference",
+      "selma_role": "reference_image"
+    }
   },
   "12": {
     "inputs": {
@@ -56,14 +139,97 @@
       "width": 1024,
       "height": 1024,
       "crop": "center",
-      "image": ["10", 0]
+      "image": [
+        "10",
+        0
+      ]
     },
     "class_type": "ImageScale",
-    "_meta": {"title": "SELMA Reference Size", "selma_role": "target_size"}
+    "_meta": {
+      "title": "SELMA Reference Size",
+      "selma_role": "target_size"
+    }
   },
-  "11": {
-    "inputs": {"pixels": ["12", 0], "vae": ["4", 2]},
-    "class_type": "VAEEncode",
-    "_meta": {"title": "SELMA Reference Latent", "selma_role": "reference_latent"}
+  "18": {
+    "inputs": {
+      "preset": "PLUS (high strength)"
+    },
+    "class_type": "IPAdapterUnifiedLoader",
+    "_meta": {
+      "title": "IPAdapter Unified Loader"
+    }
+  },
+  "20": {
+    "inputs": {
+      "weight": 0.8,
+      "weight_type": "linear",
+      "combine_embeds": "concat",
+      "start_at": 0.0,
+      "end_at": 1.0,
+      "embeds_scaling": "V only",
+      "model": [
+        "4",
+        0
+      ],
+      "ipadapter": [
+        "18",
+        0
+      ],
+      "image": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "IPAdapterAdvanced",
+    "_meta": {
+      "title": "IPAdapter Advanced"
+    }
+  },
+  "21": {
+    "inputs": {
+      "control_net_name": "thibaud_xl_openpose.safetensors"
+    },
+    "class_type": "ControlNetLoader",
+    "_meta": {
+      "title": "Load ControlNet Model"
+    }
+  },
+  "22": {
+    "inputs": {
+      "strength": 1.0,
+      "start_percent": 0.0,
+      "end_percent": 1.0,
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "control_net": [
+        "21",
+        0
+      ],
+      "image": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {
+      "title": "Apply ControlNet"
+    }
+  },
+  "23": {
+    "inputs": {
+      "image": "selma-pose.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "SELMA Pose Guide",
+      "selma_role": "pose_image"
+    }
   }
 }
