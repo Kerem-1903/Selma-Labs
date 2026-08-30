@@ -1,0 +1,1 @@
+"""Keyframe-generation provider adapters."""
