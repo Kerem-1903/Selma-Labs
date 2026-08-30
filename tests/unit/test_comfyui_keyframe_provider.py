@@ -264,6 +264,7 @@ async def test_provider_rejects_workflow_with_disconnected_reference_node(tmp_pa
     workflow_path = tmp_path / "workflow.json"
     workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
     workflow["3"]["inputs"]["latent_image"] = ["5", 0]
+    workflow["3"]["inputs"]["model"] = ["4", 0] # Disconnect IPAdapter
     workflow_path.write_text(json.dumps(workflow), encoding="utf-8")
     provider = ComfyUIKeyframeProvider(
         api_url="http://127.0.0.1:8188",
