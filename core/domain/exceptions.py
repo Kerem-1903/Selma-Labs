@@ -224,6 +224,10 @@ class CharacterBibleNotFoundError(SelmaError):
     """The requested character bible does not exist in the repository."""
 
 
+class AutonomousShotPlanningError(SelmaError):
+    """Typed shot contracts could not be built from story and continuity data."""
+
+
 class SubtitleGenerationError(SelmaError):
     """Raised when a SubtitleTrack cannot be generated from a ScenePlan --
     specifically: the plan has no scenes at all, or one or more scenes
