@@ -77,7 +77,8 @@ async def test_generate_keyframe_success(provider, valid_request):
         assert keyframe.height == 1024
 
 @pytest.mark.asyncio
-async def test_generate_keyframe_missing_prompt(provider, valid_request):
+async def test_generate_keyframe_missing_prompt_fallbacks_to_generic(provider, valid_request):
+    # A5 requests might not have a prompt, should fallback to "A cinematic scene" and not raise an error
     invalid_request = KeyframeGenerationRequest(
         shot_contract_id="shot-1",
         camera_constraints={},
@@ -86,8 +87,41 @@ async def test_generate_keyframe_missing_prompt(provider, valid_request):
         width=1024,
         height=1024
     )
-    with pytest.raises(ProviderError, match="visual_constraints must include a 'prompt' key"):
-        await provider.generate_keyframe(invalid_request)
+    with patch("aiohttp.ClientSession.post") as mock_post, \
+         patch("aiohttp.ClientSession.get") as mock_get:
+
+        mock_post_response = AsyncMock()
+        mock_post_response.status = 200
+        mock_post_response.json.return_value = {"prompt_id": "test-prompt-id"}
+        mock_post.return_value.__aenter__.return_value = mock_post_response
+
+        mock_get_history_response = AsyncMock()
+        mock_get_history_response.status = 200
+        mock_get_history_response.json.return_value = {
+            "test-prompt-id": {
+                "outputs": {
+                    "2": {
+                        "images": [
+                            {"filename": "test.png", "subfolder": "", "type": "output"}
+                        ]
+                    }
+                }
+            }
+        }
+
+        mock_get_view_response = AsyncMock()
+        mock_get_view_response.status = 200
+        mock_get_view_response.read.return_value = b"fake-image-bytes"
+
+        mock_get.return_value.__aenter__.side_effect = [mock_get_history_response, mock_get_view_response]
+
+        keyframe = await provider.generate_keyframe(invalid_request)
+
+        assert keyframe.image_bytes == b"fake-image-bytes"
+
+        # Verify the fallback prompt was injected
+        call_args = mock_post.call_args[1]["json"]["prompt"]
+        assert call_args["1"]["inputs"]["text"] == "A cinematic scene"
 
 @pytest.mark.asyncio
 async def test_generate_keyframe_queue_fails(provider, valid_request):

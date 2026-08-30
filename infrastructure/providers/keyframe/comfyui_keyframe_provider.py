@@ -73,7 +73,8 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
 
         prompt_text = request.visual_constraints.get("prompt")
         if not prompt_text:
-            raise ProviderError("visual_constraints must include a 'prompt' key")
+            # P1: A5 requests may not have a "prompt", fallback to generic scene
+            prompt_text = "A cinematic scene"
 
         # Inject prompt into the first CLIPTextEncode node
         found_node = False
@@ -86,6 +87,16 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
 
         if not found_node:
             logger.warning("Could not find a CLIPTextEncode node in the ComfyUI workflow to inject the prompt.")
+
+        # P1: Inject character references into LoadImage nodes if any
+        if request.reference_storage_keys:
+            ref_idx = 0
+            for node_id, node_data in workflow.items():
+                if node_data.get("class_type") == "LoadImage" and ref_idx < len(request.reference_storage_keys):
+                    # We assume the storage keys are directly accessible or we're using a convention.
+                    # For now, we'll just inject the key (e.g., path/to/image.png)
+                    node_data["inputs"]["image"] = request.reference_storage_keys[ref_idx]
+                    ref_idx += 1
 
         try:
             prompt_id = await self._queue_prompt(workflow)
