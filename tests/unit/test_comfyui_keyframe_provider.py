@@ -78,11 +78,11 @@ async def test_generate_keyframe_success(provider, valid_request):
 
 @pytest.mark.asyncio
 async def test_generate_keyframe_missing_prompt_fallbacks_to_generic(provider, valid_request):
-    # A5 requests might not have a prompt, should fallback to "A cinematic scene" and not raise an error
+    # A5 requests might not have a prompt, should fallback to constructed prompt from constraints
     invalid_request = KeyframeGenerationRequest(
         shot_contract_id="shot-1",
-        camera_constraints={},
-        action_constraints={},
+        camera_constraints={"angle": "close up"},
+        action_constraints={"primary_action": "running fast"},
         visual_constraints={},
         width=1024,
         height=1024
@@ -121,7 +121,7 @@ async def test_generate_keyframe_missing_prompt_fallbacks_to_generic(provider, v
 
         # Verify the fallback prompt was injected
         call_args = mock_post.call_args[1]["json"]["prompt"]
-        assert call_args["1"]["inputs"]["text"] == "A cinematic scene"
+        assert call_args["1"]["inputs"]["text"] == "running fast, close up"
 
 @pytest.mark.asyncio
 async def test_generate_keyframe_queue_fails(provider, valid_request):

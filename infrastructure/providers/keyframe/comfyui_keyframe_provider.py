@@ -4,6 +4,7 @@ import logging
 import uuid
 import base64
 import os
+from pathlib import Path
 import aiohttp
 
 from core.domain.exceptions import ProviderError
@@ -62,6 +63,26 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                     raise ProviderError("Failed to download image from ComfyUI")
                 return await response.read()
 
+    def _resolve_storage_key_to_path(self, storage_key: str) -> str:
+        """Resolve a storage key to an absolute path for ComfyUI.
+        ComfyUI runs on the local machine and needs absolute paths for LoadImage nodes
+        when outside its input directory.
+        """
+        # We rely on LocalFsStorage's deterministic path generation to find the physical file
+        # This is a hacky integration point, but since ComfyUI runs locally alongside SELMA,
+        # we can determine where the file is.
+        from infrastructure.storage.local_fs_storage import LocalFsStorage
+        from config.settings import get_settings
+        storage_root = get_settings().storage_root_dir
+        fs_storage = LocalFsStorage(storage_root)
+        # Using a private method is necessary here since StoragePort doesn't expose physical paths
+        # This is because ComfyUI (a separate process) needs direct file access.
+        try:
+            return str(fs_storage._destination_for(storage_key))
+        except Exception as e:
+            logger.warning(f"Could not resolve absolute path for {storage_key}: {e}")
+            return storage_key
+
     async def generate_keyframe(self, request: KeyframeGenerationRequest) -> GeneratedKeyframe:
         try:
             with open(self.workflow_path, "r") as f:
@@ -73,8 +94,17 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
 
         prompt_text = request.visual_constraints.get("prompt")
         if not prompt_text:
-            # P1: A5 requests may not have a "prompt", fallback to generic scene
-            prompt_text = "A cinematic scene"
+            # Reconstruct a basic prompt from constraints if generic one is not wanted
+            # P1: A generic prompt ignores ShotContract. Try to construct one.
+            action = request.action_constraints.get("primary_action", "")
+            angle = request.camera_constraints.get("angle", "")
+            lens = request.camera_constraints.get("lens", "")
+            lighting = request.visual_constraints.get("lighting", "")
+            env_style = request.visual_constraints.get("environment_style", "")
+            elements = [action, angle, lens, lighting, env_style]
+            prompt_text = ", ".join([e for e in elements if e]).strip()
+            if not prompt_text:
+                 prompt_text = "A cinematic scene"
 
         # Inject prompt into the first CLIPTextEncode node
         found_node = False
@@ -88,14 +118,15 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         if not found_node:
             logger.warning("Could not find a CLIPTextEncode node in the ComfyUI workflow to inject the prompt.")
 
-        # P1: Inject character references into LoadImage nodes if any
+        # P1: Inject character references into LoadImage nodes using absolute paths
         if request.reference_storage_keys:
             ref_idx = 0
             for node_id, node_data in workflow.items():
                 if node_data.get("class_type") == "LoadImage" and ref_idx < len(request.reference_storage_keys):
-                    # We assume the storage keys are directly accessible or we're using a convention.
-                    # For now, we'll just inject the key (e.g., path/to/image.png)
-                    node_data["inputs"]["image"] = request.reference_storage_keys[ref_idx]
+                    storage_key = request.reference_storage_keys[ref_idx]
+                    abs_path = self._resolve_storage_key_to_path(storage_key)
+                    node_data["inputs"]["image"] = abs_path
+                    logger.info(f"Injected reference {abs_path} into LoadImage node {node_id}")
                     ref_idx += 1
 
         try:
