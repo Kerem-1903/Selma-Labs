@@ -1,158 +1,276 @@
-import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from __future__ import annotations
 
-from core.domain.exceptions import ProviderError
-from core.domain.value_objects.keyframe_generation_request import KeyframeGenerationRequest
-from infrastructure.providers.keyframe.comfyui_keyframe_provider import ComfyUIKeyframeProvider
+import base64
 import json
+from pathlib import Path
+from typing import Any
 
-@pytest.fixture
-def dummy_workflow(tmp_path):
-    workflow_path = tmp_path / "workflow.json"
-    workflow_data = {
-        "1": {
-            "class_type": "CLIPTextEncode",
-            "inputs": {"text": ""}
-        }
-    }
-    with open(workflow_path, "w") as f:
-        json.dump(workflow_data, f)
-    return str(workflow_path)
+import pytest
 
-@pytest.fixture
-def provider(dummy_workflow):
-    return ComfyUIKeyframeProvider(api_url="http://localhost:8188", workflow_path=dummy_workflow)
+from config.provider_registry import get_keyframe_generation_provider
+from config.settings import Settings
+from core.domain.exceptions import ProviderError, StorageError
+from core.domain.ports.storage_port import StoragePort
+from core.domain.value_objects.keyframe_generation_request import KeyframeGenerationRequest
+from core.domain.value_objects.storage_reference import StorageReference
+from infrastructure.providers.keyframe.comfyui_keyframe_provider import (
+    ComfyUIKeyframeProvider,
+)
+from infrastructure.providers.keyframe.fake_keyframe_generation_provider import (
+    FakeKeyframeGenerationProvider,
+)
 
-@pytest.fixture
-def valid_request():
+
+PNG_BYTES = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+)
+WORKFLOW_PATH = Path(__file__).parents[2] / "assets" / "comfyui_keyframe_workflow.json"
+
+
+class MemoryStorage(StoragePort):
+    def __init__(self, assets: dict[str, bytes] | None = None) -> None:
+        self.assets = assets or {}
+
+    async def save(self, key: str, data: bytes, content_type: str) -> StorageReference:
+        del content_type
+        self.assets[key] = data
+        return StorageReference(key=key, path=f"memory://{key}", size_bytes=len(data))
+
+    async def load(self, key: str) -> bytes:
+        try:
+            return self.assets[key]
+        except KeyError as error:
+            raise StorageError(f"Missing memory asset: {key}") from error
+
+    async def exists(self, key: str) -> bool:
+        return key in self.assets
+
+    def upload_file(self, file_stream, destination_path: str, content_type: str) -> str:
+        del file_stream, content_type
+        return f"memory://{destination_path}"
+
+    def download_file(self, source_path: str, local_destination: str) -> bool:
+        del source_path, local_destination
+        return False
+
+    def delete_file(self, file_path: str) -> bool:
+        return self.assets.pop(file_path, None) is not None
+
+
+class FakeResponse:
+    def __init__(
+        self,
+        *,
+        status: int = 200,
+        payload: dict[str, Any] | None = None,
+        body: bytes = b"",
+        content_type: str = "application/json",
+    ) -> None:
+        self.status = status
+        self._payload = payload or {}
+        self._body = body
+        self.headers = {"Content-Type": content_type}
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        del exc_type, exc, traceback
+
+    async def json(self) -> dict[str, Any]:
+        return self._payload
+
+    async def text(self) -> str:
+        return self._body.decode("utf-8", errors="replace")
+
+    async def read(self) -> bytes:
+        return self._body
+
+
+class FakeSession:
+    def __init__(self) -> None:
+        self.uploaded_forms: list[Any] = []
+        self.queued_workflow: dict[str, Any] | None = None
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        del exc_type, exc, traceback
+
+    def post(self, url: str, *, data=None, json=None):
+        if url.endswith("/upload/image"):
+            self.uploaded_forms.append(data)
+            return FakeResponse(
+                status=200,
+                payload={"name": "reference.png", "subfolder": "selma", "type": "input"},
+            )
+        if url.endswith("/prompt"):
+            self.queued_workflow = json["prompt"]
+            return FakeResponse(status=200, payload={"prompt_id": "prompt-1"})
+        raise AssertionError(f"Unexpected POST URL: {url}")
+
+    def get(self, url: str, *, params=None):
+        if "/history/" in url:
+            return FakeResponse(
+                payload={
+                    "prompt-1": {
+                        "status": {"status_str": "success"},
+                        "outputs": {
+                            "9": {
+                                "images": [
+                                    {"filename": "keyframe.png", "subfolder": "", "type": "output"}
+                                ]
+                            }
+                        },
+                    }
+                }
+            )
+        if url.endswith("/view"):
+            assert params == {
+                "filename": "keyframe.png",
+                "subfolder": "",
+                "type": "output",
+            }
+            return FakeResponse(body=PNG_BYTES, content_type="image/png")
+        raise AssertionError(f"Unexpected GET URL: {url}")
+
+
+def _request(*, with_reference: bool = True) -> KeyframeGenerationRequest:
+    references = (
+        [
+            {
+                "view": "FACE_CLOSEUP",
+                "asset_id": "asset-face",
+                "storage_key": "characters/akira/face.png",
+            },
+            {
+                "view": "FRONT",
+                "asset_id": "asset-front",
+                "storage_key": "characters/akira/front.png",
+            },
+        ]
+        if with_reference
+        else []
+    )
     return KeyframeGenerationRequest(
         shot_contract_id="shot-1",
-        camera_constraints={},
-        action_constraints={},
-        visual_constraints={"prompt": "A beautiful cinematic shot"},
-        width=1024,
-        height=1024
+        camera_constraints={"angle": "close-up", "lens": "50mm", "movement": "static"},
+        action_constraints={"primary_action": "draw katana", "secondary_actions": []},
+        visual_constraints={
+            "lighting": "low-key",
+            "environment_style": "neon street",
+            "weather": "rain",
+        },
+        character_conditioning=(
+            {
+                "character_id": "akira",
+                "identity_constraints": {"hair": "black", "eye_color": "brown"},
+                "style_profile": {"base_style": "anime"},
+                "continuity_state": {
+                    "active_outfit_id": "battle-jacket",
+                    "injuries": ["shoulder wound"],
+                    "held_objects": ["katana"],
+                    "emotion": "determined",
+                    "location": "neon street",
+                },
+                "references": references,
+            },
+        ),
+        reference_asset_ids=("asset-face", "asset-front") if with_reference else (),
+        reference_storage_keys=(
+            "characters/akira/face.png",
+            "characters/akira/front.png",
+        )
+        if with_reference
+        else (),
+        negative_prompts=("identity drift", "extra fingers"),
+        width=1280,
+        height=720,
+        seed=1903,
     )
 
-def test_init(provider):
-    assert provider.name == "comfyui_keyframe"
-    assert provider.api_url == "http://localhost:8188"
 
 @pytest.mark.asyncio
-async def test_generate_keyframe_success(provider, valid_request):
-    with patch("aiohttp.ClientSession.post") as mock_post, \
-         patch("aiohttp.ClientSession.get") as mock_get:
-
-        mock_post_response = AsyncMock()
-        mock_post_response.status = 200
-        mock_post_response.json.return_value = {"prompt_id": "test-prompt-id"}
-        mock_post.return_value.__aenter__.return_value = mock_post_response
-
-        mock_get_history_response = AsyncMock()
-        mock_get_history_response.status = 200
-        mock_get_history_response.json.return_value = {
-            "test-prompt-id": {
-                "outputs": {
-                    "2": {
-                        "images": [
-                            {"filename": "test.png", "subfolder": "", "type": "output"}
-                        ]
-                    }
-                }
-            }
+async def test_provider_uploads_selected_reference_and_injects_typed_contract():
+    storage = MemoryStorage(
+        {
+            "characters/akira/face.png": PNG_BYTES,
+            "characters/akira/front.png": PNG_BYTES,
         }
-
-        mock_get_view_response = AsyncMock()
-        mock_get_view_response.status = 200
-        mock_get_view_response.read.return_value = b"fake-image-bytes"
-
-        mock_get.return_value.__aenter__.side_effect = [mock_get_history_response, mock_get_view_response]
-
-        keyframe = await provider.generate_keyframe(valid_request)
-
-        assert keyframe.image_bytes == b"fake-image-bytes"
-        assert keyframe.content_type == "image/png"
-        assert keyframe.provider_asset_id == "test.png"
-        assert keyframe.width == 1024
-        assert keyframe.height == 1024
-
-@pytest.mark.asyncio
-async def test_generate_keyframe_missing_prompt_fallbacks_to_generic(provider, valid_request):
-    # A5 requests might not have a prompt, should fallback to constructed prompt from constraints
-    invalid_request = KeyframeGenerationRequest(
-        shot_contract_id="shot-1",
-        camera_constraints={"angle": "close up"},
-        action_constraints={"primary_action": "running fast"},
-        visual_constraints={},
-        width=1024,
-        height=1024
     )
-    with patch("aiohttp.ClientSession.post") as mock_post, \
-         patch("aiohttp.ClientSession.get") as mock_get:
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=storage,
+        session_factory=lambda **kwargs: session,
+    )
 
-        mock_post_response = AsyncMock()
-        mock_post_response.status = 200
-        mock_post_response.json.return_value = {"prompt_id": "test-prompt-id"}
-        mock_post.return_value.__aenter__.return_value = mock_post_response
+    generated = await provider.generate_keyframe(_request())
 
-        mock_get_history_response = AsyncMock()
-        mock_get_history_response.status = 200
-        mock_get_history_response.json.return_value = {
-            "test-prompt-id": {
-                "outputs": {
-                    "2": {
-                        "images": [
-                            {"filename": "test.png", "subfolder": "", "type": "output"}
-                        ]
-                    }
-                }
-            }
-        }
+    assert len(session.uploaded_forms) == 1
+    workflow = session.queued_workflow
+    assert workflow is not None
+    assert workflow["10"]["inputs"]["image"] == "selma/reference.png"
+    assert workflow["3"]["inputs"]["latent_image"] == ["11", 0]
+    assert workflow["3"]["inputs"]["seed"] == 1903
+    assert workflow["4"]["inputs"]["ckpt_name"] == "sd_xl_base_1.0.safetensors"
+    assert workflow["12"]["inputs"]["width"] == 1280
+    assert workflow["12"]["inputs"]["height"] == 720
+    assert "draw katana" in workflow["6"]["inputs"]["text"]
+    assert "battle-jacket" in workflow["6"]["inputs"]["text"]
+    assert "identity drift" in workflow["7"]["inputs"]["text"]
+    assert generated.image_bytes == PNG_BYTES
+    assert generated.width == 1
+    assert generated.height == 1
+    assert generated.metadata["reference_asset_ids"] == ["asset-face"]
 
-        mock_get_view_response = AsyncMock()
-        mock_get_view_response.status = 200
-        mock_get_view_response.read.return_value = b"fake-image-bytes"
-
-        mock_get.return_value.__aenter__.side_effect = [mock_get_history_response, mock_get_view_response]
-
-        keyframe = await provider.generate_keyframe(invalid_request)
-
-        assert keyframe.image_bytes == b"fake-image-bytes"
-
-        # Verify the fallback prompt was injected
-        call_args = mock_post.call_args[1]["json"]["prompt"]
-        assert call_args["1"]["inputs"]["text"] == "running fast, close up"
 
 @pytest.mark.asyncio
-async def test_generate_keyframe_queue_fails(provider, valid_request):
-    with patch("aiohttp.ClientSession.post") as mock_post:
-        mock_post_response = AsyncMock()
-        mock_post_response.status = 500
-        mock_post_response.text.return_value = "Internal Server Error"
-        mock_post.return_value.__aenter__.return_value = mock_post_response
+async def test_provider_uses_empty_latent_when_shot_has_no_character_reference():
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=MemoryStorage(),
+        session_factory=lambda **kwargs: session,
+    )
 
-        with pytest.raises(ProviderError, match="ComfyUI queue failed"):
-            await provider.generate_keyframe(valid_request)
+    await provider.generate_keyframe(_request(with_reference=False))
+
+    assert session.uploaded_forms == []
+    assert session.queued_workflow["3"]["inputs"]["latent_image"] == ["5", 0]
+    assert session.queued_workflow["5"]["inputs"]["width"] == 1280
+    assert session.queued_workflow["5"]["inputs"]["height"] == 720
+
+
+def test_registry_requires_shared_storage_for_comfyui():
+    settings = Settings(keyframe_generation_provider="comfyui")
+    with pytest.raises(ValueError, match="StoragePort"):
+        get_keyframe_generation_provider(settings)
+
+    provider = get_keyframe_generation_provider(settings, storage=MemoryStorage())
+    assert isinstance(provider, ComfyUIKeyframeProvider)
+
+
+def test_registry_keeps_offline_fake_as_default():
+    provider = get_keyframe_generation_provider(Settings())
+    assert isinstance(provider, FakeKeyframeGenerationProvider)
+
 
 @pytest.mark.asyncio
-async def test_generate_keyframe_no_image_output(provider, valid_request):
-    with patch("aiohttp.ClientSession.post") as mock_post, \
-         patch("aiohttp.ClientSession.get") as mock_get:
+async def test_provider_rejects_workflow_with_disconnected_reference_node(tmp_path):
+    workflow_path = tmp_path / "workflow.json"
+    workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    workflow["3"]["inputs"]["latent_image"] = ["5", 0]
+    workflow_path.write_text(json.dumps(workflow), encoding="utf-8")
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=workflow_path,
+        storage=MemoryStorage({"characters/akira/face.png": PNG_BYTES}),
+        session_factory=lambda **kwargs: FakeSession(),
+    )
 
-        mock_post_response = AsyncMock()
-        mock_post_response.status = 200
-        mock_post_response.json.return_value = {"prompt_id": "test-prompt-id"}
-        mock_post.return_value.__aenter__.return_value = mock_post_response
-
-        mock_get_history_response = AsyncMock()
-        mock_get_history_response.status = 200
-        mock_get_history_response.json.return_value = {
-            "test-prompt-id": {
-                "outputs": {}
-            }
-        }
-
-        mock_get.return_value.__aenter__.return_value = mock_get_history_response
-
-        with pytest.raises(ProviderError, match="No image output found"):
-            await provider.generate_keyframe(valid_request)
+    with pytest.raises(ProviderError, match="connected SELMA reference"):
+        await provider.generate_keyframe(_request())

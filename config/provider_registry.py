@@ -43,6 +43,8 @@ from core.domain.ports.trend_source_port import TrendSourcePort
 from core.domain.ports.video_source_port import VideoSourcePort
 from core.domain.ports.video_generation_port import VideoGenerationPort
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
+from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
+from core.domain.ports.storage_port import StoragePort
 from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
 from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
 from infrastructure.providers.audio_mix.ffmpeg_audio_mix_provider import (
@@ -418,21 +420,39 @@ def get_vision_asset_scoring_service(settings: Settings) -> VisionAssetScoringSe
     )
 
 
-from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
+def get_keyframe_generation_provider(
+    settings: Settings,
+    *,
+    storage: StoragePort | None = None,
+) -> KeyframeGenerationPort:
+    if settings.keyframe_generation_provider == "fake":
+        from infrastructure.providers.keyframe.fake_keyframe_generation_provider import (
+            FakeKeyframeGenerationProvider,
+        )
 
-def get_keyframe_generation_provider(settings: Settings) -> KeyframeGenerationPort:
+        return FakeKeyframeGenerationProvider()
     if settings.keyframe_generation_provider == "comfyui":
-        from infrastructure.providers.keyframe.comfyui_keyframe_provider import ComfyUIKeyframeProvider
+        if storage is None:
+            raise ValueError(
+                "ComfyUI keyframe generation requires the application's StoragePort."
+            )
+        from infrastructure.providers.keyframe.comfyui_keyframe_provider import (
+            ComfyUIKeyframeProvider,
+        )
+
         return ComfyUIKeyframeProvider(
             api_url=settings.comfyui_api_url,
-            workflow_path=settings.comfyui_keyframe_workflow_path
+            workflow_path=settings.comfyui_keyframe_workflow_path,
+            storage=storage,
+            checkpoint_name=settings.comfyui_keyframe_checkpoint,
+            timeout_seconds=settings.comfyui_keyframe_timeout_seconds,
+            poll_interval_seconds=settings.comfyui_keyframe_poll_interval_seconds,
         )
-    if settings.keyframe_generation_provider == "fake":
-        from infrastructure.providers.keyframe.fake_keyframe_generation_provider import FakeKeyframeGenerationProvider
-        return FakeKeyframeGenerationProvider()
     raise ValueError(
-        f"Unknown keyframe_generation_provider configured: {settings.keyframe_generation_provider!r}."
+        "Unknown keyframe_generation_provider configured: "
+        f"{settings.keyframe_generation_provider!r}."
     )
+
 
 def get_video_generation_port(settings: Settings):
     if settings.video_generation_provider == "luma":

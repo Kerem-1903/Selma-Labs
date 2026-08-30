@@ -97,12 +97,37 @@ class InvalidImageProvider(FakeKeyframeGenerationProvider):
         return GeneratedKeyframe(b"not-png", "image/png", 100, 100)
 
 
+class SingleReferenceProvider(FakeKeyframeGenerationProvider):
+    async def generate_keyframe(self, request):
+        generated = await super().generate_keyframe(request)
+        return GeneratedKeyframe(
+            image_bytes=generated.image_bytes,
+            content_type=generated.content_type,
+            width=generated.width,
+            height=generated.height,
+            provider_asset_id=generated.provider_asset_id,
+            metadata={"reference_asset_ids": [request.reference_asset_ids[0]]},
+        )
+
+
 @pytest.mark.asyncio
 async def test_service_rejects_provider_bytes_that_do_not_match_content_type(tmp_path):
     service, _, _ = await _service(tmp_path, InvalidImageProvider())
 
     with pytest.raises(KeyframeGenerationError, match="do not match"):
         await service.generate(shot_contract=_contract())
+
+
+@pytest.mark.asyncio
+async def test_storyboard_records_only_references_used_by_provider(tmp_path):
+    provider = SingleReferenceProvider()
+    service, _, _ = await _service(tmp_path, provider)
+
+    storyboard = await service.generate(shot_contract=_contract())
+
+    assert storyboard.frames[0].reference_asset_ids == (
+        provider.requests[0].reference_asset_ids[0],
+    )
 
 
 @pytest.mark.asyncio

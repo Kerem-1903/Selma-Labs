@@ -97,6 +97,19 @@ class KeyframeGenerationService:
         if stored.key != storage_key:
             raise StorageError("Storage adapter returned a different key for the keyframe.")
 
+        used_reference_asset_ids = generated.metadata.get("reference_asset_ids")
+        if used_reference_asset_ids is None:
+            frame_reference_asset_ids = request.reference_asset_ids
+        elif isinstance(used_reference_asset_ids, list) and all(
+            isinstance(asset_id, str) and asset_id in request.reference_asset_ids
+            for asset_id in used_reference_asset_ids
+        ):
+            frame_reference_asset_ids = tuple(dict.fromkeys(used_reference_asset_ids))
+        else:
+            raise KeyframeGenerationError(
+                "Generator reported reference asset IDs outside the request."
+            )
+
         frame = StoryboardFrame(
             id=str(uuid.uuid4()),
             shot_contract_id=shot_contract.id,
@@ -108,7 +121,7 @@ class KeyframeGenerationService:
             provider_asset_id=generated.provider_asset_id,
             width=generated.width,
             height=generated.height,
-            reference_asset_ids=request.reference_asset_ids,
+            reference_asset_ids=frame_reference_asset_ids,
             created_at=datetime.now(timezone.utc),
         )
         result = (storyboard or ShotStoryboard.create(shot_contract.id)).with_frame(frame)

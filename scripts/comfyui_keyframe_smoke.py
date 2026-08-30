@@ -2,7 +2,6 @@ import asyncio
 import os
 import sys
 import time
-from pathlib import Path
 from PIL import Image
 
 from core.domain.value_objects.keyframe_generation_request import KeyframeGenerationRequest
@@ -24,8 +23,7 @@ def build_akira_contract(shot_id: str, camera_lens: str, camera_angle: str, acti
     )
 
 async def setup_mock_akira_reference(storage: LocalFsStorage) -> None:
-    # Create a 1x1 black image simulating an Akira reference for the smoke test
-    # so we have an actual file on disk.
+    # A technical smoke test mock. Visual consistency tests require a real image here.
     akira_key = "assets/references/akira_base.png"
     if not await storage.exists(akira_key):
         print(f"Creating mock Akira reference at {akira_key}")
@@ -40,11 +38,16 @@ async def setup_mock_akira_reference(storage: LocalFsStorage) -> None:
 
 async def run_smoke():
     settings = get_settings()
+    storage = LocalFsStorage(settings.storage_root_dir)
+
     provider = ComfyUIKeyframeProvider(
         api_url=settings.comfyui_api_url,
-        workflow_path=settings.comfyui_keyframe_workflow_path
+        workflow_path=settings.comfyui_keyframe_workflow_path,
+        storage=storage,
+        checkpoint_name=settings.comfyui_keyframe_checkpoint,
+        timeout_seconds=settings.comfyui_keyframe_timeout_seconds,
+        poll_interval_seconds=settings.comfyui_keyframe_poll_interval_seconds
     )
-    storage = LocalFsStorage(settings.storage_root_dir)
 
     print("=" * 60)
     print("A5.2 ComfyUI Keyframe Generation Smoke Test")
@@ -84,14 +87,14 @@ async def run_smoke():
             generated = await provider.generate_keyframe(request)
             duration = time.time() - start_time
 
-            output_key = f"output/smoke_{shot_id}.png"
-            await storage.save(output_key, generated.image_bytes, generated.content_type)
+            output_key = f"smoke/smoke_{shot_id}.png"
+            ref = await storage.save(output_key, generated.image_bytes, generated.content_type)
 
             print("Status: SUCCESS")
             print(f"Time: {duration:.2f} seconds")
             print(f"Resolution: {generated.width}x{generated.height}")
             print(f"File Size: {len(generated.image_bytes) / 1024:.2f} KB")
-            print(f"Saved to Virtual Storage: {output_key}")
+            print(f"Saved to Physical Path: {ref.path}")
 
         except Exception as e:
             duration = time.time() - start_time

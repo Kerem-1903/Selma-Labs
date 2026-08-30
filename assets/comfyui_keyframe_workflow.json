@@ -2,116 +2,68 @@
   "3": {
     "inputs": {
       "seed": 0,
-      "steps": 20,
-      "cfg": 8,
+      "steps": 24,
+      "cfg": 7.0,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 1,
-      "model": [
-        "4",
-        0
-      ],
-      "positive": [
-        "6",
-        0
-      ],
-      "negative": [
-        "7",
-        0
-      ],
-      "latent_image": [
-        "5",
-        0
-      ]
+      "denoise": 0.7,
+      "model": ["4", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["11", 0]
     },
     "class_type": "KSampler",
-    "_meta": {
-      "title": "KSampler"
-    }
+    "_meta": {"title": "SELMA Sampler", "selma_role": "sampler"}
   },
   "4": {
-    "inputs": {
-      "ckpt_name": "sd_xl_base_1.0.safetensors"
-    },
+    "inputs": {"ckpt_name": "sd_xl_base_1.0.safetensors"},
     "class_type": "CheckpointLoaderSimple",
-    "_meta": {
-      "title": "Load Checkpoint"
-    }
+    "_meta": {"title": "Load Checkpoint", "selma_role": "checkpoint"}
   },
   "5": {
-    "inputs": {
-      "width": 1024,
-      "height": 1024,
-      "batch_size": 1
-    },
+    "inputs": {"width": 1024, "height": 1024, "batch_size": 1},
     "class_type": "EmptyLatentImage",
-    "_meta": {
-      "title": "Empty Latent Image"
-    }
+    "_meta": {"title": "SELMA Empty Latent", "selma_role": "empty_latent"}
   },
   "6": {
-    "inputs": {
-      "text": "A cinematic scene",
-      "clip": [
-        "4",
-        1
-      ]
-    },
+    "inputs": {"text": "", "clip": ["4", 1]},
     "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
-    }
+    "_meta": {"title": "SELMA Positive Prompt", "selma_role": "positive_prompt"}
   },
   "7": {
-    "inputs": {
-      "text": "text, watermark",
-      "clip": [
-        "4",
-        1
-      ]
-    },
+    "inputs": {"text": "text, watermark", "clip": ["4", 1]},
     "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Prompt)"
-    }
+    "_meta": {"title": "SELMA Negative Prompt", "selma_role": "negative_prompt"}
   },
   "8": {
-    "inputs": {
-      "samples": [
-        "3",
-        0
-      ],
-      "vae": [
-        "4",
-        2
-      ]
-    },
+    "inputs": {"samples": ["3", 0], "vae": ["4", 2]},
     "class_type": "VAEDecode",
-    "_meta": {
-      "title": "VAE Decode"
-    }
+    "_meta": {"title": "VAE Decode"}
   },
   "9": {
-    "inputs": {
-      "filename_prefix": "ComfyUI",
-      "images": [
-        "8",
-        0
-      ]
-    },
+    "inputs": {"filename_prefix": "SELMA-Keyframe", "images": ["8", 0]},
     "class_type": "SaveImage",
-    "_meta": {
-      "title": "Save Image"
-    }
+    "_meta": {"title": "SELMA Output", "selma_role": "output"}
   },
   "10": {
-    "inputs": {
-      "image": "example.png",
-      "upload": "image"
-    },
+    "inputs": {"image": "selma-reference.png", "upload": "image"},
     "class_type": "LoadImage",
-    "_meta": {
-      "title": "Load Image"
-    }
+    "_meta": {"title": "SELMA Character Reference", "selma_role": "reference_image"}
+  },
+  "12": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": 1024,
+      "height": 1024,
+      "crop": "center",
+      "image": ["10", 0]
+    },
+    "class_type": "ImageScale",
+    "_meta": {"title": "SELMA Reference Size", "selma_role": "target_size"}
+  },
+  "11": {
+    "inputs": {"pixels": ["12", 0], "vae": ["4", 2]},
+    "class_type": "VAEEncode",
+    "_meta": {"title": "SELMA Reference Latent", "selma_role": "reference_latent"}
   }
 }
