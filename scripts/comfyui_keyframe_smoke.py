@@ -2,11 +2,12 @@ import asyncio
 import os
 import sys
 import time
+from pathlib import Path
+from PIL import Image
 
-from core.domain.entities.shot_contract import ShotContract
-from core.domain.value_objects.shot_constraints import ActionConstraints, CameraConstraints, VisualConstraints
 from core.domain.value_objects.keyframe_generation_request import KeyframeGenerationRequest
 from infrastructure.providers.keyframe.comfyui_keyframe_provider import ComfyUIKeyframeProvider
+from infrastructure.storage.local_fs_storage import LocalFsStorage
 from config.settings import get_settings
 
 def build_akira_contract(shot_id: str, camera_lens: str, camera_angle: str, action: str) -> KeyframeGenerationRequest:
@@ -15,7 +16,6 @@ def build_akira_contract(shot_id: str, camera_lens: str, camera_angle: str, acti
         camera_constraints={"lens": camera_lens, "angle": camera_angle, "movement": "static"},
         action_constraints={"primary_action": action},
         visual_constraints={"lighting": "cinematic lighting", "environment_style": "cyberpunk city"},
-        # A mock reference asset that we simulate injecting
         reference_asset_ids=("ref-akira-1",),
         reference_storage_keys=("assets/references/akira_base.png",),
         width=1024,
@@ -23,18 +23,36 @@ def build_akira_contract(shot_id: str, camera_lens: str, camera_angle: str, acti
         seed=42
     )
 
+async def setup_mock_akira_reference(storage: LocalFsStorage) -> None:
+    # Create a 1x1 black image simulating an Akira reference for the smoke test
+    # so we have an actual file on disk.
+    akira_key = "assets/references/akira_base.png"
+    if not await storage.exists(akira_key):
+        print(f"Creating mock Akira reference at {akira_key}")
+        img = Image.new('RGB', (1024, 1024), color='black')
+        tmp_path = "tmp_akira.png"
+        img.save(tmp_path)
+        with open(tmp_path, "rb") as f:
+            await storage.save(akira_key, f.read(), "image/png")
+        os.remove(tmp_path)
+    else:
+        print(f"Mock Akira reference exists at {akira_key}")
+
 async def run_smoke():
     settings = get_settings()
     provider = ComfyUIKeyframeProvider(
         api_url=settings.comfyui_api_url,
         workflow_path=settings.comfyui_keyframe_workflow_path
     )
+    storage = LocalFsStorage(settings.storage_root_dir)
 
     print("=" * 60)
     print("A5.2 ComfyUI Keyframe Generation Smoke Test")
     print(f"Target API: {settings.comfyui_api_url}")
     print(f"Workflow: {settings.comfyui_keyframe_workflow_path}")
     print("=" * 60)
+
+    await setup_mock_akira_reference(storage)
 
     shots = [
         ("shot-akira-face", "85mm", "extreme close-up", "intense stare at the camera"),
@@ -55,6 +73,7 @@ async def run_smoke():
         print("Please start ComfyUI and try again.")
         sys.exit(1)
 
+    failures = 0
     for shot_id, lens, angle, action in shots:
         print(f"\n--- Generating: {shot_id} ---")
         request = build_akira_contract(shot_id, lens, angle, action)
@@ -65,22 +84,27 @@ async def run_smoke():
             generated = await provider.generate_keyframe(request)
             duration = time.time() - start_time
 
-            output_path = f"output/smoke_{shot_id}.png"
-            os.makedirs("output", exist_ok=True)
-            with open(output_path, "wb") as f:
-                f.write(generated.image_bytes)
+            output_key = f"output/smoke_{shot_id}.png"
+            await storage.save(output_key, generated.image_bytes, generated.content_type)
 
             print("Status: SUCCESS")
             print(f"Time: {duration:.2f} seconds")
             print(f"Resolution: {generated.width}x{generated.height}")
             print(f"File Size: {len(generated.image_bytes) / 1024:.2f} KB")
-            print(f"Output: {output_path}")
+            print(f"Saved to Virtual Storage: {output_key}")
 
         except Exception as e:
             duration = time.time() - start_time
             print("Status: FAILED")
             print(f"Time: {duration:.2f} seconds")
             print(f"Error: {e}")
+            failures += 1
+
+    if failures > 0:
+        print(f"\n{failures} shot(s) failed. Exiting with code 1.")
+        sys.exit(1)
+    else:
+        print("\nAll shots generated successfully.")
 
 if __name__ == "__main__":
     asyncio.run(run_smoke())
