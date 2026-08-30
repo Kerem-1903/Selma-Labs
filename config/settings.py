@@ -109,6 +109,8 @@ class Settings(BaseSettings):
     luma_api_key: str = ""
     comfyui_api_url: str = "http://127.0.0.1:8188"
     comfyui_workflow_path: str = "assets/comfyui_workflow.json"
+    keyframe_generation_provider: Literal["fake", "comfyui"] = "fake"
+    comfyui_keyframe_workflow_path: str = "assets/comfyui_keyframe_workflow.json"
     comfyui_mode: str = "t2v"
     i2v_image_path: str = ""
     vision_safety_gate_enabled: bool = False

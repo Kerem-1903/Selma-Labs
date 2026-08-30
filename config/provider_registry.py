@@ -418,6 +418,22 @@ def get_vision_asset_scoring_service(settings: Settings) -> VisionAssetScoringSe
     )
 
 
+from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
+
+def get_keyframe_generation_provider(settings: Settings) -> KeyframeGenerationPort:
+    if settings.keyframe_generation_provider == "comfyui":
+        from infrastructure.providers.keyframe.comfyui_keyframe_provider import ComfyUIKeyframeProvider
+        return ComfyUIKeyframeProvider(
+            api_url=settings.comfyui_api_url,
+            workflow_path=settings.comfyui_keyframe_workflow_path
+        )
+    if settings.keyframe_generation_provider == "fake":
+        from infrastructure.providers.keyframe.fake_keyframe_generation_provider import FakeKeyframeGenerationProvider
+        return FakeKeyframeGenerationProvider()
+    raise ValueError(
+        f"Unknown keyframe_generation_provider configured: {settings.keyframe_generation_provider!r}."
+    )
+
 def get_video_generation_port(settings: Settings):
     if settings.video_generation_provider == "luma":
         from infrastructure.providers.video.luma_video_generation_provider import LumaVideoGenerationProvider
