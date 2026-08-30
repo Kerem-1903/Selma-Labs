@@ -43,6 +43,8 @@ from core.domain.ports.trend_source_port import TrendSourcePort
 from core.domain.ports.video_source_port import VideoSourcePort
 from core.domain.ports.video_generation_port import VideoGenerationPort
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
+from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
+from core.domain.ports.storage_port import StoragePort
 from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
 from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
 from infrastructure.providers.audio_mix.ffmpeg_audio_mix_provider import (
@@ -415,6 +417,40 @@ def get_vision_asset_scoring_service(settings: Settings) -> VisionAssetScoringSe
         top_candidates=settings.vision_top_candidates,
         max_concurrency=settings.vision_max_concurrency,
         vision_weight=settings.vision_weight,
+    )
+
+
+def get_keyframe_generation_provider(
+    settings: Settings,
+    *,
+    storage: StoragePort | None = None,
+) -> KeyframeGenerationPort:
+    if settings.keyframe_generation_provider == "fake":
+        from infrastructure.providers.keyframe.fake_keyframe_generation_provider import (
+            FakeKeyframeGenerationProvider,
+        )
+
+        return FakeKeyframeGenerationProvider()
+    if settings.keyframe_generation_provider == "comfyui":
+        if storage is None:
+            raise ValueError(
+                "ComfyUI keyframe generation requires the application's StoragePort."
+            )
+        from infrastructure.providers.keyframe.comfyui_keyframe_provider import (
+            ComfyUIKeyframeProvider,
+        )
+
+        return ComfyUIKeyframeProvider(
+            api_url=settings.comfyui_api_url,
+            workflow_path=settings.comfyui_keyframe_workflow_path,
+            storage=storage,
+            checkpoint_name=settings.comfyui_keyframe_checkpoint,
+            timeout_seconds=settings.comfyui_keyframe_timeout_seconds,
+            poll_interval_seconds=settings.comfyui_keyframe_poll_interval_seconds,
+        )
+    raise ValueError(
+        "Unknown keyframe_generation_provider configured: "
+        f"{settings.keyframe_generation_provider!r}."
     )
 
 
