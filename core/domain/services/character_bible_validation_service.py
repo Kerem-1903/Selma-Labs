@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
+from pathlib import PurePosixPath
 
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.value_objects.character_bible_validation import (
@@ -13,12 +15,15 @@ from core.domain.value_objects.character_identity import ReferenceView
 class CharacterBibleValidationService:
     """Validate a portable, production-ready multi-view reference pack."""
 
+    _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+    _IMAGE_CONTENT_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
+
     DEFAULT_REQUIRED_VIEWS = (
         ReferenceView.FRONT,
+        ReferenceView.THREE_QUARTER_LEFT,
         ReferenceView.PROFILE_LEFT,
-        ReferenceView.PROFILE_RIGHT,
+        ReferenceView.BACK,
         ReferenceView.FACE_CLOSEUP,
-        ReferenceView.FULL_BODY,
     )
 
     def __init__(self, required_views: Iterable[ReferenceView] | None = None) -> None:
@@ -26,6 +31,10 @@ class CharacterBibleValidationService:
         if not configured:
             raise ValueError("At least one required reference view must be configured.")
         self._required_views = tuple(dict.fromkeys(configured))
+
+    @property
+    def required_views(self) -> tuple[ReferenceView, ...]:
+        return self._required_views
 
     def validate(self, bible: CharacterBible) -> CharacterBibleValidationReport:
         missing_views = tuple(
@@ -56,8 +65,26 @@ class CharacterBibleValidationService:
             return "Reference view does not match its reference-pack key."
         if not reference.asset_id.strip():
             return "Reference asset_id is empty."
-        if not reference.storage_key.strip():
-            return "Reference storage_key is empty."
+        if not CharacterBibleValidationService._is_portable_storage_key(
+            reference.storage_key
+        ):
+            return "Reference storage_key must be a portable relative key."
+        if reference.content_type not in CharacterBibleValidationService._IMAGE_CONTENT_TYPES:
+            return "Reference content_type is not a supported image type."
+        if not CharacterBibleValidationService._SHA256.fullmatch(
+            reference.content_hash
+        ):
+            return "Reference content_hash must be a lowercase SHA-256 digest."
         if reference.revision < 1:
             return "Reference revision must be greater than zero."
         return ""
+
+    @staticmethod
+    def _is_portable_storage_key(key: str) -> bool:
+        normalized = key.strip()
+        if not normalized or "\\" in normalized or ":" in normalized:
+            return False
+        path = PurePosixPath(normalized)
+        return not path.is_absolute() and all(
+            part not in {"", ".", ".."} for part in path.parts
+        )

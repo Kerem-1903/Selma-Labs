@@ -1,0 +1,88 @@
+{
+  "character_bible": {
+    "character_id": "akira",
+    "identity_constraints": {
+      "body_proportions": "athletic adult woman",
+      "eye_color": "amber-brown",
+      "facial_geometry": "angular anime face with narrow jaw and straight nose",
+      "hair": "long black hair with one controlled red front streak",
+      "immutable_marks": [
+        "single red hair streak on the left-front section",
+        "amber eyes"
+      ],
+      "silhouette": "lean swordswoman in a cropped field jacket and tall boots"
+    },
+    "outfit_catalog": [],
+    "reference_pack": {
+      "BACK": {
+        "asset_id": "f24c06f1-5c8d-46d8-85a5-6cb71ab8638c",
+        "character_id": "akira",
+        "content_hash": "eb7899a8ff611b064a2f1394aeac0c5c95c3aefa11cbd2d1006c8b5fa8fc5f73",
+        "content_type": "image/png",
+        "id": "4fb953a1-54ed-4e7b-a7d6-5101372d1741",
+        "revision": 1,
+        "storage_key": "characters/akira/references/back/0001-f24c06f1-5c8d-46d8-85a5-6cb71ab8638c.png",
+        "view": "BACK"
+      },
+      "FACE_CLOSEUP": {
+        "asset_id": "bfb42cf4-4ad9-4c21-9980-7ca2fa797a1e",
+        "character_id": "akira",
+        "content_hash": "4519213fc6975fb1a134e3bb6ed93f9b30726c6443894151ee91cb27fc68a6e7",
+        "content_type": "image/png",
+        "id": "274d7864-695c-47b3-b7a9-209b9c42eb1e",
+        "revision": 1,
+        "storage_key": "characters/akira/references/face_closeup/0001-bfb42cf4-4ad9-4c21-9980-7ca2fa797a1e.png",
+        "view": "FACE_CLOSEUP"
+      },
+      "FRONT": {
+        "asset_id": "720eaab8-d8ee-4ef5-bd5e-a0e9a6e3a563",
+        "character_id": "akira",
+        "content_hash": "ad2e1ba835461a8c81d88c9c2ad67af14600d8ed808ea3b6729e653f30122528",
+        "content_type": "image/png",
+        "id": "29068d70-5d52-4897-8c1b-db315ca561d7",
+        "revision": 1,
+        "storage_key": "characters/akira/references/front/0001-720eaab8-d8ee-4ef5-bd5e-a0e9a6e3a563.png",
+        "view": "FRONT"
+      },
+      "PROFILE_LEFT": {
+        "asset_id": "3d500a94-8241-4256-bee0-10f74c8c48be",
+        "character_id": "akira",
+        "content_hash": "168431a6b3689359d55f9c7b049a52934a1370b5586179a8dc95604b34f92a2c",
+        "content_type": "image/png",
+        "id": "aceb7149-b45b-42df-823a-44d0390ff0f0",
+        "revision": 1,
+        "storage_key": "characters/akira/references/profile_left/0001-3d500a94-8241-4256-bee0-10f74c8c48be.png",
+        "view": "PROFILE_LEFT"
+      },
+      "THREE_QUARTER_LEFT": {
+        "asset_id": "bf764c8d-0daf-429f-beda-ee7a2863fbe9",
+        "character_id": "akira",
+        "content_hash": "70ec2e58fe40e112e910c526106664c7652ab66e2af192b158638eea7a3b3939",
+        "content_type": "image/png",
+        "id": "0061acdd-cb96-430c-b6cc-db5cbc7f487f",
+        "revision": 1,
+        "storage_key": "characters/akira/references/three_quarter_left/0001-bf764c8d-0daf-429f-beda-ee7a2863fbe9.png",
+        "view": "THREE_QUARTER_LEFT"
+      }
+    },
+    "style_profile": {
+      "base_style": "clean cinematic anime character design",
+      "color_palette": [
+        "charcoal",
+        "black",
+        "muted gray",
+        "deep red",
+        "amber"
+      ],
+      "lighting_preferences": [],
+      "negative_prompts": [
+        "identity drift",
+        "different outfit",
+        "red ribbon",
+        "red energy trail",
+        "extra weapon"
+      ]
+    }
+  },
+  "schema_version": 1
+}

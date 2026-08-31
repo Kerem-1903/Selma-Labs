@@ -17,15 +17,22 @@ def _bible() -> CharacterBible:
     )
 
 
-def _reference(view: ReferenceView, *, character_id: str = "akira") -> CharacterReference:
+def _reference(
+    view: ReferenceView,
+    *,
+    character_id: str = "akira",
+    storage_key: str | None = None,
+    content_hash: str = "0" * 64,
+) -> CharacterReference:
     return CharacterReference(
         id=f"ref-{view.value.lower()}",
         character_id=character_id,
         view=view,
         asset_id=f"asset-{view.value.lower()}",
-        storage_key=f"characters/akira/references/{view.value.lower()}/asset.png",
+        storage_key=storage_key
+        or f"characters/akira/references/{view.value.lower()}/asset.png",
         content_type="image/png",
-        content_hash="hash",
+        content_hash=content_hash,
     )
 
 
@@ -51,6 +58,16 @@ def test_validation_accepts_complete_five_view_pack():
     assert report.invalid_references == ()
 
 
+def test_default_required_views_match_left_side_multiview_reference_contract():
+    assert CharacterBibleValidationService.DEFAULT_REQUIRED_VIEWS == (
+        ReferenceView.FRONT,
+        ReferenceView.THREE_QUARTER_LEFT,
+        ReferenceView.PROFILE_LEFT,
+        ReferenceView.BACK,
+        ReferenceView.FACE_CLOSEUP,
+    )
+
+
 def test_validation_reports_invalid_reference_separately_from_missing_view():
     bible = _bible()
     bible.reference_pack[ReferenceView.FRONT] = _reference(
@@ -66,3 +83,25 @@ def test_validation_reports_invalid_reference_separately_from_missing_view():
     assert report.missing_views == (ReferenceView.PROFILE_LEFT,)
     assert len(report.invalid_references) == 1
     assert "different character" in report.invalid_references[0].reason
+
+
+def test_validation_rejects_absolute_storage_path_and_missing_content_hash():
+    absolute_path_bible = _bible()
+    absolute_path_bible.reference_pack[ReferenceView.FRONT] = _reference(
+        ReferenceView.FRONT,
+        storage_key="C:/Users/example/akira.png",
+    )
+    missing_hash_bible = _bible()
+    missing_hash_bible.reference_pack[ReferenceView.FRONT] = _reference(
+        ReferenceView.FRONT,
+        content_hash="",
+    )
+    validator = CharacterBibleValidationService(required_views=(ReferenceView.FRONT,))
+
+    absolute_path_report = validator.validate(absolute_path_bible)
+    missing_hash_report = validator.validate(missing_hash_bible)
+
+    assert absolute_path_report.is_complete is False
+    assert "portable relative key" in absolute_path_report.invalid_references[0].reason
+    assert missing_hash_report.is_complete is False
+    assert "SHA-256" in missing_hash_report.invalid_references[0].reason
