@@ -17,6 +17,7 @@ from core.domain.ports.shot_motion_clip_repository_port import (
 )
 from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.image_to_video_request import ImageToVideoRequest
+from core.domain.value_objects.render_profile import RenderProfile
 
 
 class ApprovedKeyframeMotionService:
@@ -38,6 +39,10 @@ class ApprovedKeyframeMotionService:
         self._candidates = candidates
         self._clips = clips
 
+    @property
+    def provider_name(self) -> str:
+        return self._generator.name
+
     async def generate(
         self,
         *,
@@ -49,6 +54,9 @@ class ApprovedKeyframeMotionService:
         height: int = 576,
         fps: float = 24.0,
         seed: int | None = None,
+        sampling_steps: int = 12,
+        guidance_scale: float = 4.5,
+        render_profile: RenderProfile = RenderProfile.BALANCED,
     ) -> ShotMotionClip:
         if not self._SAFE_ID.fullmatch(storyboard.shot_contract_id):
             raise MotionGenerationError("Shot contract ID is not storage-key safe.")
@@ -85,6 +93,9 @@ class ApprovedKeyframeMotionService:
             height=height,
             fps=fps,
             seed=seed,
+            sampling_steps=sampling_steps,
+            guidance_scale=guidance_scale,
+            render_profile=render_profile,
         )
         generated = await self._generator.generate_video(request)
         self._validate_generated_video(generated.video_bytes, generated.content_type)
@@ -122,6 +133,7 @@ class ApprovedKeyframeMotionService:
             duration_seconds=generated.duration_seconds,
             fps=generated.fps,
             created_at=datetime.now(timezone.utc),
+            render_profile=render_profile.value,
         )
         await self._clips.save(clip)
         return clip

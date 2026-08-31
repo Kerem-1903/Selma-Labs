@@ -1,9 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
+from enum import Enum
 from pathlib import PurePosixPath
 from typing import Any
+
+
+class MotionClipStatus(str, Enum):
+    PENDING_REVIEW = "PENDING_REVIEW"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
 
 
 @dataclass(frozen=True)
@@ -23,6 +30,8 @@ class ShotMotionClip:
     duration_seconds: float
     fps: float
     created_at: datetime
+    render_profile: str = "BALANCED"
+    status: MotionClipStatus = MotionClipStatus.PENDING_REVIEW
 
     def __post_init__(self) -> None:
         for value in (
@@ -44,6 +53,18 @@ class ShotMotionClip:
             raise ValueError("Motion clip content type is unsupported.")
         if self.width <= 0 or self.height <= 0 or self.duration_seconds <= 0 or self.fps <= 0:
             raise ValueError("Motion clip media properties must be greater than zero.")
+        if self.render_profile not in {"DRAFT", "BALANCED", "FINAL"}:
+            raise ValueError("Motion clip render profile is unsupported.")
+
+    def approve(self) -> "ShotMotionClip":
+        if self.status == MotionClipStatus.REJECTED:
+            raise ValueError("A rejected motion clip cannot be approved.")
+        return replace(self, status=MotionClipStatus.APPROVED)
+
+    def reject(self) -> "ShotMotionClip":
+        if self.status == MotionClipStatus.APPROVED:
+            raise ValueError("An approved motion clip cannot be rejected.")
+        return replace(self, status=MotionClipStatus.REJECTED)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -62,6 +83,8 @@ class ShotMotionClip:
             "duration_seconds": self.duration_seconds,
             "fps": self.fps,
             "created_at": self.created_at.isoformat(),
+            "render_profile": self.render_profile,
+            "status": self.status.value,
         }
 
     @classmethod
@@ -82,4 +105,6 @@ class ShotMotionClip:
             duration_seconds=float(data["duration_seconds"]),
             fps=float(data["fps"]),
             created_at=datetime.fromisoformat(str(data["created_at"])),
+            render_profile=str(data.get("render_profile", "BALANCED")),
+            status=MotionClipStatus(str(data.get("status", "PENDING_REVIEW"))),
         )

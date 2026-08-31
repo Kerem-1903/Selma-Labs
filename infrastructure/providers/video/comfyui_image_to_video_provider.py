@@ -9,7 +9,11 @@ from typing import Any
 
 import aiohttp
 
-from core.domain.exceptions import ProviderError, ProviderTimeoutError
+from core.domain.exceptions import (
+    ProviderConnectionError,
+    ProviderError,
+    ProviderTimeoutError,
+)
 from core.domain.ports.image_to_video_generation_port import ImageToVideoGenerationPort
 from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.generated_video_clip import GeneratedVideoClip
@@ -49,15 +53,20 @@ class ComfyUIImageToVideoProvider(ImageToVideoGenerationPort):
         image_bytes = await self._storage.load(request.source_image_storage_key)
         if not image_bytes:
             raise ProviderError("Committed source image is empty.")
-        async with self._session_factory() as session:
-            uploaded_name = await self._upload_image(
-                session, image_bytes, request.source_image_storage_key
-            )
-            self._inject_request(workflow, request, uploaded_name)
-            prompt_id = await self._queue(session, workflow)
-            history = await self._wait_for_history(session, prompt_id)
-            file_info = self._find_video_output(history)
-            video_bytes = await self._download(session, file_info)
+        try:
+            async with self._session_factory() as session:
+                uploaded_name = await self._upload_image(
+                    session, image_bytes, request.source_image_storage_key
+                )
+                self._inject_request(workflow, request, uploaded_name)
+                prompt_id = await self._queue(session, workflow)
+                history = await self._wait_for_history(session, prompt_id)
+                file_info = self._find_video_output(history)
+                video_bytes = await self._download(session, file_info)
+        except aiohttp.ClientError as error:
+            raise ProviderConnectionError(
+                f"ComfyUI I2V connection failed: {error}"
+            ) from error
 
         filename = str(file_info["filename"])
         suffix = Path(filename).suffix.casefold()
@@ -154,6 +163,8 @@ class ComfyUIImageToVideoProvider(ImageToVideoGenerationPort):
             for field in ("num_frames", "length", "frames"):
                 if field in inputs:
                     inputs[field] = frame_count
+            if node.get("class_type") == "RepeatLatentBatch" and "amount" in inputs:
+                inputs["amount"] = frame_count
             for field in ("fps", "frame_rate"):
                 if field in inputs:
                     inputs[field] = request.fps
@@ -165,6 +176,16 @@ class ComfyUIImageToVideoProvider(ImageToVideoGenerationPort):
                     inputs["seed"] = request.seed
                 if "noise_seed" in inputs:
                     inputs["noise_seed"] = request.seed
+            if node.get("class_type") in {"KSampler", "KSamplerAdvanced"}:
+                if "steps" in inputs:
+                    inputs["steps"] = request.sampling_steps
+                if "cfg" in inputs:
+                    inputs["cfg"] = request.guidance_scale
+            if node.get("class_type") == "ImageScale":
+                if "width" in inputs:
+                    inputs["width"] = request.width
+                if "height" in inputs:
+                    inputs["height"] = request.height
 
     async def _queue(self, session: Any, workflow: dict[str, Any]) -> str:
         async with session.post(
@@ -188,7 +209,23 @@ class ComfyUIImageToVideoProvider(ImageToVideoGenerationPort):
                 if response.status == 200:
                     payload = await response.json()
                     if prompt_id in payload:
-                        return payload[prompt_id]
+                        history = payload[prompt_id]
+                        status = history.get("status", {})
+                        if status.get("status_str") == "error":
+                            messages = status.get("messages", [])
+                            detail = next(
+                                (
+                                    str(message[1].get("exception_message", ""))
+                                    for message in messages
+                                    if isinstance(message, list)
+                                    and len(message) > 1
+                                    and isinstance(message[1], dict)
+                                    and message[0] == "execution_error"
+                                ),
+                                "unknown execution error",
+                            )
+                            raise ProviderError(f"ComfyUI I2V execution failed: {detail}")
+                        return history
             await asyncio.sleep(self._poll_interval_seconds)
         raise ProviderTimeoutError(
             f"ComfyUI I2V generation timed out for prompt {prompt_id}."

@@ -40,10 +40,12 @@ def test_request_is_injected_into_connected_workflow_fields():
         },
         "4": {
             "class_type": "KSampler",
-            "inputs": {"seed": 1, "latent_image": ["5", 0]},
+            "inputs": {"seed": 1, "steps": 20, "cfg": 7, "latent_image": ["5", 0]},
         },
         "5": {"class_type": "ImageToVideo", "inputs": {"num_frames": 16}},
         "6": {"class_type": "VideoCombine", "inputs": {"frame_rate": 8}},
+        "7": {"class_type": "ImageScale", "inputs": {"width": 512, "height": 512}},
+        "8": {"class_type": "RepeatLatentBatch", "inputs": {"amount": 8}},
     }
 
     ComfyUIImageToVideoProvider._inject_request(
@@ -54,8 +56,13 @@ def test_request_is_injected_into_connected_workflow_fields():
     assert "Akira turns" in workflow["2"]["inputs"]["text"]
     assert workflow["3"]["inputs"]["text"] == "keep negative"
     assert workflow["4"]["inputs"]["seed"] == 1903
+    assert workflow["4"]["inputs"]["steps"] == 12
+    assert workflow["4"]["inputs"]["cfg"] == 4.5
     assert workflow["5"]["inputs"]["num_frames"] == 96
     assert workflow["6"]["inputs"]["frame_rate"] == 24
+    assert workflow["7"]["inputs"]["width"] == 1280
+    assert workflow["7"]["inputs"]["height"] == 720
+    assert workflow["8"]["inputs"]["amount"] == 96
 
 
 def test_workflow_requires_source_image_node():
