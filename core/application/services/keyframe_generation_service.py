@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, timezone
 
 from core.domain.entities.character_bible import CharacterBible
+from core.domain.entities.candidate.keyframe_candidate import CandidateStatus
 from core.domain.entities.shot_contract import ShotContract
 from core.domain.entities.shot_storyboard import ShotStoryboard
 from core.domain.exceptions import KeyframeGenerationError, StorageError
@@ -14,6 +15,9 @@ from core.domain.ports.shot_storyboard_repository_port import ShotStoryboardRepo
 from core.domain.ports.storage_port import StoragePort
 from core.domain.services.reference_conditioning_builder import ReferenceConditioningBuilder
 from core.domain.value_objects.storyboard_frame import StoryboardFrame
+from core.application.services.candidate.candidate_evaluation_service import (
+    CandidateEvaluationService,
+)
 
 
 class KeyframeGenerationService:
@@ -29,7 +33,8 @@ class KeyframeGenerationService:
         storage: StoragePort,
         character_bibles: CharacterBibleRepositoryPort,
         storyboards: ShotStoryboardRepositoryPort,
-        candidate_evaluation: 'CandidateEvaluationService' = None, # Optional for compatibility, required for A7 flow
+        candidate_evaluation: CandidateEvaluationService | None = None,
+        human_review_required: bool = True,
         conditioning_builder: ReferenceConditioningBuilder | None = None,
     ) -> None:
         self._generator = generator
@@ -37,6 +42,11 @@ class KeyframeGenerationService:
         self._character_bibles = character_bibles
         self._storyboards = storyboards
         self._candidate_evaluation = candidate_evaluation
+        self._human_review_required = human_review_required
+        if human_review_required and candidate_evaluation is None:
+            raise ValueError(
+                "Candidate evaluation service is required when human review is enabled."
+            )
         self._conditioning_builder = conditioning_builder or ReferenceConditioningBuilder()
 
     async def generate(
@@ -126,13 +136,14 @@ class KeyframeGenerationService:
             reference_asset_ids=frame_reference_asset_ids,
             created_at=datetime.now(timezone.utc),
         )
-        # Fast path if candidate evaluation is not wired up (legacy A5 flow)
-        if not self._candidate_evaluation:
+        # Explicit compatibility path for callers that intentionally retain A5 behavior.
+        if not self._human_review_required:
             result = (storyboard or ShotStoryboard.create(shot_contract.id)).with_frame(frame)
             await self._storyboards.save(result)
             return result
 
         # A7 Candidate Generation Flow (single candidate)
+        assert self._candidate_evaluation is not None
         await self._candidate_evaluation.register_candidate(
             shot_contract_id=shot_contract.id,
             storage_key=storage_key,
@@ -159,8 +170,10 @@ class KeyframeGenerationService:
         height: int = 1024,
     ) -> None:
         """Generates multiple candidates for human review (A7 workflow)."""
-        if not self._candidate_evaluation:
+        if not self._human_review_required or not self._candidate_evaluation:
             raise KeyframeGenerationError("Candidate evaluation service is required to generate candidates.")
+        if not 1 <= count <= 10:
+            raise KeyframeGenerationError("Candidate count must be between 1 and 10.")
 
         for _ in range(count):
             await self.generate(
@@ -181,6 +194,14 @@ class KeyframeGenerationService:
         candidate = await self._candidate_evaluation.get_approved_candidate_for_shot(shot_contract_id)
         if not candidate:
             raise KeyframeGenerationError(f"No approved candidate found for shot contract {shot_contract_id}")
+        if candidate.status == CandidateStatus.COMMITTED:
+            raise KeyframeGenerationError(
+                f"Approved candidate for shot contract {shot_contract_id} was already committed."
+            )
+        if not await self._storage.exists(candidate.storage_key):
+            raise StorageError(
+                f"Approved candidate asset '{candidate.storage_key}' was not found."
+            )
 
         meta = candidate.generation_metadata
         frame = StoryboardFrame(
@@ -200,6 +221,7 @@ class KeyframeGenerationService:
 
         result = (storyboard or ShotStoryboard.create(shot_contract_id)).with_frame(frame)
         await self._storyboards.save(result)
+        await self._candidate_evaluation.mark_candidate_committed(candidate.id)
         return result
 
     def _validate_generated_image(self, data: bytes, content_type: str) -> None:
