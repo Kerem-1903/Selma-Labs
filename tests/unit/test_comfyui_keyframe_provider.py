@@ -351,6 +351,40 @@ async def test_provider_rejects_invalid_identity_timing():
 
 
 @pytest.mark.asyncio
+async def test_provider_injects_model_specific_sampler_settings():
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=MemoryStorage(
+            {
+                "characters/akira/face.png": PNG_BYTES,
+                "characters/akira/front.png": PNG_BYTES,
+            }
+        ),
+        session_factory=lambda **kwargs: session,
+    )
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "sampling_steps": 28,
+            "guidance_scale": 5.0,
+            "sampler_name": "euler_ancestral",
+            "scheduler": "normal",
+        },
+    )
+
+    await provider.generate_keyframe(request)
+
+    sampler = session.queued_workflow["3"]["inputs"]
+    assert sampler["steps"] == 28
+    assert sampler["cfg"] == 5.0
+    assert sampler["sampler_name"] == "euler_ancestral"
+    assert sampler["scheduler"] == "normal"
+
+
+@pytest.mark.asyncio
 async def test_provider_connects_character_lora_before_ipadapter():
     session = FakeSession()
     provider = ComfyUIKeyframeProvider(

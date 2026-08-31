@@ -197,6 +197,26 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             raise ProviderError("ComfyUI workflow has no sampler node.")
         if request.seed is not None:
             sampler[1]["inputs"]["seed"] = request.seed
+        sampler_overrides = {
+            "sampling_steps": "steps",
+            "guidance_scale": "cfg",
+            "sampler_name": "sampler_name",
+            "scheduler": "scheduler",
+        }
+        for source_key, input_key in sampler_overrides.items():
+            if source_key in request.visual_constraints:
+                sampler[1]["inputs"][input_key] = request.visual_constraints[
+                    source_key
+                ]
+        try:
+            steps = int(sampler[1]["inputs"]["steps"])
+            guidance_scale = float(sampler[1]["inputs"]["cfg"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise ProviderError("Sampler steps and guidance scale must be numeric.") from error
+        if not 1 <= steps <= 150 or not 0.0 < guidance_scale <= 30.0:
+            raise ProviderError("Sampler steps or guidance scale is outside safe bounds.")
+        sampler[1]["inputs"]["steps"] = steps
+        sampler[1]["inputs"]["cfg"] = guidance_scale
 
         checkpoint = self._node_for_role(
             workflow, "checkpoint", "CheckpointLoaderSimple"
