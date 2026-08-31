@@ -118,6 +118,10 @@ class Settings(BaseSettings):
     comfyui_character_lora_strength_clip: float = 0.8
     comfyui_keyframe_timeout_seconds: float = 300.0
     comfyui_keyframe_poll_interval_seconds: float = 1.0
+    image_to_video_provider: Literal["fake", "comfyui"] = "fake"
+    comfyui_i2v_workflow_path: str = "assets/comfyui_i2v_workflow.json"
+    comfyui_i2v_timeout_seconds: float = 900.0
+    comfyui_i2v_poll_interval_seconds: float = 2.0
     comfyui_mode: str = "t2v"
     i2v_image_path: str = ""
     vision_safety_gate_enabled: bool = False

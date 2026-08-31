@@ -6,6 +6,7 @@ from config.provider_registry import (
     get_fact_check_provider,
     get_fact_source_provider,
     get_media_inspection_provider,
+    get_image_to_video_generation_provider,
     get_pipeline_video_source_provider,
     get_render_provider,
     get_scene_planning_provider,
@@ -37,6 +38,9 @@ from infrastructure.providers.trend.youtube_most_popular_provider import Youtube
 from infrastructure.providers.video.pexels_provider import PexelsProvider
 from infrastructure.providers.video.orchestrated_video_source_provider import (
     OrchestratedVideoSourceProvider,
+)
+from infrastructure.providers.video.fake_image_to_video_provider import (
+    FakeImageToVideoProvider,
 )
 from infrastructure.providers.voice.caching_voice_provider import CachingVoiceProvider
 from infrastructure.providers.vision.caching_vision_provider import CachingVisionProvider
@@ -136,6 +140,20 @@ def test_get_video_source_provider_success():
     settings = Settings(pexels_api_key="test-key", video_provider="pexels")
     provider = get_video_source_provider(settings)
     assert isinstance(provider, PexelsProvider)
+
+
+def test_get_fake_image_to_video_provider_success():
+    provider = get_image_to_video_generation_provider(
+        Settings(image_to_video_provider="fake")
+    )
+    assert isinstance(provider, FakeImageToVideoProvider)
+
+
+def test_comfyui_image_to_video_provider_requires_storage():
+    with pytest.raises(ValueError, match="requires"):
+        get_image_to_video_generation_provider(
+            Settings(image_to_video_provider="comfyui")
+        )
 
 
 def test_get_pipeline_video_source_provider_builds_integrated_stack():
