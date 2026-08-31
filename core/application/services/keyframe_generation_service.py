@@ -29,12 +29,14 @@ class KeyframeGenerationService:
         storage: StoragePort,
         character_bibles: CharacterBibleRepositoryPort,
         storyboards: ShotStoryboardRepositoryPort,
+        candidate_evaluation: 'CandidateEvaluationService' = None, # Optional for compatibility, required for A7 flow
         conditioning_builder: ReferenceConditioningBuilder | None = None,
     ) -> None:
         self._generator = generator
         self._storage = storage
         self._character_bibles = character_bibles
         self._storyboards = storyboards
+        self._candidate_evaluation = candidate_evaluation
         self._conditioning_builder = conditioning_builder or ReferenceConditioningBuilder()
 
     async def generate(
@@ -124,7 +126,79 @@ class KeyframeGenerationService:
             reference_asset_ids=frame_reference_asset_ids,
             created_at=datetime.now(timezone.utc),
         )
-        result = (storyboard or ShotStoryboard.create(shot_contract.id)).with_frame(frame)
+        # Fast path if candidate evaluation is not wired up (legacy A5 flow)
+        if not self._candidate_evaluation:
+            result = (storyboard or ShotStoryboard.create(shot_contract.id)).with_frame(frame)
+            await self._storyboards.save(result)
+            return result
+
+        # A7 Candidate Generation Flow (single candidate)
+        await self._candidate_evaluation.register_candidate(
+            shot_contract_id=shot_contract.id,
+            storage_key=storage_key,
+            generation_metadata={
+                "sequence_index": sequence_index,
+                "media_asset_id": media_asset_id,
+                "content_type": generated.content_type,
+                "provider": self._generator.name,
+                "provider_asset_id": generated.provider_asset_id,
+                "width": generated.width,
+                "height": generated.height,
+                "reference_asset_ids": list(frame_reference_asset_ids),
+            }
+        )
+        return storyboard or ShotStoryboard.create(shot_contract.id)
+
+    async def generate_candidates(
+        self,
+        *,
+        shot_contract: ShotContract,
+        sequence_index: int = 0,
+        count: int = 3,
+        width: int = 1024,
+        height: int = 1024,
+    ) -> None:
+        """Generates multiple candidates for human review (A7 workflow)."""
+        if not self._candidate_evaluation:
+            raise KeyframeGenerationError("Candidate evaluation service is required to generate candidates.")
+
+        for _ in range(count):
+            await self.generate(
+                shot_contract=shot_contract,
+                sequence_index=sequence_index,
+                width=width,
+                height=height,
+            )
+
+    async def commit_approved_candidate(self, shot_contract_id: str, storyboard: ShotStoryboard | None = None) -> ShotStoryboard:
+        """
+        Quality Gate: Commits the approved candidate into the ShotStoryboard.
+        Fails if no approved candidate exists.
+        """
+        if not self._candidate_evaluation:
+            raise KeyframeGenerationError("Candidate evaluation service is required to commit candidates.")
+
+        candidate = await self._candidate_evaluation.get_approved_candidate_for_shot(shot_contract_id)
+        if not candidate:
+            raise KeyframeGenerationError(f"No approved candidate found for shot contract {shot_contract_id}")
+
+        meta = candidate.generation_metadata
+        frame = StoryboardFrame(
+            id=str(uuid.uuid4()),
+            shot_contract_id=shot_contract_id,
+            sequence_index=meta["sequence_index"],
+            media_asset_id=meta["media_asset_id"],
+            storage_key=candidate.storage_key,
+            content_type=meta.get("content_type", "image/png"),
+            provider=meta["provider"],
+            provider_asset_id=meta["provider_asset_id"],
+            width=meta["width"],
+            height=meta["height"],
+            reference_asset_ids=tuple(meta["reference_asset_ids"]),
+            created_at=datetime.now(timezone.utc),
+        )
+
+        result = (storyboard or ShotStoryboard.create(shot_contract_id)).with_frame(frame)
         await self._storyboards.save(result)
         return result
 
