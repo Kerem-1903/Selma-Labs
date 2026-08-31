@@ -1,0 +1,69 @@
+name: Provider or local runtime problem
+description: Get help with ComfyUI, FFmpeg, GPU, model, API, or environment integration.
+title: "[Provider]: "
+labels:
+  - provider
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not paste API keys, tokens, private media, model files, or personal paths. This form is public.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I read the runbook and searched existing issues.
+          required: true
+        - label: I removed credentials, private inputs, and identifying data from all evidence.
+          required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - ComfyUI
+        - FFmpeg or FFprobe
+        - Remotion or Node.js
+        - GPU, driver, or accelerator
+        - Image provider
+        - Voice provider
+        - Search or research provider
+        - Storage or filesystem
+        - Other local runtime
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Intended workflow
+      description: What were you trying to run or produce?
+    validations:
+      required: true
+  - type: textarea
+    id: health
+    attributes:
+      label: Redacted system health output
+      description: Paste relevant output from `python scripts/system_health.py --profile factory`.
+      render: text
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and versions
+      description: OS, Python, FFmpeg, Node, GPU/driver, provider/model, and relevant commit.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Exact redacted error
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: attempts
+    attributes:
+      label: What you already tried
+      description: Include configuration changes without including secrets.

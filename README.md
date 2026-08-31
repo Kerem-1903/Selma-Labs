@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/Kerem-1903/Selma-Labs/actions/workflows/quality-gates.yml"><img src="https://github.com/Kerem-1903/Selma-Labs/actions/workflows/quality-gates.yml/badge.svg" alt="Quality Gates" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-D22128.svg" alt="Apache License 2.0" /></a>
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python 3.10+" />
   <img src="https://img.shields.io/badge/Remotion-4.x-0B84F3?logo=react&logoColor=white" alt="Remotion 4.x" />
   <img src="https://img.shields.io/badge/FFmpeg-production-007808?logo=ffmpeg&logoColor=white" alt="FFmpeg production pipeline" />
@@ -220,5 +221,11 @@ original **Kırık Kayıt** pilot: approximately 15 shots, a small set of polish
 AI-motion scenes, controlled motion-comic coverage, human review at every media
 boundary, and a 1080p/24 FPS post-production master.
 
-Community-health files, release packaging, and a formal license are being
-prepared as separate repository-hardening changes.
+## Contributing and support
+
+Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) before
+opening a pull request, use the structured issue forms for public reports, and
+follow the [Code of Conduct](CODE_OF_CONDUCT.md). Security vulnerabilities must
+be reported privately according to [SECURITY.md](SECURITY.md).
+
+SELMA Labs is available under the [Apache License 2.0](LICENSE).
