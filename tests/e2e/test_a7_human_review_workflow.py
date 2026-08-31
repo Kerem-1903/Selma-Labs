@@ -3,7 +3,7 @@ from core.application.services.keyframe_generation_service import KeyframeGenera
 from core.application.services.candidate.candidate_evaluation_service import CandidateEvaluationService
 from core.domain.entities.candidate.keyframe_candidate import CandidateStatus
 from core.domain.entities.shot_contract import ShotContract
-from core.domain.exceptions import KeyframeGenerationError
+from core.domain.exceptions import KeyframeGenerationError, StorageError
 from infrastructure.repositories.candidate.sqlite_keyframe_candidate_repository import SqliteKeyframeCandidateRepository
 from infrastructure.repositories.local_json_shot_storyboard_repository import LocalJsonShotStoryboardRepository
 from infrastructure.repositories.local_json_character_bible_repository import LocalJsonCharacterBibleRepository
@@ -32,14 +32,18 @@ class MockGenerator(KeyframeGenerationPort):
         )
 
 class MockStorage(StoragePort):
+    def __init__(self):
+        self.assets: dict[str, bytes] = {}
+
     async def save(self, key: str, data: bytes, content_type: str) -> StorageReference:
+        self.assets[key] = data
         return StorageReference(key=key, path=f"mock://{key}", size_bytes=len(data))
 
     async def load(self, key: str) -> bytes:
-        return b"mock"
+        return self.assets[key]
 
     async def exists(self, key: str) -> bool:
-        return True
+        return key in self.assets
 
     def upload_file(self, file_stream: typing.BinaryIO, destination_path: str, content_type: str) -> str:
         return f"mock://{destination_path}"
@@ -48,7 +52,7 @@ class MockStorage(StoragePort):
         return True
 
     def delete_file(self, file_path: str) -> bool:
-        return True
+        return self.assets.pop(file_path, None) is not None
 
 @pytest.fixture
 def candidate_repo():
@@ -67,10 +71,14 @@ def bible_repo(tmp_path):
     return LocalJsonCharacterBibleRepository(str(tmp_path))
 
 @pytest.fixture
-def keyframe_service(evaluation_service, storyboard_repo, bible_repo):
+def storage():
+    return MockStorage()
+
+@pytest.fixture
+def keyframe_service(evaluation_service, storyboard_repo, bible_repo, storage):
     return KeyframeGenerationService(
         generator=MockGenerator(),
-        storage=MockStorage(),
+        storage=storage,
         character_bibles=bible_repo,
         storyboards=storyboard_repo,
         candidate_evaluation=evaluation_service
@@ -114,3 +122,40 @@ async def test_a7_human_review_workflow(keyframe_service, evaluation_service):
     # 8. Verify storyboard contains only the approved frame
     assert len(storyboard.frames) == 1
     assert storyboard.frames[0].storage_key == candidates[1].storage_key
+    committed = await evaluation_service.get_candidate(candidates[1].id)
+    assert committed is not None
+    assert committed.status == CandidateStatus.COMMITTED
+
+    with pytest.raises(KeyframeGenerationError, match="already committed"):
+        await keyframe_service.commit_approved_candidate(contract.id)
+
+
+@pytest.mark.asyncio
+async def test_approved_candidate_asset_must_still_exist(
+    keyframe_service, evaluation_service, storage
+):
+    contract = ShotContract(
+        id="shot-missing-asset",
+        camera_constraints=CameraConstraints("wide", "35mm", "static"),
+        action_constraints=ActionConstraints("walking"),
+        visual_constraints=VisualConstraints("dark", "cyberpunk", "rain"),
+    )
+    await keyframe_service.generate_candidates(shot_contract=contract, count=1)
+    candidate = (await evaluation_service.get_candidates_for_shot(contract.id))[0]
+    await evaluation_service.approve_candidate(candidate.id)
+    storage.delete_file(candidate.storage_key)
+
+    with pytest.raises(StorageError, match="was not found"):
+        await keyframe_service.commit_approved_candidate(contract.id)
+
+
+@pytest.mark.asyncio
+async def test_candidate_count_is_bounded(keyframe_service):
+    contract = ShotContract(
+        id="shot-count",
+        camera_constraints=CameraConstraints("wide", "35mm", "static"),
+        action_constraints=ActionConstraints("walking"),
+        visual_constraints=VisualConstraints("dark", "cyberpunk", "rain"),
+    )
+    with pytest.raises(KeyframeGenerationError, match="between 1 and 10"):
+        await keyframe_service.generate_candidates(shot_contract=contract, count=0)

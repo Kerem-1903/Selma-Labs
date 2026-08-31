@@ -10,6 +10,7 @@ class CandidateStatus(str, Enum):
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
     NEEDS_REVISION = "NEEDS_REVISION"
+    COMMITTED = "COMMITTED"
 
 @dataclass
 class KeyframeCandidate:
@@ -26,11 +27,15 @@ class KeyframeCandidate:
     reviewed_at: datetime.datetime | None = None
 
     def approve(self) -> None:
+        if self.status == CandidateStatus.COMMITTED:
+            raise ValueError("A committed candidate cannot be reviewed again.")
         self.status = CandidateStatus.APPROVED
         self.reviewed_at = datetime.datetime.now(datetime.timezone.utc)
         self.rejection_reason = None
 
     def reject(self, reason: str, score: int | None = None) -> None:
+        if self.status == CandidateStatus.COMMITTED:
+            raise ValueError("A committed candidate cannot be reviewed again.")
         if score is not None and not (1 <= score <= 5):
             raise ValueError("Score must be between 1 and 5.")
         self.status = CandidateStatus.REJECTED
@@ -40,6 +45,8 @@ class KeyframeCandidate:
             self.score = score
 
     def flag_for_revision(self, reason: str) -> None:
+        if self.status == CandidateStatus.COMMITTED:
+            raise ValueError("A committed candidate cannot be reviewed again.")
         self.status = CandidateStatus.NEEDS_REVISION
         self.reviewed_at = datetime.datetime.now(datetime.timezone.utc)
         self.rejection_reason = reason
@@ -48,6 +55,11 @@ class KeyframeCandidate:
         if not (1 <= score <= 5):
             raise ValueError("Score must be between 1 and 5.")
         self.score = score
+
+    def mark_committed(self) -> None:
+        if self.status != CandidateStatus.APPROVED:
+            raise ValueError("Only an approved candidate can be committed.")
+        self.status = CandidateStatus.COMMITTED
 
     def to_dict(self) -> dict[str, Any]:
         return {

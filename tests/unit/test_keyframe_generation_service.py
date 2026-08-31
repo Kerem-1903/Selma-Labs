@@ -64,10 +64,21 @@ async def _service(tmp_path, generator=None):
             storage=storage,
             character_bibles=bible_repository,
             storyboards=storyboard_repository,
+            human_review_required=False,
         ),
         storage,
         storyboard_repository,
     )
+
+
+def test_human_review_is_required_by_default(tmp_path):
+    with pytest.raises(ValueError, match="Candidate evaluation service is required"):
+        KeyframeGenerationService(
+            generator=FakeKeyframeGenerationProvider(),
+            storage=LocalFsStorage(str(tmp_path / "assets")),
+            character_bibles=LocalJsonCharacterBibleRepository(tmp_path / "bibles"),
+            storyboards=LocalJsonShotStoryboardRepository(tmp_path / "storyboards"),
+        )
 
 
 @pytest.mark.asyncio

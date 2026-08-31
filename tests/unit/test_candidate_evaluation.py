@@ -94,3 +94,14 @@ async def test_score_validation():
     )
     with pytest.raises(ValueError, match="Score must be between 1 and 5."):
         candidate.reject("Bad hands", score=6)
+
+
+@pytest.mark.asyncio
+async def test_committed_candidate_cannot_be_reviewed_again(service):
+    candidate = await service.register_candidate("s-3", "store/1.png", {})
+    await service.approve_candidate(candidate.id)
+    committed = await service.mark_candidate_committed(candidate.id)
+
+    assert committed.status == CandidateStatus.COMMITTED
+    with pytest.raises(ValueError, match="cannot be reviewed again"):
+        await service.reject_candidate(candidate.id, "Changed my mind")

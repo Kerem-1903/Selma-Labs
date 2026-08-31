@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from core.domain.entities.candidate.keyframe_candidate import KeyframeCandidate
+from core.domain.entities.candidate.keyframe_candidate import CandidateStatus, KeyframeCandidate
 from core.domain.ports.candidate.keyframe_candidate_repository_port import KeyframeCandidateRepositoryPort
 
 class CandidateEvaluationService:
@@ -66,10 +66,21 @@ class CandidateEvaluationService:
         await self._repository.save(candidate)
         return candidate
 
+    async def mark_candidate_committed(self, candidate_id: str) -> KeyframeCandidate:
+        candidate = await self._repository.get_by_id(candidate_id)
+        if not candidate:
+            raise ValueError(f"Candidate {candidate_id} not found.")
+        candidate.mark_committed()
+        await self._repository.save(candidate)
+        return candidate
+
     async def get_approved_candidate_for_shot(self, shot_contract_id: str) -> KeyframeCandidate | None:
-        """Quality Gate: returns the first approved candidate for a shot, if any."""
+        """Return the selected candidate, including one already committed."""
         candidates = await self.get_candidates_for_shot(shot_contract_id)
         for candidate in candidates:
-            if candidate.status == "APPROVED":
+            if candidate.status in {
+                CandidateStatus.APPROVED,
+                CandidateStatus.COMMITTED,
+            }:
                 return candidate
         return None
