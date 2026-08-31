@@ -112,6 +112,9 @@ class Settings(BaseSettings):
     keyframe_generation_provider: Literal["fake", "comfyui"] = "fake"
     comfyui_keyframe_workflow_path: str = "assets/comfyui_keyframe_workflow.json"
     comfyui_keyframe_checkpoint: str = "sd_xl_base_1.0.safetensors"
+    comfyui_character_lora_name: str = ""
+    comfyui_character_lora_strength_model: float = 0.8
+    comfyui_character_lora_strength_clip: float = 0.8
     comfyui_keyframe_timeout_seconds: float = 300.0
     comfyui_keyframe_poll_interval_seconds: float = 1.0
     comfyui_mode: str = "t2v"

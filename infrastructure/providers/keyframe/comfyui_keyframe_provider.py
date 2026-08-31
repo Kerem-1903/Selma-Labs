@@ -44,6 +44,9 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         workflow_path: str | Path,
         storage: StoragePort,
         checkpoint_name: str = "sd_xl_base_1.0.safetensors",
+        character_lora_name: str = "",
+        character_lora_strength_model: float = 0.8,
+        character_lora_strength_clip: float = 0.8,
         timeout_seconds: float = 300.0,
         poll_interval_seconds: float = 1.0,
         session_factory: Callable[..., Any] = aiohttp.ClientSession,
@@ -54,10 +57,19 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             raise ValueError("ComfyUI timeout_seconds must be greater than zero.")
         if poll_interval_seconds <= 0:
             raise ValueError("ComfyUI poll_interval_seconds must be greater than zero.")
+        for field_name, value in (
+            ("character_lora_strength_model", character_lora_strength_model),
+            ("character_lora_strength_clip", character_lora_strength_clip),
+        ):
+            if not 0.0 <= value <= 2.0:
+                raise ValueError(f"{field_name} must be between 0 and 2.")
         self._api_url = api_url.rstrip("/")
         self._workflow_path = Path(workflow_path)
         self._storage = storage
         self._checkpoint_name = checkpoint_name.strip()
+        self._character_lora_name = character_lora_name.strip()
+        self._character_lora_strength_model = character_lora_strength_model
+        self._character_lora_strength_clip = character_lora_strength_clip
         self._timeout_seconds = timeout_seconds
         self._poll_interval_seconds = poll_interval_seconds
         self._session_factory = session_factory
@@ -80,8 +92,13 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         pose_storage_key = str(
             request.visual_constraints.get("pose_storage_key", "")
         ).strip()
+        lora_metadata, base_model_source = self._select_character_lora(
+            workflow, request
+        )
         self._select_identity_conditioning(
-            workflow, use_reference=bool(selected_references)
+            workflow,
+            use_reference=bool(selected_references),
+            base_model_source=base_model_source,
         )
         self._select_pose_conditioning(workflow, use_pose=bool(pose_storage_key))
         pose_nodes = self._connected_nodes_for_role(workflow, "pose_control_image")
@@ -139,6 +156,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                 "reference_asset_ids": [item[0] for item in selected_references],
                 "reference_storage_keys": [item[1] for item in selected_references],
                 "pose_storage_key": pose_storage_key or None,
+                "character_lora": lora_metadata,
             },
         )
 
@@ -200,6 +218,8 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         identity_strength = request.visual_constraints.get("identity_strength")
         if identity_adapter is not None and identity_strength is not None:
             identity_adapter[1]["inputs"]["weight"] = float(identity_strength)
+        if identity_adapter is not None:
+            self._inject_identity_mode(identity_adapter[1], request)
 
         pose_control = self._node_for_role(workflow, "pose_control")
         pose_strength = request.visual_constraints.get("pose_strength")
@@ -442,7 +462,11 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         ]
 
     def _select_identity_conditioning(
-        self, workflow: dict[str, Any], *, use_reference: bool
+        self,
+        workflow: dict[str, Any],
+        *,
+        use_reference: bool,
+        base_model_source: list[Any],
     ) -> None:
         sampler = self._node_for_role(workflow, "sampler", "KSampler")
         checkpoint = self._node_for_role(
@@ -458,7 +482,139 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                 raise ProviderError("ComfyUI workflow has no identity-adapter node.")
             sampler[1]["inputs"]["model"] = [identity_adapter[0], 0]
         else:
-            sampler[1]["inputs"]["model"] = [checkpoint[0], 0]
+            sampler[1]["inputs"]["model"] = list(base_model_source)
+
+    def _select_character_lora(
+        self,
+        workflow: dict[str, Any],
+        request: KeyframeGenerationRequest,
+    ) -> tuple[dict[str, Any] | None, list[Any]]:
+        checkpoint = self._node_for_role(
+            workflow, "checkpoint", "CheckpointLoaderSimple"
+        )
+        if checkpoint is None:
+            raise ProviderError("ComfyUI workflow has no checkpoint node.")
+        checkpoint_model = [checkpoint[0], 0]
+        checkpoint_clip = [checkpoint[0], 1]
+        lora = self._node_for_role(workflow, "character_lora")
+        name = str(
+            request.visual_constraints.get(
+                "character_lora_name", self._character_lora_name
+            )
+        ).strip()
+        if not name:
+            self._rewire_clip_inputs(workflow, checkpoint_clip)
+            identity_loader = self._node_for_role_by_class(
+                workflow, "IPAdapterUnifiedLoader"
+            )
+            if identity_loader is not None:
+                identity_loader[1]["inputs"]["model"] = checkpoint_model
+            return None, checkpoint_model
+        if lora is None:
+            raise ProviderError("ComfyUI workflow has no character-LoRA node.")
+
+        strength_model = float(
+            request.visual_constraints.get(
+                "character_lora_strength_model",
+                self._character_lora_strength_model,
+            )
+        )
+        strength_clip = float(
+            request.visual_constraints.get(
+                "character_lora_strength_clip",
+                self._character_lora_strength_clip,
+            )
+        )
+        if not 0.0 <= strength_model <= 2.0 or not 0.0 <= strength_clip <= 2.0:
+            raise ProviderError("Character LoRA strengths must be between 0 and 2.")
+        lora[1]["inputs"].update(
+            {
+                "lora_name": name,
+                "strength_model": strength_model,
+                "strength_clip": strength_clip,
+                "model": checkpoint_model,
+                "clip": checkpoint_clip,
+            }
+        )
+        lora_model = [lora[0], 0]
+        lora_clip = [lora[0], 1]
+        self._rewire_clip_inputs(workflow, lora_clip)
+        identity_loader = self._node_for_role_by_class(
+            workflow, "IPAdapterUnifiedLoader"
+        )
+        if identity_loader is not None:
+            identity_loader[1]["inputs"]["model"] = lora_model
+        return (
+            {
+                "name": name,
+                "strength_model": strength_model,
+                "strength_clip": strength_clip,
+            },
+            lora_model,
+        )
+
+    def _rewire_clip_inputs(
+        self, workflow: dict[str, Any], clip_source: list[Any]
+    ) -> None:
+        for role in ("positive_prompt", "negative_prompt"):
+            node = self._node_for_role(workflow, role)
+            if node is not None:
+                node[1]["inputs"]["clip"] = list(clip_source)
+
+    def _node_for_role_by_class(
+        self, workflow: dict[str, Any], class_type: str
+    ) -> tuple[str, dict[str, Any]] | None:
+        return next(
+            (
+                (node_id, node)
+                for node_id, node in workflow.items()
+                if node.get("class_type") == class_type
+            ),
+            None,
+        )
+
+    @staticmethod
+    def _inject_identity_mode(
+        identity_adapter: dict[str, Any], request: KeyframeGenerationRequest
+    ) -> None:
+        inputs = identity_adapter["inputs"]
+        mode = str(request.visual_constraints.get("identity_mode", "balanced"))
+        if mode == "identity_only":
+            inputs.update(
+                {
+                    "weight_type": "weak input",
+                    "combine_embeds": "average",
+                    "start_at": 0.0,
+                    "end_at": 0.65,
+                    "embeds_scaling": "K+V w/ C penalty",
+                }
+            )
+        elif mode != "balanced":
+            raise ProviderError(f"Unknown identity conditioning mode: {mode!r}.")
+
+        overrides = {
+            "identity_weight_type": "weight_type",
+            "identity_combine_embeds": "combine_embeds",
+            "identity_start_at": "start_at",
+            "identity_end_at": "end_at",
+            "identity_embeds_scaling": "embeds_scaling",
+        }
+        for source_key, input_key in overrides.items():
+            if source_key in request.visual_constraints:
+                inputs[input_key] = request.visual_constraints[source_key]
+        try:
+            start_at = float(inputs["start_at"])
+            end_at = float(inputs["end_at"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise ProviderError(
+                "Identity conditioning start/end values must be numeric."
+            ) from error
+        if not 0.0 <= start_at <= end_at <= 1.0:
+            raise ProviderError(
+                "Identity conditioning must satisfy 0 <= start_at <= end_at <= 1."
+            )
+        inputs["start_at"] = start_at
+        inputs["end_at"] = end_at
 
     def _select_pose_conditioning(
         self, workflow: dict[str, Any], *, use_pose: bool

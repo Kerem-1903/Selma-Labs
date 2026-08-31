@@ -445,6 +445,13 @@ def get_keyframe_generation_provider(
             workflow_path=settings.comfyui_keyframe_workflow_path,
             storage=storage,
             checkpoint_name=settings.comfyui_keyframe_checkpoint,
+            character_lora_name=settings.comfyui_character_lora_name,
+            character_lora_strength_model=(
+                settings.comfyui_character_lora_strength_model
+            ),
+            character_lora_strength_clip=(
+                settings.comfyui_character_lora_strength_clip
+            ),
             timeout_seconds=settings.comfyui_keyframe_timeout_seconds,
             poll_interval_seconds=settings.comfyui_keyframe_poll_interval_seconds,
         )

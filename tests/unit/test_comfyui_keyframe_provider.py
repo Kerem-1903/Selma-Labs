@@ -293,6 +293,117 @@ async def test_provider_uploads_pose_asset_and_enables_controlnet_conditioning()
     )
 
 
+@pytest.mark.asyncio
+async def test_provider_identity_only_mode_reduces_composition_transfer():
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=MemoryStorage(
+            {
+                "characters/akira/face.png": PNG_BYTES,
+                "characters/akira/front.png": PNG_BYTES,
+            }
+        ),
+        session_factory=lambda **kwargs: session,
+    )
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "identity_mode": "identity_only",
+        },
+    )
+
+    await provider.generate_keyframe(request)
+
+    adapter = session.queued_workflow["20"]["inputs"]
+    assert adapter["weight_type"] == "weak input"
+    assert adapter["combine_embeds"] == "average"
+    assert adapter["end_at"] == 0.65
+    assert adapter["embeds_scaling"] == "K+V w/ C penalty"
+
+
+@pytest.mark.asyncio
+async def test_provider_rejects_invalid_identity_timing():
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=MemoryStorage(
+            {
+                "characters/akira/face.png": PNG_BYTES,
+                "characters/akira/front.png": PNG_BYTES,
+            }
+        ),
+        session_factory=lambda **kwargs: FakeSession(),
+    )
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "identity_start_at": 0.9,
+            "identity_end_at": 0.2,
+        },
+    )
+
+    with pytest.raises(ProviderError, match="start_at"):
+        await provider.generate_keyframe(request)
+
+
+@pytest.mark.asyncio
+async def test_provider_connects_character_lora_before_ipadapter():
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=MemoryStorage(
+            {
+                "characters/akira/face.png": PNG_BYTES,
+                "characters/akira/front.png": PNG_BYTES,
+            }
+        ),
+        character_lora_name="selma-akira-v1.safetensors",
+        session_factory=lambda **kwargs: session,
+    )
+
+    generated = await provider.generate_keyframe(_request())
+
+    workflow = session.queued_workflow
+    assert workflow["24"]["inputs"]["lora_name"] == (
+        "selma-akira-v1.safetensors"
+    )
+    assert workflow["18"]["inputs"]["model"] == ["24", 0]
+    assert workflow["6"]["inputs"]["clip"] == ["24", 1]
+    assert workflow["7"]["inputs"]["clip"] == ["24", 1]
+    assert workflow["3"]["inputs"]["model"] == ["20", 0]
+    assert generated.metadata["character_lora"] == {
+        "name": "selma-akira-v1.safetensors",
+        "strength_model": 0.8,
+        "strength_clip": 0.8,
+    }
+
+
+@pytest.mark.asyncio
+async def test_provider_can_use_character_lora_without_ipadapter_reference():
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=MemoryStorage(),
+        character_lora_name="selma-akira-v1.safetensors",
+        session_factory=lambda **kwargs: session,
+    )
+
+    generated = await provider.generate_keyframe(_request(with_reference=False))
+
+    assert session.uploaded_forms == []
+    assert session.queued_workflow["3"]["inputs"]["model"] == ["24", 0]
+    assert session.queued_workflow["6"]["inputs"]["clip"] == ["24", 1]
+    assert generated.metadata["character_lora"]["name"] == (
+        "selma-akira-v1.safetensors"
+    )
+
+
 def test_registry_requires_shared_storage_for_comfyui():
     settings = Settings(keyframe_generation_provider="comfyui")
     with pytest.raises(ValueError, match="StoragePort"):

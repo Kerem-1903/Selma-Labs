@@ -163,6 +163,26 @@
       "title": "IPAdapter Unified Loader"
     }
   },
+  "24": {
+    "inputs": {
+      "lora_name": "selma-akira-v1.safetensors",
+      "strength_model": 0.8,
+      "strength_clip": 0.8,
+      "model": [
+        "4",
+        0
+      ],
+      "clip": [
+        "4",
+        1
+      ]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {
+      "title": "SELMA Character LoRA",
+      "selma_role": "character_lora"
+    }
+  },
   "20": {
     "inputs": {
       "weight": 0.8,
