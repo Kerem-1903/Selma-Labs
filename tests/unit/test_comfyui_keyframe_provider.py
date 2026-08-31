@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -214,6 +215,10 @@ async def test_provider_uploads_selected_reference_and_injects_typed_contract():
     assert workflow is not None
     assert workflow["10"]["inputs"]["image"] == "selma/reference.png"
     assert workflow["3"]["inputs"]["latent_image"] == ["13", 0]
+    assert workflow["3"]["inputs"]["model"] == ["20", 0]
+    assert workflow["18"]["inputs"]["model"] == ["4", 0]
+    assert workflow["20"]["inputs"]["model"] == ["18", 0]
+    assert workflow["20"]["inputs"]["ipadapter"] == ["18", 1]
     assert workflow["3"]["inputs"]["seed"] == 1903
     assert workflow["4"]["inputs"]["ckpt_name"] == "sd_xl_base_1.0.safetensors"
     assert workflow["12"]["inputs"]["width"] == 1280
@@ -241,9 +246,51 @@ async def test_provider_uses_empty_latent_when_shot_has_no_character_reference()
 
     assert session.uploaded_forms == []
     assert session.queued_workflow["3"]["inputs"]["latent_image"] == ["5", 0]
+    assert session.queued_workflow["3"]["inputs"]["model"] == ["4", 0]
+    assert session.queued_workflow["3"]["inputs"]["positive"] == ["6", 0]
+    assert session.queued_workflow["3"]["inputs"]["negative"] == ["7", 0]
     assert session.queued_workflow["5"]["inputs"]["width"] == 1280
     assert session.queued_workflow["5"]["inputs"]["height"] == 720
     assert "13" in session.queued_workflow
+
+
+@pytest.mark.asyncio
+async def test_provider_uploads_pose_asset_and_enables_controlnet_conditioning():
+    storage = MemoryStorage(
+        {
+            "characters/akira/face.png": PNG_BYTES,
+            "characters/akira/front.png": PNG_BYTES,
+            "characters/akira/poses/sprint.png": PNG_BYTES,
+        }
+    )
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=storage,
+        session_factory=lambda **kwargs: session,
+    )
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "pose_storage_key": "characters/akira/poses/sprint.png",
+            "identity_strength": 0.65,
+            "pose_strength": 0.85,
+        },
+    )
+
+    generated = await provider.generate_keyframe(request)
+
+    assert len(session.uploaded_forms) == 2
+    assert session.queued_workflow["23"]["inputs"]["image"] == "selma/reference.png"
+    assert session.queued_workflow["3"]["inputs"]["positive"] == ["22", 0]
+    assert session.queued_workflow["3"]["inputs"]["negative"] == ["22", 1]
+    assert session.queued_workflow["20"]["inputs"]["weight"] == 0.65
+    assert session.queued_workflow["22"]["inputs"]["strength"] == 0.85
+    assert generated.metadata["pose_storage_key"] == (
+        "characters/akira/poses/sprint.png"
+    )
 
 
 def test_registry_requires_shared_storage_for_comfyui():

@@ -152,6 +152,10 @@
   },
   "18": {
     "inputs": {
+      "model": [
+        "4",
+        0
+      ],
       "preset": "PLUS (high strength)"
     },
     "class_type": "IPAdapterUnifiedLoader",
@@ -168,12 +172,12 @@
       "end_at": 1.0,
       "embeds_scaling": "V only",
       "model": [
-        "4",
+        "18",
         0
       ],
       "ipadapter": [
         "18",
-        0
+        1
       ],
       "image": [
         "12",
@@ -182,12 +186,13 @@
     },
     "class_type": "IPAdapterAdvanced",
     "_meta": {
-      "title": "IPAdapter Advanced"
+      "title": "IPAdapter Advanced",
+      "selma_role": "identity_adapter"
     }
   },
   "21": {
     "inputs": {
-      "control_net_name": "thibaud_xl_openpose.safetensors"
+      "control_net_name": "control-lora-openposeXL2-rank256.safetensors"
     },
     "class_type": "ControlNetLoader",
     "_meta": {
@@ -218,7 +223,8 @@
     },
     "class_type": "ControlNetApplyAdvanced",
     "_meta": {
-      "title": "Apply ControlNet"
+      "title": "Apply ControlNet",
+      "selma_role": "pose_control"
     }
   },
   "23": {
@@ -229,7 +235,7 @@
     "class_type": "LoadImage",
     "_meta": {
       "title": "SELMA Pose Guide",
-      "selma_role": "pose_image"
+      "selma_role": "pose_control_image"
     }
   }
 }

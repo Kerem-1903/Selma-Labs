@@ -77,6 +77,18 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             raise ProviderError(
                 "ComfyUI workflow does not contain enough connected SELMA reference nodes."
             )
+        pose_storage_key = str(
+            request.visual_constraints.get("pose_storage_key", "")
+        ).strip()
+        self._select_identity_conditioning(
+            workflow, use_reference=bool(selected_references)
+        )
+        self._select_pose_conditioning(workflow, use_pose=bool(pose_storage_key))
+        pose_nodes = self._connected_nodes_for_role(workflow, "pose_control_image")
+        if pose_storage_key and len(pose_nodes) != 1:
+            raise ProviderError(
+                "ComfyUI workflow must contain one connected SELMA pose-control image node."
+            )
 
         timeout = aiohttp.ClientTimeout(total=self._timeout_seconds)
         try:
@@ -88,6 +100,11 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                         session, storage_key=storage_key
                     )
                     workflow[node_id]["inputs"]["image"] = uploaded_name
+                if pose_storage_key:
+                    uploaded_pose = await self._upload_reference(
+                        session, storage_key=pose_storage_key
+                    )
+                    workflow[pose_nodes[0]]["inputs"]["image"] = uploaded_pose
                 self._select_latent_source(
                     workflow, use_reference=bool(selected_references)
                 )
@@ -121,6 +138,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                 "prompt_id": prompt_id,
                 "reference_asset_ids": [item[0] for item in selected_references],
                 "reference_storage_keys": [item[1] for item in selected_references],
+                "pose_storage_key": pose_storage_key or None,
             },
         )
 
@@ -177,6 +195,16 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         for node in target_nodes:
             node["inputs"]["width"] = request.width
             node["inputs"]["height"] = request.height
+
+        identity_adapter = self._node_for_role(workflow, "identity_adapter")
+        identity_strength = request.visual_constraints.get("identity_strength")
+        if identity_adapter is not None and identity_strength is not None:
+            identity_adapter[1]["inputs"]["weight"] = float(identity_strength)
+
+        pose_control = self._node_for_role(workflow, "pose_control")
+        pose_strength = request.visual_constraints.get("pose_strength")
+        if pose_control is not None and pose_strength is not None:
+            pose_control[1]["inputs"]["strength"] = float(pose_strength)
 
     @staticmethod
     def _build_positive_prompt(request: KeyframeGenerationRequest) -> str:
@@ -379,6 +407,11 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         raise ProviderError("ComfyUI history contained no image from the output node.")
 
     def _connected_reference_nodes(self, workflow: dict[str, Any]) -> list[str]:
+        return self._connected_nodes_for_role(workflow, "reference_image")
+
+    def _connected_nodes_for_role(
+        self, workflow: dict[str, Any], role: str
+    ) -> list[str]:
         reachable: set[str] = set()
 
         def visit(node_id: str) -> None:
@@ -404,9 +437,50 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             visit(output_id)
         return [
             node_id
-            for node_id, _ in self._nodes_for_role(workflow, "reference_image")
+            for node_id, _ in self._nodes_for_role(workflow, role)
             if node_id in reachable
         ]
+
+    def _select_identity_conditioning(
+        self, workflow: dict[str, Any], *, use_reference: bool
+    ) -> None:
+        sampler = self._node_for_role(workflow, "sampler", "KSampler")
+        checkpoint = self._node_for_role(
+            workflow, "checkpoint", "CheckpointLoaderSimple"
+        )
+        identity_adapter = self._node_for_role(workflow, "identity_adapter")
+        if sampler is None or checkpoint is None:
+            raise ProviderError(
+                "ComfyUI identity workflow requires sampler and checkpoint nodes."
+            )
+        if use_reference:
+            if identity_adapter is None:
+                raise ProviderError("ComfyUI workflow has no identity-adapter node.")
+            sampler[1]["inputs"]["model"] = [identity_adapter[0], 0]
+        else:
+            sampler[1]["inputs"]["model"] = [checkpoint[0], 0]
+
+    def _select_pose_conditioning(
+        self, workflow: dict[str, Any], *, use_pose: bool
+    ) -> None:
+        pose_control = self._node_for_role(workflow, "pose_control")
+        if pose_control is None:
+            if use_pose:
+                raise ProviderError("ComfyUI workflow has no pose-control node.")
+            return
+        sampler = self._node_for_role(workflow, "sampler", "KSampler")
+        positive = self._node_for_role(workflow, "positive_prompt", "CLIPTextEncode")
+        negative = self._node_for_role(workflow, "negative_prompt")
+        if sampler is None or positive is None or negative is None:
+            raise ProviderError(
+                "ComfyUI pose workflow requires sampler, positive and negative nodes."
+            )
+        if use_pose:
+            sampler[1]["inputs"]["positive"] = [pose_control[0], 0]
+            sampler[1]["inputs"]["negative"] = [pose_control[0], 1]
+        else:
+            sampler[1]["inputs"]["positive"] = [positive[0], 0]
+            sampler[1]["inputs"]["negative"] = [negative[0], 0]
 
     def _select_latent_source(
         self, workflow: dict[str, Any], *, use_reference: bool

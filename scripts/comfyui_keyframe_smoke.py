@@ -1,9 +1,10 @@
 import asyncio
+import io
 import os
 import sys
 import time
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageDraw
 
 # Ensure the project root is in sys.path
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
@@ -13,12 +14,22 @@ from infrastructure.providers.keyframe.comfyui_keyframe_provider import ComfyUIK
 from infrastructure.storage.local_fs_storage import LocalFsStorage
 from config.settings import get_settings
 
-def build_akira_contract(shot_id: str, camera_lens: str, camera_angle: str, action: str) -> KeyframeGenerationRequest:
+def build_akira_contract(
+    shot_id: str,
+    camera_lens: str,
+    camera_angle: str,
+    action: str,
+    pose_storage_key: str | None = None,
+) -> KeyframeGenerationRequest:
     return KeyframeGenerationRequest(
         shot_contract_id=shot_id,
         camera_constraints={"lens": camera_lens, "angle": camera_angle, "movement": "static"},
         action_constraints={"primary_action": action},
-        visual_constraints={"lighting": "cinematic lighting", "environment_style": "cyberpunk city"},
+        visual_constraints={
+            "lighting": "cinematic lighting",
+            "environment_style": "cyberpunk city",
+            **({"pose_storage_key": pose_storage_key} if pose_storage_key else {}),
+        },
         reference_asset_ids=("ref-akira-1",),
         reference_storage_keys=("assets/references/akira_base.png",),
         width=1024,
@@ -40,6 +51,43 @@ async def setup_mock_akira_reference(storage: LocalFsStorage) -> None:
     else:
         print(f"Mock Akira reference exists at {akira_key}")
 
+
+async def setup_mock_pose_guide(storage: LocalFsStorage) -> str:
+    pose_key = "assets/references/akira_pose.png"
+    if await storage.exists(pose_key):
+        return pose_key
+
+    image = Image.new("RGB", (1024, 1024), color="black")
+    draw = ImageDraw.Draw(image)
+    joints = {
+        "head": (520, 180),
+        "neck": (500, 290),
+        "left_hand": (300, 450),
+        "right_hand": (730, 360),
+        "hip": (480, 570),
+        "left_foot": (250, 850),
+        "right_foot": (760, 780),
+    }
+    for start, end, color in (
+        ("head", "neck", "white"),
+        ("neck", "left_hand", "red"),
+        ("neck", "right_hand", "green"),
+        ("neck", "hip", "blue"),
+        ("hip", "left_foot", "yellow"),
+        ("hip", "right_foot", "cyan"),
+    ):
+        draw.line((joints[start], joints[end]), fill=color, width=24)
+    for point in joints.values():
+        draw.ellipse(
+            (point[0] - 14, point[1] - 14, point[0] + 14, point[1] + 14),
+            fill="white",
+        )
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    await storage.save(pose_key, buffer.getvalue(), "image/png")
+    print(f"Created mock OpenPose guide at {pose_key}")
+    return pose_key
+
 async def run_smoke():
     settings = get_settings()
     storage = LocalFsStorage(settings.storage_root_dir)
@@ -60,11 +108,12 @@ async def run_smoke():
     print("=" * 60)
 
     await setup_mock_akira_reference(storage)
+    pose_key = await setup_mock_pose_guide(storage)
 
     shots = [
-        ("shot-akira-face", "85mm", "extreme close-up", "intense stare at the camera"),
-        ("shot-akira-profile", "50mm", "side profile", "looking left towards a neon sign"),
-        ("shot-akira-action", "24mm", "wide full body", "sprinting forward with a sword drawn")
+        ("shot-akira-face", "85mm", "extreme close-up", "intense stare at the camera", None),
+        ("shot-akira-profile", "50mm", "side profile", "looking left towards a neon sign", None),
+        ("shot-akira-action", "24mm", "wide full body", "sprinting forward with a sword drawn", pose_key),
     ]
 
     import aiohttp
@@ -81,9 +130,11 @@ async def run_smoke():
         sys.exit(1)
 
     failures = 0
-    for shot_id, lens, angle, action in shots:
+    for shot_id, lens, angle, action, shot_pose_key in shots:
         print(f"\n--- Generating: {shot_id} ---")
-        request = build_akira_contract(shot_id, lens, angle, action)
+        request = build_akira_contract(
+            shot_id, lens, angle, action, shot_pose_key
+        )
         print(f"Contract Constraints: {request.camera_constraints}, {request.action_constraints}")
 
         start_time = time.time()
