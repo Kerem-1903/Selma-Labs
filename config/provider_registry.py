@@ -44,6 +44,7 @@ from core.domain.ports.video_source_port import VideoSourcePort
 from core.domain.ports.video_generation_port import VideoGenerationPort
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
+from core.domain.ports.image_to_video_generation_port import ImageToVideoGenerationPort
 from core.domain.ports.storage_port import StoragePort
 from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
 from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
@@ -472,6 +473,36 @@ def get_video_generation_port(settings: Settings):
         from infrastructure.providers.video.comfyui_video_provider import ComfyUIVideoProvider
         return ComfyUIVideoProvider(api_url=settings.comfyui_api_url, workflow_path=settings.comfyui_workflow_path)
     return None
+
+
+def get_image_to_video_generation_provider(
+    settings: Settings,
+    *,
+    storage: StoragePort | None = None,
+) -> ImageToVideoGenerationPort:
+    if settings.image_to_video_provider == "fake":
+        from infrastructure.providers.video.fake_image_to_video_provider import (
+            FakeImageToVideoProvider,
+        )
+
+        return FakeImageToVideoProvider()
+    if settings.image_to_video_provider == "comfyui":
+        if storage is None:
+            raise ValueError("ComfyUI image-to-video requires the application's StoragePort.")
+        from infrastructure.providers.video.comfyui_image_to_video_provider import (
+            ComfyUIImageToVideoProvider,
+        )
+
+        return ComfyUIImageToVideoProvider(
+            api_url=settings.comfyui_api_url,
+            workflow_path=settings.comfyui_i2v_workflow_path,
+            storage=storage,
+            timeout_seconds=settings.comfyui_i2v_timeout_seconds,
+            poll_interval_seconds=settings.comfyui_i2v_poll_interval_seconds,
+        )
+    raise ValueError(
+        f"Unknown image_to_video_provider: {settings.image_to_video_provider!r}."
+    )
 
 def get_youtube_upload_port(settings: Settings):
     if settings.youtube_upload_enabled:

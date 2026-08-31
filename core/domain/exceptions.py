@@ -244,6 +244,22 @@ class ShotStoryboardStateError(SelmaError):
     """Persisted shot-storyboard metadata is corrupt or incompatible."""
 
 
+class MotionGenerationError(SelmaError):
+    """An approved storyboard frame could not become a durable motion clip."""
+
+
+class ShotMotionClipStateError(SelmaError):
+    """Persisted shot-motion metadata is missing, corrupt, or incompatible."""
+
+
+class ShotProductionError(SelmaError):
+    """A publishable shot exhausted retryable production attempts."""
+
+
+class VideoAssemblyError(SelmaError):
+    """Approved motion clips could not be normalized and assembled."""
+
+
 class SubtitleGenerationError(SelmaError):
     """Raised when a SubtitleTrack cannot be generated from a ScenePlan --
     specifically: the plan has no scenes at all, or one or more scenes
