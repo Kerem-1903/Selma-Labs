@@ -19,6 +19,7 @@ class IdentityConstraints:
     facial_geometry: str
     body_proportions: str
     silhouette: str
+    trigger_prompt: str = ""
     immutable_marks: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -28,6 +29,7 @@ class IdentityConstraints:
             "facial_geometry": self.facial_geometry,
             "body_proportions": self.body_proportions,
             "silhouette": self.silhouette,
+            "trigger_prompt": self.trigger_prompt,
             "immutable_marks": self.immutable_marks
         }
 
@@ -39,5 +41,6 @@ class IdentityConstraints:
             facial_geometry=data.get("facial_geometry", ""),
             body_proportions=data.get("body_proportions", ""),
             silhouette=data.get("silhouette", ""),
+            trigger_prompt=data.get("trigger_prompt", ""),
             immutable_marks=data.get("immutable_marks", [])
         )

@@ -229,3 +229,31 @@ follow the [Code of Conduct](CODE_OF_CONDUCT.md). Security vulnerabilities must
 be reported privately according to [SECURITY.md](SECURITY.md).
 
 SELMA Labs is available under the [Apache License 2.0](LICENSE).
+
+## New Architecture Guide
+
+This project has been refactored to support our anime production engine featuring the character **Akira**.
+The system strictly adheres to **Hexagonal Architecture (Ports and Adapters)** and **Domain-Driven Design (DDD)**.
+
+### Domain Entities & Value Objects
+- `CharacterBible`: Defines the protagonist Akira with specific traits, wardrobe, and trigger prompts.
+- `RenderConfig`: Configuration for rendering with a 2-pass denoise setup and SHA-256 caching.
+- `ShotAnimation`: Contains `CharacterState`, `ShotPlan`, and `ShotMotionClip`.
+
+### Domain Ports
+- `MotionGeneratorPort`: Abstract port for generating motion clips (async).
+- `LipSyncPort`: Abstract port for generating lip-sync animations (async).
+
+### Infrastructure Adapters
+- `ComfyUIMotionAdapter`: Implements `MotionGeneratorPort`, queuing 2-pass ComfyUI graph processing via WebSockets.
+- `LivePortraitAdapter`: Implements `LipSyncPort` for audio-driven mouth animations.
+- `LayeredCompositor`: Merges backgrounds, character videos, and audio.
+
+### Application Services
+- `ScriptBreakdownService`: Parses text scripts into timed `ShotPlan` entities.
+- `AnimationOrchestratorService`: Orchestrates the pipeline (Motion -> LipSync -> Composition).
+
+### CLI Usage
+- `python cli/main.py character show`: Show character info.
+- `python cli/main.py script breakdown --input <file>`: Parse a script into shot plans.
+- `python cli/main.py render shot --shot-id <id>`: Render a shot.
