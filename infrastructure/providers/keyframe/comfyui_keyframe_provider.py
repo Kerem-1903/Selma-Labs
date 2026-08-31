@@ -45,6 +45,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         storage: StoragePort,
         checkpoint_name: str = "sd_xl_base_1.0.safetensors",
         character_lora_name: str = "",
+        character_lora_trigger_token: str = "",
         character_lora_strength_model: float = 0.8,
         character_lora_strength_clip: float = 0.8,
         timeout_seconds: float = 300.0,
@@ -68,6 +69,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         self._storage = storage
         self._checkpoint_name = checkpoint_name.strip()
         self._character_lora_name = character_lora_name.strip()
+        self._character_lora_trigger_token = character_lora_trigger_token.strip()
         self._character_lora_strength_model = character_lora_strength_model
         self._character_lora_strength_clip = character_lora_strength_clip
         self._timeout_seconds = timeout_seconds
@@ -532,6 +534,16 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             return None, checkpoint_model
         if lora is None:
             raise ProviderError("ComfyUI workflow has no character-LoRA node.")
+        trigger_token = str(
+            request.visual_constraints.get(
+                "character_lora_trigger_token",
+                self._character_lora_trigger_token,
+            )
+        ).strip()
+        if not trigger_token:
+            raise ProviderError(
+                "Character LoRA requires a non-empty trigger token."
+            )
 
         strength_model = float(
             request.visual_constraints.get(
@@ -559,6 +571,12 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         lora_model = [lora[0], 0]
         lora_clip = [lora[0], 1]
         self._rewire_clip_inputs(workflow, lora_clip)
+        positive = self._node_for_role(workflow, "positive_prompt", "CLIPTextEncode")
+        if positive is None:
+            raise ProviderError("ComfyUI workflow has no positive prompt node.")
+        prompt = str(positive[1]["inputs"].get("text", "")).strip()
+        if trigger_token.casefold() not in prompt.casefold():
+            positive[1]["inputs"]["text"] = f"{trigger_token}, {prompt}"
         identity_loader = self._node_for_role_by_class(
             workflow, "IPAdapterUnifiedLoader"
         )
@@ -567,6 +585,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         return (
             {
                 "name": name,
+                "trigger_token": trigger_token,
                 "strength_model": strength_model,
                 "strength_clip": strength_clip,
             },

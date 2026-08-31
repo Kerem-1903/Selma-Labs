@@ -446,6 +446,9 @@ def get_keyframe_generation_provider(
             storage=storage,
             checkpoint_name=settings.comfyui_keyframe_checkpoint,
             character_lora_name=settings.comfyui_character_lora_name,
+            character_lora_trigger_token=(
+                settings.comfyui_character_lora_trigger_token
+            ),
             character_lora_strength_model=(
                 settings.comfyui_character_lora_strength_model
             ),

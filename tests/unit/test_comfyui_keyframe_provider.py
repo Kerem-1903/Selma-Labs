@@ -397,6 +397,7 @@ async def test_provider_connects_character_lora_before_ipadapter():
             }
         ),
         character_lora_name="selma-akira-v1.safetensors",
+        character_lora_trigger_token="selma_akira_v1",
         session_factory=lambda **kwargs: session,
     )
 
@@ -410,8 +411,10 @@ async def test_provider_connects_character_lora_before_ipadapter():
     assert workflow["6"]["inputs"]["clip"] == ["24", 1]
     assert workflow["7"]["inputs"]["clip"] == ["24", 1]
     assert workflow["3"]["inputs"]["model"] == ["20", 0]
+    assert workflow["6"]["inputs"]["text"].startswith("selma_akira_v1, ")
     assert generated.metadata["character_lora"] == {
         "name": "selma-akira-v1.safetensors",
+        "trigger_token": "selma_akira_v1",
         "strength_model": 0.8,
         "strength_clip": 0.8,
     }
@@ -425,6 +428,7 @@ async def test_provider_can_use_character_lora_without_ipadapter_reference():
         workflow_path=WORKFLOW_PATH,
         storage=MemoryStorage(),
         character_lora_name="selma-akira-v1.safetensors",
+        character_lora_trigger_token="selma_akira_v1",
         session_factory=lambda **kwargs: session,
     )
 
@@ -436,6 +440,20 @@ async def test_provider_can_use_character_lora_without_ipadapter_reference():
     assert generated.metadata["character_lora"]["name"] == (
         "selma-akira-v1.safetensors"
     )
+
+
+@pytest.mark.asyncio
+async def test_provider_rejects_lora_without_trigger_token():
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=MemoryStorage(),
+        character_lora_name="selma-akira-v1.safetensors",
+        session_factory=lambda **kwargs: FakeSession(),
+    )
+
+    with pytest.raises(ProviderError, match="trigger token"):
+        await provider.generate_keyframe(_request(with_reference=False))
 
 
 def test_registry_requires_shared_storage_for_comfyui():
