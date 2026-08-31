@@ -1,0 +1,100 @@
+{
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "animagine-xl-4.0-opt.safetensors"
+    }
+  },
+  "2": {
+    "class_type": "ADE_AnimateDiffLoaderGen1",
+    "inputs": {
+      "model": ["1", 0],
+      "model_name": "mm_sdxl_v10_beta.ckpt",
+      "beta_schedule": "linear (AnimateDiff-SDXL)"
+    }
+  },
+  "3": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "akira-a8-source.png"
+    }
+  },
+  "4": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "image": ["3", 0],
+      "upscale_method": "lanczos",
+      "width": 512,
+      "height": 512,
+      "crop": "disabled"
+    }
+  },
+  "5": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": ["4", 0],
+      "vae": ["1", 2]
+    }
+  },
+  "6": {
+    "class_type": "RepeatLatentBatch",
+    "inputs": {
+      "samples": ["5", 0],
+      "amount": 8
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Positive Prompt"
+    },
+    "inputs": {
+      "clip": ["1", 1],
+      "text": "masterpiece, best quality, anime, 1girl, Akira, black hair with red streak, black and red combat jacket, running with a single katana, consistent face, subtle breathing, hair and jacket fluttering, controlled natural motion"
+    }
+  },
+  "8": {
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Negative Prompt"
+    },
+    "inputs": {
+      "clip": ["1", 1],
+      "text": "low quality, worst quality, identity drift, extra face, duplicate person, extra limbs, extra sword, deformed hands, flicker, jitter, text, watermark"
+    }
+  },
+  "9": {
+    "class_type": "KSampler",
+    "inputs": {
+      "model": ["2", 0],
+      "seed": 1903,
+      "steps": 16,
+      "cfg": 4.5,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "positive": ["7", 0],
+      "negative": ["8", 0],
+      "latent_image": ["6", 0],
+      "denoise": 0.12
+    }
+  },
+  "10": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["9", 0],
+      "vae": ["1", 2]
+    }
+  },
+  "11": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "images": ["10", 0],
+      "frame_rate": 8,
+      "loop_count": 0,
+      "filename_prefix": "selma/a8-akira",
+      "format": "video/h264-mp4",
+      "pingpong": false,
+      "save_output": true
+    }
+  }
+}
