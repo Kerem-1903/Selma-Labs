@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Kerem-1903/Selma-Labs/security/advisories/new
+    about: Send security-sensitive findings privately to the maintainers.
+  - name: Read the documentation
+    url: https://github.com/Kerem-1903/Selma-Labs/blob/main/docs/README.md
+    about: Check architecture, production, quality, and operational guidance first.

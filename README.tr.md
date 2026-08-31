@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/Kerem-1903/Selma-Labs/actions/workflows/quality-gates.yml"><img src="https://github.com/Kerem-1903/Selma-Labs/actions/workflows/quality-gates.yml/badge.svg" alt="Quality Gates" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/Lisans-Apache--2.0-D22128.svg" alt="Apache Lisansı 2.0" /></a>
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python 3.10+" />
   <img src="https://img.shields.io/badge/Remotion-4.x-0B84F3?logo=react&logoColor=white" alt="Remotion 4.x" />
   <img src="https://img.shields.io/badge/FFmpeg-production-007808?logo=ffmpeg&logoColor=white" alt="FFmpeg üretim hattı" />
@@ -218,5 +219,11 @@ SELMA Labs aktif olarak geliştirilmektedir. Sıradaki üretim hedefi özgün
 sahnesi, kontrollü motion-comic kapsama, her medya sınırında insan incelemesi ve
 1080p/24 FPS post-production master.
 
-Topluluk dosyaları, release paketleme ve resmi lisans ayrı repo sağlamlaştırma
-değişiklikleri olarak hazırlanacaktır.
+## Katkı ve destek
+
+Katkılara açığız. Pull request açmadan önce [CONTRIBUTING.md](CONTRIBUTING.md)
+dosyasını okuyun, herkese açık bildirimler için yapılandırılmış issue formlarını
+kullanın ve [Davranış Kuralları'na](CODE_OF_CONDUCT.md) uyun. Güvenlik açıkları
+[SECURITY.md](SECURITY.md) sürecine göre özel olarak bildirilmelidir.
+
+SELMA Labs, [Apache Lisansı 2.0](LICENSE) ile sunulur.

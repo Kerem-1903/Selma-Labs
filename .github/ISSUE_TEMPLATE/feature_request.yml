@@ -1,0 +1,54 @@
+name: Feature request
+description: Propose a focused improvement to SELMA Labs.
+title: "[Feature]: "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and did not find the same proposal.
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: Describe the production need before describing a solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed outcome
+      description: What should change for the user or production workflow?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Primary area
+      options:
+        - Story and research
+        - Character continuity
+        - Keyframes and image generation
+        - Motion generation
+        - Editing and rendering
+        - Human review
+        - Quality and rights
+        - Providers and local runtime
+        - Documentation and developer experience
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints and trade-offs
+      description: Include approval, portability, provider, rights, runtime, and cost considerations.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches or workarounds have you tried?
