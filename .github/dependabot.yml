@@ -40,6 +40,13 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # Remotion's current toolchain does not type-check with TypeScript 7 yet.
+      # Keep receiving compatible minor/patch updates and revisit this at the
+      # next Remotion major upgrade.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: /
