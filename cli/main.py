@@ -37,6 +37,21 @@ def build_parser() -> argparse.ArgumentParser:
     shot.add_argument("--background-key", required=True)
     shot.add_argument("--audio-key", required=True)
     shot.add_argument("--output-key", required=True)
+
+    blender = commands.add_parser("blender", help="Blender Integration and A8.2 tools")
+    blender_commands = blender.add_subparsers(dest="blender_command", required=True)
+
+    register = blender_commands.add_parser("register-views")
+    register.add_argument("--input", required=True, help="Path to multiview reference image")
+
+    turntable = blender_commands.add_parser("turntable")
+    turntable.add_argument("--model", required=True, help="Path to 3D model")
+    turntable.add_argument("--output-dir", default="output/blender", help="Directory for output")
+    turntable.add_argument("--quality", default="preview", help="Render quality (preview, high)")
+
+    benchmark = blender_commands.add_parser("benchmark")
+    benchmark.add_argument("--model", required=True, help="Path to 3D model")
+
     return parser
 
 
@@ -53,6 +68,8 @@ def main(
             _break_down_script(arguments)
         elif arguments.command == "render":
             asyncio.run(_render_shot(arguments, container_factory()))
+        elif arguments.command == "blender":
+            asyncio.run(_run_blender_commands(arguments, container_factory()))
         return 0
     except Exception as error:  # noqa: BLE001 - CLI boundary
         print(f"SELMA command failed: {error}", file=sys.stderr)
@@ -99,6 +116,37 @@ async def _render_shot(
         output_path=arguments.output_key,
     )
     print(output)
+
+
+async def _run_blender_commands(
+    arguments: argparse.Namespace,
+    container: AnimationContainer,
+) -> None:
+    if arguments.blender_command == "register-views":
+        from core.application.services.multiview_asset_registration_service import MultiviewAssetRegistrationService
+        service = MultiviewAssetRegistrationService(container.storage)
+        updated_bible = await service.register_multiview_asset(
+            bible=container.character_bible,
+            image_path=arguments.input
+        )
+        print("Successfully registered multiview assets.")
+        _show_character(updated_bible)
+    elif arguments.blender_command == "turntable":
+        from infrastructure.providers.blender.blender_scene_adapter import BlenderSceneAdapter
+        from config.settings import get_settings
+        adapter = BlenderSceneAdapter(blender_bin_path=get_settings().blender_bin_path)
+        manifest = await adapter.render_turntable(
+            model_path=arguments.model,
+            output_dir=arguments.output_dir,
+            resolution_profile=arguments.quality
+        )
+        print(json.dumps(manifest.to_dict(), indent=2))
+    elif arguments.blender_command == "benchmark":
+        from infrastructure.providers.blender.blender_scene_adapter import BlenderSceneAdapter
+        from config.settings import get_settings
+        adapter = BlenderSceneAdapter(blender_bin_path=get_settings().blender_bin_path)
+        stats = await adapter.run_benchmark(model_path=arguments.model)
+        print(json.dumps(stats, indent=2))
 
 
 def _select_shot_payload(payload: Any, shot_id: str | None) -> dict[str, Any]:
