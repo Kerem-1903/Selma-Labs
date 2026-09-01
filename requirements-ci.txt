@@ -1,7 +1,7 @@
 # Deterministic quality-gate environment. GPU/model runtimes remain in
 # requirements.txt and are exercised by provider-contract tests with fakes.
 anthropic>=0.40.0
-pydantic-settings>=2.5.0
+pydantic-settings>=2.15.0
 pytest>=8.0.0
 pytest-asyncio>=0.24.0
 httpx>=0.28.1
