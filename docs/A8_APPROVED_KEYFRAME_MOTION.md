@@ -58,5 +58,21 @@ The workflow was exercised on 2026-09-01 with an RTX 4060 Laptop GPU (8 GB):
 - output SHA-256:
   `3d03db4de13f0e9ef2e4f790c2ccfef4daa8bf516c0192d29fee77f56a1444c0`.
 
+This run validates the provider, approval gate, model loading, two-pass graph,
+video encoding, and metadata contracts. It did **not** pass perceptual motion QA:
+the low-denoise output was visually too static. A stronger-denoise rerun created
+temporal flicker instead of coherent character motion. Neither AI result is
+treated as an accepted animation sample.
+
+The accepted visible 10-second motion test is the deterministic Remotion
+composition `AkiraMotionTest`, which animates the approved reference with a
+controlled camera move, sway/breathing scale, scan light, grid, and particles.
+Render it with:
+
+```text
+cd motion
+npm run render:akira
+```
+
 The output media remains a local review artifact rather than a repository blob.
 Re-run the command above to reproduce it with the installed, licensed models.

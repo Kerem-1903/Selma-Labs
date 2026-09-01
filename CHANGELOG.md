@@ -14,6 +14,8 @@ use semantic versioning.
 - Structured issue forms, contribution guidance, security policy, and quality gates.
 - Reproducible, approval-gated 10-second Akira motion smoke runner with FFprobe
   evidence reporting.
+- Controlled 10-second Akira Remotion composition for visibly animated review
+  output while coherent generative character motion remains under development.
 
 ### Changed
 

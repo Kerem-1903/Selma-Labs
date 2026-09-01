@@ -13,7 +13,8 @@ supports both the durable topic/audio factory and a guarded Akira anime pipeline
 | Topic/audio production factory | Implemented and live-validated |
 | Akira character reference workflow | Implemented |
 | Human keyframe approval boundary | Enforced and fail-closed |
-| Two-pass ComfyUI motion workflow | Automated-test and 10-second local GPU smoke validated |
+| Two-pass ComfyUI motion workflow | Technically validated; perceptual motion QA still open |
+| Controlled Akira motion test | 10-second Remotion render validated |
 | FFmpeg layered composition | Real integration coverage |
 | LivePortrait lip sync | Explicit mock/passthrough adapter |
 

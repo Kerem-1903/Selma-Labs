@@ -27,9 +27,18 @@ import {PhantomVibrationShort} from "./phantom-vibration/PhantomVibrationShort";
 import {VlahovicTomatoShort} from "./vlahovic-tomato/VlahovicTomatoShort";
 import {AirplaneLavatoryShort} from "./airplane-lavatory/AirplaneLavatoryShort";
 import {ChipBagShort} from "./chip-bag/ChipBagShort";
+import {AkiraMotionTest} from "./akira/AkiraMotionTest";
 
 export const RemotionRoot: React.FC = () => (
   <>
+    <Composition
+      id="AkiraMotionTest"
+      component={AkiraMotionTest}
+      width={1080}
+      height={1920}
+      fps={30}
+      durationInFrames={300}
+    />
     <Composition
       id="ChipBagShort"
       component={ChipBagShort}
