@@ -185,6 +185,7 @@ revision without overwriting the previous asset.
 core/             Domain entities, value objects, ports, and application services
 infrastructure/   Provider, repository, storage, and media adapters
 config/           Environment-driven settings and provider composition
+cli/              Character inspection, script breakdown, and approved-shot commands
 scripts/          Production, validation, smoke-test, and maintenance commands
 tests/            Unit, integration, end-to-end, and performance coverage
 motion/           Remotion compositions and TypeScript assets
@@ -229,3 +230,32 @@ follow the [Code of Conduct](CODE_OF_CONDUCT.md). Security vulnerabilities must
 be reported privately according to [SECURITY.md](SECURITY.md).
 
 SELMA Labs is available under the [Apache License 2.0](LICENSE).
+
+## Two-pass anime pipeline
+
+The anime production boundary keeps script interpretation, character identity,
+motion generation, lip sync, and composition separate:
+
+```text
+script lines -> unapproved shot plans -> human-approved keyframes
+             -> ComfyUI motion pass 1 -> identity refinement pass 2
+             -> LivePortrait boundary -> FFmpeg layered composition
+```
+
+Akira's canonical identity is exposed by `CharacterBible.akira()`. Motion and
+lip-sync engines implement domain ports, while `config/container.py` selects
+the local adapters and injects environment-driven settings. The current
+LivePortrait adapter is an explicit, deterministic passthrough mock; it does
+not claim to perform real mouth animation.
+
+Inspect the character or break down a UTF-8 script without starting ComfyUI:
+
+```bash
+python -m cli.main character show
+python -m cli.main script breakdown --input story.txt --output shot-plan.json
+```
+
+Rendering accepts only a shot plan whose keyframe matches the candidate stored
+as `COMMITTED` by the A7 human-review workflow. Its image, background, and audio
+must use portable storage keys. ComfyUI/model locations come from environment
+settings rather than code.

@@ -14,6 +14,9 @@ from core.domain.ports.highlight_selector_port import HighlightSelectorPort
 from core.domain.ports.word_alignment_port import WordAlignmentPort
 from core.domain.ports.run_repository_port import RunRepositoryPort
 from core.domain.ports.visual_manifest_port import VisualManifestPort
+from core.domain.ports.lipsync_port import LipSyncPort
+from core.domain.ports.motion_generator_port import MotionGeneratorPort
+from core.domain.ports.scene_compositor_port import SceneCompositorPort
 
 __all__ = [
     "ScriptGeneratorPort",
@@ -32,5 +35,8 @@ __all__ = [
     "WordAlignmentPort",
     "RunRepositoryPort",
     "VisualManifestPort",
+    "LipSyncPort",
+    "MotionGeneratorPort",
+    "SceneCompositorPort",
 ]
 from core.domain.ports.audio_inbox_port import AudioInboxPort
