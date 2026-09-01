@@ -17,7 +17,7 @@ class BlenderRigPort(ABC):
         """
         Validates the given Blender model rig against the RigSpecification.
         """
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     async def bake_action_preview(self, model_path: str, action_name: str, output_path: str, fps: int = 24) -> str:
@@ -25,4 +25,4 @@ class BlenderRigPort(ABC):
         Bakes/renders a preview of a specific action from the rig to the output path.
         Returns the path to the rendered output.
         """
-        pass
+        raise NotImplementedError

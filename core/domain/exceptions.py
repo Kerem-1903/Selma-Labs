@@ -34,6 +34,10 @@ class BlenderNotFoundError(EngineException):
         super().__init__(self.message)
 
 
+class BlenderExecutionError(EngineException):
+    """Raised when a headless Blender script or execution process fails."""
+
+
 class ProviderError(SelmaError):
     """Base class for errors raised by external provider adapters."""
 
