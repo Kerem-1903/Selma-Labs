@@ -21,7 +21,8 @@
 <p align="center">
   <a href="README.md">English</a> ·
   <a href="docs/README.md">Dokümantasyon</a> ·
-  <a href="RUNBOOK.md">Operasyon rehberi</a> ·
+  <a href="docs/operations/runbook.md">Operasyon rehberi</a> ·
+  <a href="docs/project/roadmap.md">Yol haritası</a> ·
   <a href="docs/A8_1_PILOT_PRODUCTION.md">Pilot üretimi</a>
 </p>
 
@@ -87,7 +88,7 @@ flowchart LR
 
 ## Doğrulanmış taban
 
-- **645 otomatik test başarılı**
+- **663 otomatik test başarılı**
 - Gerçek FFmpeg entegrasyon kapsamı
 - Python ve Remotion için GitHub Actions kalite kapıları
 - Yerel ComfyUI keyframe ve AnimateDiff image-to-video yolları
@@ -160,7 +161,7 @@ python scripts/run_factory.py --audio-path ./input_audio/ornek.wav
 
 Factory, ücretli provider'ları oluşturmadan önce secretsız preflight çalıştırır.
 Provider seçenekleri için [.env.example](.env.example), operasyon ayrıntıları
-için [RUNBOOK.md](RUNBOOK.md) dosyasına bakın.
+için [operasyon rehberine](docs/operations/runbook.md) bakın.
 
 ## Akira referans paketi
 
@@ -192,16 +193,34 @@ assets/           Workflow, referans, marka, müzik ve SFX metadata'sı
 docs/             Mimari, üretim, kalite ve tarihsel dokümantasyon
 ```
 
+### Genel kullanıma açık giriş noktaları
+
+| Arayüz | Komut | Durum |
+|---|---|---|
+| Üretim fabrikası | `python scripts/run_factory.py` | Ana üretim yolu |
+| Anime CLI | `python -m cli.main` | Desteklenen Akira planlama/render sınırı |
+| FastAPI UI | `uvicorn server:app` | Deneysel yerel arayüz |
+| Gradio UI | `python app.py` | Eski deneysel arayüz |
+| Remotion | `motion/` altındaki komutlar | Desteklenen kompozisyon alanı |
+
+Deneysel web arayüzleri üretim composition root'u değildir. Yeni otomasyonlar,
+onay ve doğrulama kapılarını açık tutmak için fabrika veya anime CLI'ı
+kullanmalıdır.
+
 ## Dokümantasyon
 
 [Dokümantasyon indeksinden](docs/README.md) başlayabilirsiniz. Temel belgeler:
 
-- [Otonom stüdyo mimarisi](AUTONOMOUS_STUDIO_ARCHITECTURE.md)
+- [Güncel durum](docs/project/status.md)
+- [Yol haritası](docs/project/roadmap.md)
+- [Değişiklik kaydı](CHANGELOG.md)
+- [Otonom stüdyo mimarisi](docs/architecture/autonomous-studio.md)
 - [Onaylı keyframe-to-motion workflow'u](docs/A8_APPROVED_KEYFRAME_MOTION.md)
 - [Pilot üretimi ve FFmpeg montajı](docs/A8_1_PILOT_PRODUCTION.md)
 - [Character LoRA dataset güvenlik kuralları](docs/CHARACTER_LORA_DATASET.md)
 - [Source-control güvenliği](docs/SOURCE_CONTROL_SAFETY.md)
-- [Operasyon rehberi](RUNBOOK.md)
+- [Operasyon rehberi](docs/operations/runbook.md)
+- [Varlıklar ve Git LFS politikası](docs/operations/assets-and-lfs.md)
 - [Tarihsel sprint kaydı](docs/sprint-history/PROJECT_HISTORY.md)
 
 ## Üretim ilkeleri
@@ -219,7 +238,9 @@ docs/             Mimari, üretim, kalite ve tarihsel dokümantasyon
 SELMA Labs aktif olarak geliştirilmektedir. Sıradaki üretim hedefi özgün
 **Kırık Kayıt** pilotudur: yaklaşık 15 plan, az sayıda yüksek kaliteli AI-motion
 sahnesi, kontrollü motion-comic kapsama, her medya sınırında insan incelemesi ve
-1080p/24 FPS post-production master.
+1080p/24 FPS post-production master. Güncel sınırlar ve sıralı işler
+[Proje Durumu](docs/project/status.md) ile
+[Yol Haritası](docs/project/roadmap.md) belgelerinde tutulur.
 
 ## Katkı ve destek
 

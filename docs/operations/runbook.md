@@ -6,7 +6,10 @@ This runbook provides step-by-step instructions to set up, validate, test, and r
 
 ## 1. Operational Integration Overview (Sprint 1–17)
 
-The repository provides a unified end-to-end execution path ([`scripts/run_pipeline.py`](file:///c:/Users/LOQ/Desktop/selma-labs-master/scripts/run_pipeline.py)) connecting all Sprint 1–17 capabilities into a single command for producing vertical video Shorts.
+The repository provides a unified end-to-end execution path
+([`scripts/run_pipeline.py`](../../scripts/run_pipeline.py)) connecting the
+production capabilities into a single command for producing vertical video
+Shorts.
 
 ### Intended User Flow:
 1. User provides a topic.

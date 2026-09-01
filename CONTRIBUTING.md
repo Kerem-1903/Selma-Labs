@@ -64,7 +64,8 @@ Changes must preserve these production rules:
 7. Keep provider-specific behavior behind the existing port boundaries.
 
 Generated or supplied media must be original, licensed, or otherwise suitable
-for redistribution. Describe its source and rights in the pull request.
+for redistribution. Describe its source and rights in the pull request and follow
+the [assets and Git LFS policy](docs/operations/assets-and-lfs.md).
 
 ## Verification
 

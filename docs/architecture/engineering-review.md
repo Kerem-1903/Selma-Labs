@@ -6,7 +6,7 @@ this revision (v1.2) adds Sprint 8, independently re-verified against the
 actually-implemented Sprint 8 code in this session (running `pytest`
 directly, reading the source) — not carried forward from the Sprint 8
 proposal document without re-checking. Update procedure going forward, per
-project decision: after each sprint, update `CURRENT_STATUS.md`,
+project decision: after each milestone, update `docs/project/status.md`,
 `README.md`, and this document together — this file is not meant to be
 regenerated from scratch each time, but revised incrementally as the
 codebase changes.
@@ -460,7 +460,7 @@ rather than a rule being eroded sprint over sprint.
 ### 15.9 Remaining Roadmap (superseding §11 and §14)
 
 The pipeline is now end-to-end complete: `Script -> VoiceTrack -> ScenePlan
--> AssetMatchPlan -> Timeline -> RenderedVideo`. Per `CURRENT_STATUS.md`
+-> AssetMatchPlan -> Timeline -> RenderedVideo`. Per `docs/project/status.md`
 (updated alongside this document), nothing is currently scoped as the next
 sprint. Named-but-unsequenced candidates carried forward from earlier
 sprints' own "Future Enhancements" sections: unmatched-scene recovery
@@ -587,7 +587,7 @@ not asserted without scrutiny just because it is convenient.
 
 The pipeline is now end-to-end complete through rendering, with
 `SubtitleTrack` as a parallel branch off `ScenePlan` independent of
-`AssetMatchPlan -> Timeline -> RenderedVideo`. Per `CURRENT_STATUS.md`
+`AssetMatchPlan -> Timeline -> RenderedVideo`. Per `docs/project/status.md`
 (updated alongside this document), nothing is currently scoped as the next
 sprint. Named-but-unsequenced candidates carried forward: unmatched-scene
 recovery (Sprint 5), download-failure fallback (Sprint 6), AI
@@ -605,7 +605,7 @@ This is v1.2, updated incrementally per project decision, covering
 Sprint 8 in addition to v1.1's Sprint 6/7 coverage and v1.0's Sprint 5
 baseline. Going forward:
 
-- Update this document **incrementally**, alongside `CURRENT_STATUS.md`
+- Update this document **incrementally**, alongside `docs/project/status.md`
   and `README.md`, at the end of each sprint — not regenerated from
   scratch.
 - Every fact added must be independently re-verified against the

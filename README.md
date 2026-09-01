@@ -21,7 +21,8 @@
 <p align="center">
   <a href="README.tr.md">Türkçe</a> ·
   <a href="docs/README.md">Documentation</a> ·
-  <a href="RUNBOOK.md">Runbook</a> ·
+  <a href="docs/operations/runbook.md">Runbook</a> ·
+  <a href="docs/project/roadmap.md">Roadmap</a> ·
   <a href="docs/A8_1_PILOT_PRODUCTION.md">Pilot production</a>
 </p>
 
@@ -88,7 +89,7 @@ flowchart LR
 
 ## Verified baseline
 
-- **645 automated tests passing**
+- **663 automated tests passing**
 - Real FFmpeg integration coverage
 - GitHub Actions quality gates for Python and Remotion
 - Local ComfyUI keyframe and AnimateDiff image-to-video paths
@@ -162,7 +163,7 @@ python scripts/run_factory.py --audio-path ./input_audio/example.wav
 
 The factory performs a secret-free preflight before constructing paid
 providers. See [.env.example](.env.example) for provider switches and
-[RUNBOOK.md](RUNBOOK.md) for operational setup.
+[the runbook](docs/operations/runbook.md) for operational setup.
 
 ## Akira reference pack
 
@@ -194,16 +195,34 @@ assets/           Versioned workflows, references, brand, music, and SFX metadat
 docs/             Architecture, production, quality, and historical documentation
 ```
 
+### Public entry points
+
+| Interface | Command | Status |
+|---|---|---|
+| Production factory | `python scripts/run_factory.py` | Primary production path |
+| Anime CLI | `python -m cli.main` | Supported Akira planning/render boundary |
+| FastAPI UI | `uvicorn server:app` | Experimental local interface |
+| Gradio UI | `python app.py` | Legacy experimental interface |
+| Remotion | commands under `motion/` | Supported composition workspace |
+
+The experimental web interfaces are not production composition roots. New
+automation should use the factory or anime CLI so approval and validation gates
+remain explicit.
+
 ## Documentation
 
 Start with the [documentation index](docs/README.md). Key references:
 
-- [Autonomous studio architecture](AUTONOMOUS_STUDIO_ARCHITECTURE.md)
+- [Current status](docs/project/status.md)
+- [Roadmap](docs/project/roadmap.md)
+- [Changelog](CHANGELOG.md)
+- [Autonomous studio architecture](docs/architecture/autonomous-studio.md)
 - [Approved keyframe-to-motion workflow](docs/A8_APPROVED_KEYFRAME_MOTION.md)
 - [Pilot production and FFmpeg assembly](docs/A8_1_PILOT_PRODUCTION.md)
 - [Character LoRA dataset safeguards](docs/CHARACTER_LORA_DATASET.md)
 - [Source-control safety](docs/SOURCE_CONTROL_SAFETY.md)
-- [Operational runbook](RUNBOOK.md)
+- [Operational runbook](docs/operations/runbook.md)
+- [Assets and Git LFS policy](docs/operations/assets-and-lfs.md)
 - [Historical sprint record](docs/sprint-history/PROJECT_HISTORY.md)
 
 ## Production principles
@@ -221,7 +240,9 @@ Start with the [documentation index](docs/README.md). Key references:
 SELMA Labs is under active development. The next production target is the
 original **Kırık Kayıt** pilot: approximately 15 shots, a small set of polished
 AI-motion scenes, controlled motion-comic coverage, human review at every media
-boundary, and a 1080p/24 FPS post-production master.
+boundary, and a 1080p/24 FPS post-production master. Current limitations and the
+ordered work are maintained in [Project Status](docs/project/status.md) and the
+[Roadmap](docs/project/roadmap.md).
 
 ## Contributing and support
 
