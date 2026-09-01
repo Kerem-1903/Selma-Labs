@@ -194,6 +194,7 @@ class Settings(BaseSettings):
     render_provider: Literal["ffmpeg", "remotion"] = "remotion"
     ffmpeg_binary_path: str = "ffmpeg"
     ffprobe_binary_path: str = "ffprobe"
+    blender_bin_path: str = ""
     remotion_project_dir: str = "motion"
     remotion_cli_path: str = ""
     remotion_subprocess_timeout_seconds: float = 900.0
