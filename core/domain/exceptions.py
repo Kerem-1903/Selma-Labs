@@ -38,6 +38,10 @@ class BlenderExecutionError(EngineException):
     """Raised when a headless Blender script or execution process fails."""
 
 
+class RigValidationError(EngineException):
+    """Raised when a character rig does not satisfy its production contract."""
+
+
 class ProviderError(SelmaError):
     """Base class for errors raised by external provider adapters."""
 

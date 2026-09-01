@@ -1,40 +1,38 @@
-from core.domain.ports.blender_rig_port import BlenderRigPort, RigValidationReport
+from core.domain.ports.character_rig_port import CharacterRigPort, RigValidationReport
 
 
 class RigValidationService:
-    def __init__(self, blender_rig_port: BlenderRigPort) -> None:
-        self.blender_rig_port = blender_rig_port
+    def __init__(self, character_rig_port: CharacterRigPort) -> None:
+        self.character_rig_port = character_rig_port
 
     async def validate_character_rig(self, model_path: str) -> RigValidationReport:
-        """
-        Orchestrates model file checks and verifies mandatory anime shape keys
-        and rig configurations via the BlenderRigPort.
-        """
-        # Here we could add additional business logic, file existence checks, etc.
-        report = await self.blender_rig_port.validate_rig(model_path)
-
-        # We can also add more domain specific rules. For example, if lipsync is required:
+        """Validate the complete A9 rig and acting contract."""
+        report = await self.character_rig_port.validate_rig(model_path)
         errors = list(report.errors)
-        is_valid = report.is_valid
+        specification = report.specification
 
-        if is_valid and not report.specification.is_lipsync_ready():
-            errors.append("Rig is missing required shape keys for lipsync.")
-            is_valid = False
-
-        # Example logic for preventing foot sliding during locomotion
-        # We ensure IK legs are present for walk actions to prevent foot sliding
-        has_walk = any("walk" in action.lower() for action in report.specification.available_actions)
-        has_ik_legs = report.specification.has_ik_leg_l and report.specification.has_ik_leg_r
-
-        if is_valid and has_walk and not has_ik_legs:
-            errors.append("Rig is missing IK legs, which are required to prevent foot sliding during locomotion actions.")
-            is_valid = False
-
-        if not is_valid:
-            return RigValidationReport(
-                is_valid=False,
-                specification=report.specification,
-                errors=errors
+        missing_controls = specification.missing_a9_controls()
+        if missing_controls:
+            errors.append(
+                f"Rig is missing required A9 controls: {', '.join(missing_controls)}."
             )
 
-        return report
+        missing_shape_keys = specification.missing_a9_shape_keys()
+        if missing_shape_keys:
+            errors.append(
+                "Rig is missing required A9 shape keys: "
+                f"{', '.join(missing_shape_keys)}."
+            )
+
+        missing_actions = specification.missing_a9_actions()
+        if missing_actions:
+            errors.append(
+                f"Rig is missing required A9 actions: {', '.join(missing_actions)}."
+            )
+
+        unique_errors = tuple(dict.fromkeys(errors))
+        return RigValidationReport(
+            is_valid=report.is_valid and not unique_errors,
+            specification=specification,
+            errors=unique_errors,
+        )

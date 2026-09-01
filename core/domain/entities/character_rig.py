@@ -52,15 +52,39 @@ class RigSpecification:
     available_actions: frozenset[str] = field(default_factory=frozenset)
 
     def is_lipsync_ready(self) -> bool:
-        """
-        Check if the rig has the minimum required shape keys for basic lipsync.
-        """
-        required_phonemes = {
-            AnimeShapeKeyEnum.MOUTH_A.value,
-            AnimeShapeKeyEnum.MOUTH_E.value,
-            AnimeShapeKeyEnum.MOUTH_I.value,
-            AnimeShapeKeyEnum.MOUTH_O.value,
-            AnimeShapeKeyEnum.MOUTH_U.value,
-            AnimeShapeKeyEnum.MOUTH_CLOSED.value,
-        }
+        """Return whether the minimum phoneme set is available."""
+        required_phonemes = frozenset(
+            {
+                AnimeShapeKeyEnum.MOUTH_A.value,
+                AnimeShapeKeyEnum.MOUTH_E.value,
+                AnimeShapeKeyEnum.MOUTH_I.value,
+                AnimeShapeKeyEnum.MOUTH_O.value,
+                AnimeShapeKeyEnum.MOUTH_U.value,
+                AnimeShapeKeyEnum.MOUTH_CLOSED.value,
+            }
+        )
         return required_phonemes.issubset(self.shape_keys)
+
+    def missing_a9_controls(self) -> tuple[str, ...]:
+        """Return the mandatory body and secondary controls that are absent."""
+        controls = {
+            "IK_ARM_L": self.has_ik_arm_l,
+            "IK_ARM_R": self.has_ik_arm_r,
+            "IK_LEG_L": self.has_ik_leg_l,
+            "IK_LEG_R": self.has_ik_leg_r,
+            "FK_ARM_L": self.has_fk_arm_l,
+            "FK_ARM_R": self.has_fk_arm_r,
+            "FK_LEG_L": self.has_fk_leg_l,
+            "FK_LEG_R": self.has_fk_leg_r,
+            "SECONDARY_HAIR": self.has_secondary_hair,
+            "SECONDARY_JACKET": self.has_secondary_jacket,
+        }
+        return tuple(name for name, present in controls.items() if not present)
+
+    def missing_a9_shape_keys(self) -> tuple[str, ...]:
+        required = frozenset(shape_key.value for shape_key in AnimeShapeKeyEnum)
+        return tuple(sorted(required.difference(self.shape_keys)))
+
+    def missing_a9_actions(self) -> tuple[str, ...]:
+        required = frozenset(pose.value for pose in StandardPoseEnum)
+        return tuple(sorted(required.difference(self.available_actions)))

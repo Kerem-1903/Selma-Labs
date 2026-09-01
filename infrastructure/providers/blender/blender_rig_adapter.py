@@ -1,44 +1,79 @@
 import asyncio
 import json
-import os
 from pathlib import Path
 
 from core.domain.entities.character_rig import RigSpecification
 from core.domain.exceptions import BlenderExecutionError
-from core.domain.ports.blender_rig_port import BlenderRigPort, RigValidationReport
-from infrastructure.providers.blender.blender_binary_resolver import BlenderBinaryResolver
+from core.domain.ports.character_rig_port import CharacterRigPort, RigValidationReport
+from infrastructure.providers.blender.blender_binary_resolver import (
+    BlenderBinaryResolver,
+)
 
 
-class BlenderRigAdapter(BlenderRigPort):
-    def __init__(self, blender_bin_path: str | None = None) -> None:
+class BlenderRigAdapter(CharacterRigPort):
+    def __init__(
+        self,
+        blender_bin_path: str | None = None,
+        *,
+        timeout_seconds: float = 600.0,
+    ) -> None:
         self.blender_bin_path = BlenderBinaryResolver.resolve(blender_bin_path)
-        # Calculate script path once
+        self.timeout_seconds = timeout_seconds
         base_dir = Path(__file__).resolve().parent.parent.parent
         self.script_path = base_dir / "scripts" / "blender" / "rig_acting_builder.py"
+        if not self.script_path.is_file():
+            raise BlenderExecutionError(
+                f"Blender rig script not found: {self.script_path}"
+            )
 
-    async def _run_headless_script(self, script_path: str, args: list[str]) -> str:
+    @staticmethod
+    def _resolve_model_path(model_path: str) -> Path:
+        resolved = Path(model_path).expanduser().resolve()
+        if not resolved.is_file():
+            raise BlenderExecutionError(f"Blender model not found: {resolved}")
+        if resolved.suffix.lower() != ".blend":
+            raise BlenderExecutionError("Rig validation requires a .blend model file.")
+        return resolved
+
+    async def _run_headless_script(self, args: list[str]) -> str:
         cmd = [
             self.blender_bin_path,
             "-b",
+            "--disable-autoexec",
+            "--python-exit-code",
+            "1",
             "-P",
-            script_path,
-            "--"
+            str(self.script_path),
+            "--",
         ] + args
 
         process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
         )
-        stdout, stderr = await process.communicate()
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(), timeout=self.timeout_seconds
+            )
+        except asyncio.TimeoutError as error:
+            process.kill()
+            await process.communicate()
+            raise BlenderExecutionError(
+                f"Blender rig command timed out after {self.timeout_seconds:g} seconds."
+            ) from error
 
         if process.returncode != 0:
-            raise BlenderExecutionError(f"Blender script failed: {stderr.decode('utf-8')}")
+            details = stderr.decode("utf-8", errors="replace").strip()
+            raise BlenderExecutionError(f"Blender rig command failed: {details}")
 
-        return stdout.decode('utf-8')
+        return stdout.decode("utf-8", errors="replace")
 
     async def validate_rig(self, model_path: str) -> RigValidationReport:
-        stdout = await self._run_headless_script(str(self.script_path), ["--model", model_path, "--command", "validate"])
+        model = self._resolve_model_path(model_path)
+        stdout = await self._run_headless_script(
+            ["--model", str(model), "--command", "validate"]
+        )
 
         # Parse JSON output from the script, looking for the ###JSON_START### and ###JSON_END### markers
         json_str = ""
@@ -54,9 +89,18 @@ class BlenderRigAdapter(BlenderRigPort):
                 json_str += line
 
         if not json_str:
-            raise BlenderExecutionError(f"Could not parse JSON from Blender script output. Output was: {stdout}")
+            raise BlenderExecutionError(
+                f"Could not parse JSON from Blender script output. Output was: {stdout}"
+            )
 
-        data = json.loads(json_str)
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError as error:
+            raise BlenderExecutionError(
+                "Blender returned an invalid rig report."
+            ) from error
+        if not isinstance(data, dict):
+            raise BlenderExecutionError("Blender rig report must be a JSON object.")
 
         spec = RigSpecification(
             has_ik_arm_l=data.get("has_ik_arm_l", False),
@@ -70,29 +114,59 @@ class BlenderRigAdapter(BlenderRigPort):
             has_secondary_hair=data.get("has_secondary_hair", False),
             has_secondary_jacket=data.get("has_secondary_jacket", False),
             shape_keys=frozenset(data.get("shape_keys", [])),
-            available_actions=frozenset(data.get("available_actions", []))
+            available_actions=frozenset(data.get("available_actions", [])),
         )
 
-        is_valid = data.get("is_valid", False)
-        errors = data.get("errors", [])
+        is_valid = data.get("is_valid") is True
+        errors = tuple(str(error) for error in data.get("errors", []))
 
         return RigValidationReport(
             is_valid=is_valid,
             specification=spec,
-            errors=errors
+            errors=errors,
         )
 
-    async def bake_action_preview(self, model_path: str, action_name: str, output_path: str, fps: int = 24) -> str:
-        await self._run_headless_script(str(self.script_path), ["--model", model_path, "--command", "preview", "--action", action_name, "--output", output_path, "--fps", str(fps)])
+    async def bake_action_preview(
+        self,
+        model_path: str,
+        action_name: str,
+        output_path: str,
+        fps: int = 24,
+    ) -> str:
+        model = self._resolve_model_path(model_path)
+        if fps <= 0:
+            raise BlenderExecutionError("Preview FPS must be greater than zero.")
 
-        # Verify the output file was created
-        if not os.path.exists(output_path):
-            # Blender might have appended an extension or frame numbers. Let's just return the directory or a guessed file
-            path_obj = Path(output_path)
-            # Find the actual output if it's named slightly differently
-            matches = list(path_obj.parent.glob(f"{path_obj.stem}*"))
-            if matches:
-                return str(matches[0])
-            raise BlenderExecutionError(f"Expected output file not found at {output_path}")
+        output = Path(output_path).expanduser().resolve()
+        if output.suffix.lower() != ".mp4":
+            raise BlenderExecutionError("Rig previews must use an .mp4 output path.")
+        output.parent.mkdir(parents=True, exist_ok=True)
+        previous_signature = (
+            (output.stat().st_mtime_ns, output.stat().st_size)
+            if output.exists()
+            else None
+        )
 
-        return output_path
+        await self._run_headless_script(
+            [
+                "--model",
+                str(model),
+                "--command",
+                "preview",
+                "--action",
+                action_name,
+                "--output",
+                str(output),
+                "--fps",
+                str(fps),
+            ]
+        )
+
+        if not output.is_file() or output.stat().st_size <= 0:
+            raise BlenderExecutionError(f"Expected preview was not created: {output}")
+        current_signature = (output.stat().st_mtime_ns, output.stat().st_size)
+        if previous_signature == current_signature:
+            raise BlenderExecutionError(
+                f"Blender did not refresh the preview: {output}"
+            )
+        return str(output)
