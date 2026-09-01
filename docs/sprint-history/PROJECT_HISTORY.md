@@ -43,7 +43,7 @@ Both modes require Pexels and the configured Vision provider plus local FFmpeg
 and WhisperX. Topic mode additionally requires the configured script provider
 and ElevenLabs. `scripts/run_pipeline.py` is a compatibility alias to the same
 factory; it contains no independent production implementation. See
-[`docs/LOCAL_FACTORY_RELEASE_NOTES.md`](docs/LOCAL_FACTORY_RELEASE_NOTES.md)
+[`docs/LOCAL_FACTORY_RELEASE_NOTES.md`](../LOCAL_FACTORY_RELEASE_NOTES.md)
 for architecture, guarantees, quality gates, and operating constraints.
 
 ## Current Operational Pipeline
@@ -85,7 +85,7 @@ speech-driven ducking, collision spacing, limiting, and -14 LUFS mastering.
 Procedural effects and ambience are generated locally. Music requires commercial
 YouTube rights, source evidence, and a matching SHA-256 checksum; missing or
 invalid evidence never triggers unlicensed use. See
-[`docs/AUDIO_STUDIO_SYSTEM.md`](docs/AUDIO_STUDIO_SYSTEM.md).
+[`docs/AUDIO_STUDIO_SYSTEM.md`](../AUDIO_STUDIO_SYSTEM.md).
 
 Visual planning now has its own 90-point release gate. It plans shot scale,
 motion, sparse semantic transitions, pattern interrupts, explanatory overlays,
@@ -93,7 +93,7 @@ and mobile safe zones; then verifies source diversity, rights, resolution,
 rendered scene changes, longest visual stasis, and freeze evidence before the
 upload package can pass. The free FFmpeg/Remotion/Pexels stack, reference render,
 and paid future roadmap are documented in
-[`docs/VISUAL_EDIT_STUDIO_SYSTEM.md`](docs/VISUAL_EDIT_STUDIO_SYSTEM.md).
+[`docs/VISUAL_EDIT_STUDIO_SYSTEM.md`](../VISUAL_EDIT_STUDIO_SYSTEM.md).
 
 ## Sprint 1: Script Generation
 

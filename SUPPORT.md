@@ -5,7 +5,8 @@ emergency or guaranteed-response support service.
 
 Before opening an issue:
 
-1. Read the [documentation index](docs/README.md) and [runbook](RUNBOOK.md).
+1. Read the [documentation index](docs/README.md) and
+   [runbook](docs/operations/runbook.md).
 2. Run `python scripts/system_health.py --profile factory`.
 3. Search existing issues for the same symptom.
 4. Choose the issue form that best matches the problem.
