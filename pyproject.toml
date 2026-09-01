@@ -2,6 +2,7 @@
 asyncio_mode = "auto"
 testpaths = ["tests"]
 markers = [
-    "performance: performance and benchmark tests"
+    "performance: performance and benchmark tests",
+    "blender_integration: tests that require a local Blender installation",
 ]
 

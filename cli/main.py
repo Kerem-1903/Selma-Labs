@@ -19,8 +19,12 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True)
 
     character = commands.add_parser("character", help="Inspect canonical characters")
-    character_commands = character.add_subparsers(dest="character_command", required=True)
-    character_commands.add_parser("show", help="Show the canonical Akira Character Bible")
+    character_commands = character.add_subparsers(
+        dest="character_command", required=True
+    )
+    character_commands.add_parser(
+        "show", help="Show the canonical Akira Character Bible"
+    )
 
     script = commands.add_parser("script", help="Break a script into executable shots")
     script_commands = script.add_subparsers(dest="script_command", required=True)
@@ -42,15 +46,34 @@ def build_parser() -> argparse.ArgumentParser:
     blender_commands = blender.add_subparsers(dest="blender_command", required=True)
 
     register = blender_commands.add_parser("register-views")
-    register.add_argument("--input", required=True, help="Path to multiview reference image")
+    register.add_argument(
+        "--input", required=True, help="Path to multiview reference image"
+    )
 
     turntable = blender_commands.add_parser("turntable")
     turntable.add_argument("--model", required=True, help="Path to 3D model")
-    turntable.add_argument("--output-dir", default="output/blender", help="Directory for output")
-    turntable.add_argument("--quality", default="preview", help="Render quality (preview, high)")
+    turntable.add_argument(
+        "--output-dir", default="output/blender", help="Directory for output"
+    )
+    turntable.add_argument(
+        "--quality", default="preview", help="Render quality (preview, high)"
+    )
 
     benchmark = blender_commands.add_parser("benchmark")
     benchmark.add_argument("--model", required=True, help="Path to 3D model")
+
+    rig = commands.add_parser("rig", help="A9 Rig and Acting Validation Tools")
+    rig_commands = rig.add_subparsers(dest="rig_command", required=True)
+
+    validate = rig_commands.add_parser("validate")
+    validate.add_argument("--model", required=True, help="Path to blender model")
+
+    preview = rig_commands.add_parser("preview")
+    preview.add_argument("--model", required=True, help="Path to blender model")
+    preview.add_argument("--action", required=True, help="Action name to preview")
+    preview.add_argument(
+        "--output", default="output/blender/preview.mp4", help="Output video path"
+    )
 
     return parser
 
@@ -70,6 +93,8 @@ def main(
             asyncio.run(_render_shot(arguments, container_factory()))
         elif arguments.command == "blender":
             asyncio.run(_run_blender_commands(arguments, container_factory()))
+        elif arguments.command == "rig":
+            return asyncio.run(_run_rig_commands(arguments))
         return 0
     except Exception as error:  # noqa: BLE001 - CLI boundary
         print(f"SELMA command failed: {error}", file=sys.stderr)
@@ -123,40 +148,92 @@ async def _run_blender_commands(
     container: AnimationContainer,
 ) -> None:
     if arguments.blender_command == "register-views":
-        from core.application.services.multiview_asset_registration_service import MultiviewAssetRegistrationService
+        from core.application.services.multiview_asset_registration_service import (
+            MultiviewAssetRegistrationService,
+        )
+
         service = MultiviewAssetRegistrationService(container.storage)
         updated_bible = await service.register_multiview_asset(
-            bible=container.character_bible,
-            image_path=arguments.input
+            bible=container.character_bible, image_path=arguments.input
         )
         print("Successfully registered multiview assets.")
         _show_character(updated_bible)
     elif arguments.blender_command == "turntable":
-        from infrastructure.providers.blender.blender_scene_adapter import BlenderSceneAdapter
         from config.settings import get_settings
+        from infrastructure.providers.blender.blender_scene_adapter import (
+            BlenderSceneAdapter,
+        )
+
         adapter = BlenderSceneAdapter(blender_bin_path=get_settings().blender_bin_path)
         manifest = await adapter.render_turntable(
             model_path=arguments.model,
             output_dir=arguments.output_dir,
-            resolution_profile=arguments.quality
+            resolution_profile=arguments.quality,
         )
         print(json.dumps(manifest.to_dict(), indent=2))
     elif arguments.blender_command == "benchmark":
-        from infrastructure.providers.blender.blender_scene_adapter import BlenderSceneAdapter
         from config.settings import get_settings
+        from infrastructure.providers.blender.blender_scene_adapter import (
+            BlenderSceneAdapter,
+        )
+
         adapter = BlenderSceneAdapter(blender_bin_path=get_settings().blender_bin_path)
         stats = await adapter.run_benchmark(model_path=arguments.model)
         print(json.dumps(stats, indent=2))
+
+
+async def _run_rig_commands(arguments: argparse.Namespace) -> int:
+    from dataclasses import asdict
+
+    from config.settings import get_settings
+    from core.application.services.rig_validation_service import RigValidationService
+    from core.domain.exceptions import RigValidationError
+    from infrastructure.providers.blender.blender_rig_adapter import BlenderRigAdapter
+
+    adapter = BlenderRigAdapter(blender_bin_path=get_settings().blender_bin_path)
+    service = RigValidationService(adapter)
+
+    if arguments.rig_command == "validate":
+        report = await service.validate_character_rig(arguments.model)
+
+        # Convert frozensets to lists for JSON serialization
+        spec_dict = asdict(report.specification)
+        spec_dict["shape_keys"] = sorted(spec_dict["shape_keys"])
+        spec_dict["available_actions"] = sorted(spec_dict["available_actions"])
+
+        output = {
+            "is_valid": report.is_valid,
+            "errors": report.errors,
+            "specification": spec_dict,
+        }
+        print(json.dumps(output, indent=2))
+        return 0 if report.is_valid else 2
+    elif arguments.rig_command == "preview":
+        report = await service.validate_character_rig(arguments.model)
+        if not report.is_valid:
+            raise RigValidationError(" ".join(report.errors))
+        output_path = await adapter.bake_action_preview(
+            model_path=arguments.model,
+            action_name=arguments.action,
+            output_path=arguments.output,
+        )
+        print(f"Preview saved to: {output_path}")
+        return 0
+    raise ValueError(f"Unsupported rig command: {arguments.rig_command}")
 
 
 def _select_shot_payload(payload: Any, shot_id: str | None) -> dict[str, Any]:
     if isinstance(payload, dict) and isinstance(payload.get("shots"), list):
         shots = [item for item in payload["shots"] if isinstance(item, dict)]
         if not shot_id:
-            raise ValueError("--shot-id is required for a breakdown containing multiple shots.")
+            raise ValueError(
+                "--shot-id is required for a breakdown containing multiple shots."
+            )
         matches = [item for item in shots if str(item.get("id")) == shot_id]
         if len(matches) != 1:
-            raise ValueError(f"Shot '{shot_id}' was not found exactly once in the plan.")
+            raise ValueError(
+                f"Shot '{shot_id}' was not found exactly once in the plan."
+            )
         return matches[0]
     if not isinstance(payload, dict):
         raise TypeError("Shot plan JSON must contain an object.")
