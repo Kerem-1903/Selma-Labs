@@ -38,10 +38,19 @@ class RenderConfig:
         if not 0.0 < self.guidance_scale <= 30.0:
             raise ValueError("Render guidance_scale must be between 0 and 30.")
 
-    def compute_hash(self, prompt: str, character_tags: Iterable[str]) -> str:
+    def compute_hash(
+        self,
+        prompt: str,
+        character_tags: Iterable[str],
+        *,
+        source_key: str = "",
+        frame_count: int | None = None,
+    ) -> str:
         normalized_prompt = " ".join(prompt.split())
         if not normalized_prompt:
             raise ValueError("A render hash requires a non-empty prompt.")
+        if frame_count is not None and frame_count <= 0:
+            raise ValueError("Render hash frame_count must be greater than zero.")
         payload = {
             "character_tags": list(dict.fromkeys(tag.strip() for tag in character_tags if tag.strip())),
             "config": {
@@ -55,7 +64,9 @@ class RenderConfig:
                 "sampling_steps": self.sampling_steps,
                 "guidance_scale": self.guidance_scale,
             },
+            "frame_count": frame_count,
             "prompt": normalized_prompt,
+            "source_key": source_key,
         }
         serialized = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(serialized.encode("utf-8")).hexdigest()

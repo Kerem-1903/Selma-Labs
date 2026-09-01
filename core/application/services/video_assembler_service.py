@@ -3,12 +3,13 @@ from __future__ import annotations
 import asyncio
 import shutil
 import tempfile
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 from core.domain.entities.shot_motion_clip import MotionClipStatus, ShotMotionClip
 from core.domain.exceptions import VideoAssemblyError
 from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.assembled_video import AssembledVideo
+from core.domain.value_objects.portable_storage_key import PortableStorageKey
 from core.domain.value_objects.render_profile import RenderProfile
 
 
@@ -37,14 +38,12 @@ class VideoAssemblerService:
     ) -> AssembledVideo:
         if not clips:
             raise ValueError("No motion clips were provided for assembly.")
-        output_path = PurePosixPath(output_storage_key.replace("\\", "/"))
-        if (
-            output_path.is_absolute()
-            or ".." in output_path.parts
-            or ":" in output_storage_key
-            or output_path.suffix.casefold() != ".mp4"
-        ):
-            raise ValueError("Assembly output must be a portable .mp4 storage key.")
+        try:
+            PortableStorageKey(output_storage_key).require_suffix(".mp4")
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                "Assembly output must be a portable .mp4 storage key."
+            ) from error
         pending = [clip.id for clip in clips if clip.status != MotionClipStatus.APPROVED]
         if pending:
             raise VideoAssemblyError(

@@ -8,16 +8,25 @@ import logging
 import re
 from collections.abc import Callable
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, ClassVar
 
 import aiohttp
 from PIL import Image
 
-from core.domain.exceptions import ProviderConnectionError, ProviderError, ProviderTimeoutError
+from core.domain.exceptions import (
+    ProviderConnectionError,
+    ProviderError,
+    ProviderTimeoutError,
+)
 from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
 from core.domain.ports.storage_port import StoragePort
+from core.domain.services.reference_view_routing_service import (
+    ReferenceViewRoutingService,
+)
 from core.domain.value_objects.generated_keyframe import GeneratedKeyframe
-from core.domain.value_objects.keyframe_generation_request import KeyframeGenerationRequest
+from core.domain.value_objects.keyframe_generation_request import (
+    KeyframeGenerationRequest,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +39,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
     """
 
     _SAFE_FILENAME = re.compile(r"[^A-Za-z0-9._-]+")
-    _CONTENT_TYPES = {
+    _CONTENT_TYPES: ClassVar[dict[str, str]] = {
         ".jpeg": "image/jpeg",
         ".jpg": "image/jpeg",
         ".png": "image/png",
@@ -298,7 +307,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         key_by_asset_id = dict(
             zip(request.reference_asset_ids, request.reference_storage_keys)
         )
-        preferred_views = self._preferred_views(
+        preferred_views = ReferenceViewRoutingService.preferred_views(
             str(request.camera_constraints.get("angle", ""))
         )
         selected: list[tuple[str, str]] = []
@@ -317,7 +326,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                     reference
                     for view in preferred_views
                     for reference in valid
-                    if reference.get("view") == view
+                    if reference.get("view") == view.value
                 ),
                 valid[0] if valid else None,
             )
@@ -330,17 +339,6 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                 (request.reference_asset_ids[0], request.reference_storage_keys[0])
             )
         return selected
-
-    @staticmethod
-    def _preferred_views(angle: str) -> tuple[str, ...]:
-        normalized = angle.casefold()
-        if "close" in normalized:
-            return ("FACE_CLOSEUP", "THREE_QUARTER_LEFT", "FRONT")
-        if "profile" in normalized or "side" in normalized:
-            return ("PROFILE_LEFT", "PROFILE_RIGHT", "THREE_QUARTER_LEFT")
-        if "wide" in normalized or "full" in normalized:
-            return ("FULL_BODY", "FRONT", "THREE_QUARTER_LEFT")
-        return ("THREE_QUARTER_LEFT", "FRONT", "FACE_CLOSEUP", "FULL_BODY")
 
     async def _upload_reference(
         self, session: Any, *, storage_key: str

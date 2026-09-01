@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
-from pathlib import PurePosixPath
 
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.value_objects.character_bible_validation import (
@@ -10,6 +9,7 @@ from core.domain.value_objects.character_bible_validation import (
     InvalidCharacterReference,
 )
 from core.domain.value_objects.character_identity import ReferenceView
+from core.domain.value_objects.portable_storage_key import PortableStorageKey
 
 
 class CharacterBibleValidationService:
@@ -81,10 +81,8 @@ class CharacterBibleValidationService:
 
     @staticmethod
     def _is_portable_storage_key(key: str) -> bool:
-        normalized = key.strip()
-        if not normalized or "\\" in normalized or ":" in normalized:
+        try:
+            PortableStorageKey(key)
+        except (TypeError, ValueError):
             return False
-        path = PurePosixPath(normalized)
-        return not path.is_absolute() and all(
-            part not in {"", ".", ".."} for part in path.parts
-        )
+        return True

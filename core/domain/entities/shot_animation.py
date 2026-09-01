@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from pathlib import PurePosixPath
 from typing import Any
 
 from core.domain.entities.character_state import CharacterState
+from core.domain.value_objects.portable_storage_key import PortableStorageKey
 
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
@@ -13,10 +13,12 @@ _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 def _validate_storage_key(value: str, field_name: str, *, optional: bool = False) -> None:
     if optional and not value:
         return
-    normalized = value.replace("\\", "/")
-    path = PurePosixPath(normalized)
-    if not normalized.strip() or path.is_absolute() or ".." in path.parts or ":" in value:
-        raise ValueError(f"{field_name} must be a portable relative storage key.")
+    try:
+        PortableStorageKey(value)
+    except (TypeError, ValueError) as error:
+        raise ValueError(
+            f"{field_name} must be a canonical portable relative storage key."
+        ) from error
 
 
 @dataclass(frozen=True)
@@ -34,6 +36,7 @@ class AnimationShotPlan:
     duration_seconds: float
     character_state: CharacterState
     dialogue: str = ""
+    requires_lipsync: bool = False
     source_image_storage_key: str = ""
     keyframe_approved: bool = False
     negative_prompt: str = ""
@@ -53,6 +56,8 @@ class AnimationShotPlan:
             raise ValueError("Animation shot duration must be between 0.25 and 30 seconds.")
         if self.character_state.character_id.strip() == "":
             raise ValueError("Animation shot requires a character state.")
+        if not isinstance(self.requires_lipsync, bool):
+            raise TypeError("requires_lipsync must be a boolean.")
         _validate_storage_key(
             self.source_image_storage_key,
             "source_image_storage_key",
@@ -71,6 +76,7 @@ class AnimationShotPlan:
             duration_seconds=self.duration_seconds,
             character_state=self.character_state,
             dialogue=self.dialogue,
+            requires_lipsync=self.requires_lipsync,
             source_image_storage_key=storage_key,
             keyframe_approved=True,
             negative_prompt=self.negative_prompt,
@@ -86,6 +92,7 @@ class AnimationShotPlan:
             "duration_seconds": self.duration_seconds,
             "character_state": self.character_state.to_dict(),
             "dialogue": self.dialogue,
+            "requires_lipsync": self.requires_lipsync,
             "source_image_storage_key": self.source_image_storage_key,
             "keyframe_approved": self.keyframe_approved,
             "negative_prompt": self.negative_prompt,
@@ -94,6 +101,11 @@ class AnimationShotPlan:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> AnimationShotPlan:
+        requires_lipsync = data.get("requires_lipsync")
+        if requires_lipsync is None:
+            requires_lipsync = bool(str(data.get("dialogue", "")).strip())
+        if not isinstance(requires_lipsync, bool):
+            raise TypeError("requires_lipsync must be a boolean.")
         return cls(
             id=str(data["id"]),
             script_id=str(data["script_id"]),
@@ -102,6 +114,7 @@ class AnimationShotPlan:
             duration_seconds=float(data["duration_seconds"]),
             character_state=CharacterState.from_dict(dict(data["character_state"])),
             dialogue=str(data.get("dialogue", "")),
+            requires_lipsync=requires_lipsync,
             source_image_storage_key=str(data.get("source_image_storage_key", "")),
             keyframe_approved=bool(data.get("keyframe_approved", False)),
             negative_prompt=str(data.get("negative_prompt", "")),

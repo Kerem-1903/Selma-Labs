@@ -27,6 +27,9 @@ def test_breakdown_creates_deterministic_unapproved_dialogue_and_action_shots():
     assert shots[0].metadata["line_type"] == "dialogue"
     assert shots[1].metadata["line_type"] == "action"
     assert shots[2].metadata["line_type"] == "offscreen_dialogue"
+    assert shots[0].requires_lipsync is True
+    assert shots[1].requires_lipsync is False
+    assert shots[2].requires_lipsync is False
     assert shots[0].scene_plan_id == "broken-record-scene-001"
     assert shots[2].scene_plan_id == "broken-record-scene-002"
     assert all(shot.keyframe_approved is False for shot in shots)

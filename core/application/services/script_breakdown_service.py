@@ -76,6 +76,10 @@ class ScriptBreakdownService:
                         held_objects=[],
                     ),
                     dialogue=dialogue,
+                    requires_lipsync=(
+                        bool(dialogue_match)
+                        and speaker == self._bible.character_id
+                    ),
                     keyframe_approved=False,
                     metadata={"source_line": source_line, "line_type": line_type},
                 )

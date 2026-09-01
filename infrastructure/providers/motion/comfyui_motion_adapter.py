@@ -77,7 +77,13 @@ class ComfyUIMotionAdapter(MotionGeneratorPort):
                 f"Approved source image '{shot_plan.source_image_storage_key}' was not found."
             )
         character_tags = (shot_plan.character_state.character_id,)
-        render_hash = self._config.compute_hash(shot_plan.prompt, character_tags)
+        frame_count = max(1, round(shot_plan.duration_seconds * self._config.fps))
+        render_hash = self._config.compute_hash(
+            shot_plan.prompt,
+            character_tags,
+            source_key=shot_plan.source_image_storage_key,
+            frame_count=frame_count,
+        )
         for extension in (".mp4", ".webm"):
             cached_key = f"{self._cache_prefix}/{shot_plan.id}/{render_hash}{extension}"
             if await self._storage.exists(cached_key):

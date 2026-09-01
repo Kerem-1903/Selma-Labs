@@ -42,6 +42,20 @@ def test_render_config_hash_is_stable_and_validates_two_pass_order():
         RenderConfig(512, 512, 8, 1903, "euler", 0.1, 0.2)
 
 
+def test_render_config_hash_changes_with_source_or_frame_count():
+    config = RenderConfig(512, 512, 8, 1903, "euler", 0.12, 0.06)
+    baseline = config.compute_hash(
+        "Akira turns", ["akira"], source_key="approved/a.png", frame_count=60
+    )
+
+    assert baseline != config.compute_hash(
+        "Akira turns", ["akira"], source_key="approved/b.png", frame_count=60
+    )
+    assert baseline != config.compute_hash(
+        "Akira turns", ["akira"], source_key="approved/a.png", frame_count=30
+    )
+
+
 def test_animation_shot_starts_unapproved_and_approval_requires_portable_key():
     plan = _plan()
 
@@ -60,3 +74,25 @@ def test_animation_shot_round_trip_preserves_human_approval_state():
     restored = ShotPlan.from_dict(approved.to_dict())
 
     assert restored == approved
+
+
+def test_animation_shot_round_trip_preserves_explicit_lipsync_decision():
+    plan = ShotPlan(
+        id="pilot-shot-001",
+        script_id="pilot",
+        scene_plan_id="pilot-scene-001",
+        prompt="akira_girl speaks",
+        duration_seconds=2,
+        character_state=CharacterState("akira", "akira-default", [], []),
+        dialogue="Wake up.",
+        requires_lipsync=True,
+    )
+
+    restored = ShotPlan.from_dict(plan.to_dict())
+
+    assert restored.requires_lipsync is True
+
+
+def test_animation_shot_rejects_windows_style_storage_key():
+    with pytest.raises(ValueError, match="portable"):
+        _plan().approve_keyframe("storyboards\\pilot-shot-001\\approved.png")

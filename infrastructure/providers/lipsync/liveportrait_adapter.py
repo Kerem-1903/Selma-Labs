@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from pathlib import PurePosixPath
-
 from core.domain.exceptions import MotionGenerationError
 from core.domain.ports.lipsync_port import LipSyncPort
 from core.domain.ports.storage_port import StoragePort
+from core.domain.value_objects.portable_storage_key import PortableStorageKey
 from infrastructure.storage.local_fs_storage import LocalFsStorage
 
 
@@ -53,7 +52,7 @@ class LivePortraitAdapter(LipSyncPort):
         audio_bytes = await self._storage.load(audio_path)
         if not video_bytes or not audio_bytes:
             raise MotionGenerationError("LivePortrait inputs must not be empty.")
-        suffix = PurePosixPath(source_image_or_video_path).suffix.casefold()
+        suffix = PortableStorageKey(source_image_or_video_path).suffix
         content_type = {".mp4": "video/mp4", ".webm": "video/webm"}.get(suffix)
         if content_type is None:
             raise MotionGenerationError("LivePortrait source must be MP4 or WebM.")
@@ -67,7 +66,7 @@ class LivePortraitAdapter(LipSyncPort):
         )
         if not valid_video:
             raise MotionGenerationError("LivePortrait source is not a valid video container.")
-        output_suffix = PurePosixPath(output_video_path).suffix.casefold()
+        output_suffix = PortableStorageKey(output_video_path).suffix
         if output_suffix != suffix:
             raise MotionGenerationError(
                 "Mock LivePortrait output must keep the source video format."
@@ -79,7 +78,9 @@ class LivePortraitAdapter(LipSyncPort):
 
     @staticmethod
     def _validate_key(value: str, label: str) -> None:
-        normalized = value.replace("\\", "/")
-        path = PurePosixPath(normalized)
-        if not normalized.strip() or path.is_absolute() or ".." in path.parts or ":" in value:
-            raise ValueError(f"LivePortrait {label} must be a portable storage key.")
+        try:
+            PortableStorageKey(value)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"LivePortrait {label} must be a portable storage key."
+            ) from error

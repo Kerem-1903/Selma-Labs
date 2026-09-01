@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from pathlib import PurePosixPath
 
 from core.domain.entities.shot_animation import ShotPlan
 from core.domain.exceptions import MotionGenerationError
 from core.domain.ports.lipsync_port import LipSyncPort
 from core.domain.ports.motion_generator_port import MotionGeneratorPort
 from core.domain.ports.scene_compositor_port import SceneCompositorPort
+from core.domain.value_objects.portable_storage_key import PortableStorageKey
 
 
 class AnimationOrchestratorService:
@@ -51,17 +51,19 @@ class AnimationOrchestratorService:
             lambda value: publish(value * 0.65),
         )
         publish(0.65)
-        source_suffix = PurePosixPath(motion.video_path).suffix.casefold()
-        lipsync_key = f"lipsync/{shot_plan.id}/{motion.hash}{source_suffix}"
-        lipsync_video = await self._lipsync_generator.generate_lipsync_clip(
-            motion.video_path,
-            audio_path,
-            lipsync_key,
-        )
+        character_video = motion.video_path
+        if shot_plan.requires_lipsync:
+            source_suffix = PortableStorageKey(motion.video_path).suffix
+            lipsync_key = f"lipsync/{shot_plan.id}/{motion.hash}{source_suffix}"
+            character_video = await self._lipsync_generator.generate_lipsync_clip(
+                motion.video_path,
+                audio_path,
+                lipsync_key,
+            )
         publish(0.85)
         final_key = await self._compositor.compose_scene(
             background_image_path,
-            lipsync_video,
+            character_video,
             audio_path,
             output_path,
         )
@@ -70,13 +72,9 @@ class AnimationOrchestratorService:
 
     @staticmethod
     def _validate_output_key(value: str) -> None:
-        normalized = value.replace("\\", "/")
-        path = PurePosixPath(normalized)
-        if (
-            not normalized.strip()
-            or path.is_absolute()
-            or ".." in path.parts
-            or ":" in value
-            or path.suffix.casefold() != ".mp4"
-        ):
-            raise ValueError("Animation output must be a portable .mp4 storage key.")
+        try:
+            PortableStorageKey(value).require_suffix(".mp4")
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                "Animation output must be a portable .mp4 storage key."
+            ) from error

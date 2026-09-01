@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import tempfile
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 from core.domain.exceptions import VideoAssemblyError
 from core.domain.ports.scene_compositor_port import SceneCompositorPort
 from core.domain.ports.storage_port import StoragePort
+from core.domain.value_objects.portable_storage_key import PortableStorageKey
 from infrastructure.storage.local_fs_storage import LocalFsStorage
 
 
@@ -49,7 +50,7 @@ class LayeredCompositor(SceneCompositorPort):
             (output_video_path, "output"),
         ):
             self._validate_key(key, label)
-        if PurePosixPath(output_video_path).suffix.casefold() != ".mp4":
+        if PortableStorageKey(output_video_path).suffix != ".mp4":
             raise VideoAssemblyError("Layered compositor output must use the .mp4 suffix.")
         for key in (background_image_path, character_video_path, audio_path):
             if not await self._storage.exists(key):
@@ -155,14 +156,16 @@ class LayeredCompositor(SceneCompositorPort):
 
     @staticmethod
     def _validate_key(value: str, label: str) -> None:
-        normalized = value.replace("\\", "/")
-        path = PurePosixPath(normalized)
-        if not normalized.strip() or path.is_absolute() or ".." in path.parts or ":" in value:
-            raise VideoAssemblyError(f"Compositor {label} must be a portable storage key.")
+        try:
+            PortableStorageKey(value)
+        except (TypeError, ValueError) as error:
+            raise VideoAssemblyError(
+                f"Compositor {label} must be a portable storage key."
+            ) from error
 
     @staticmethod
     def _safe_suffix(key: str, fallback: str) -> str:
-        suffix = PurePosixPath(key.replace("\\", "/")).suffix.casefold()
+        suffix = PortableStorageKey(key).suffix
         if not suffix or len(suffix) > 10 or not suffix[1:].isalnum():
             return fallback
         return suffix

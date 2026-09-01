@@ -46,7 +46,7 @@ class FakeCompositor(SceneCompositorPort):
         return output
 
 
-def _plan(*, approved: bool) -> ShotPlan:
+def _plan(*, approved: bool, requires_lipsync: bool = True) -> ShotPlan:
     plan = ShotPlan(
         id="pilot-shot-001",
         script_id="pilot",
@@ -55,6 +55,7 @@ def _plan(*, approved: bool) -> ShotPlan:
         duration_seconds=3,
         character_state=CharacterState("akira", "akira-default", [], []),
         dialogue="Wake up.",
+        requires_lipsync=requires_lipsync,
     )
     return plan.approve_keyframe("storyboards/pilot-shot-001/frame.png") if approved else plan
 
@@ -79,6 +80,37 @@ async def test_orchestrator_runs_motion_lipsync_and_composition_in_order():
     assert compositor.inputs[1].startswith("lipsync/pilot-shot-001/")
     assert progress == sorted(progress)
     assert progress[-1] == 1.0
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_skips_lipsync_for_offscreen_or_non_dialogue_shot():
+    lipsync = FakeLipSync()
+    compositor = FakeCompositor()
+    service = AnimationOrchestratorService(FakeMotion(), lipsync, compositor)
+
+    result = await service.orchestrate_shot(
+        _plan(approved=True, requires_lipsync=False),
+        "backgrounds/hospital.png",
+        "audio/offscreen-narration.wav",
+        "final/pilot-shot-001.mp4",
+    )
+
+    assert result == "final/pilot-shot-001.mp4"
+    assert lipsync.inputs is None
+    assert compositor.inputs[1] == "motion/pilot-shot-001/clip.mp4"
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_rejects_windows_style_output_key():
+    service = AnimationOrchestratorService(FakeMotion(), FakeLipSync(), FakeCompositor())
+
+    with pytest.raises(ValueError, match="portable"):
+        await service.orchestrate_shot(
+            _plan(approved=True),
+            "backgrounds/hospital.png",
+            "audio/dialogue.wav",
+            "final\\shot.mp4",
+        )
 
 
 @pytest.mark.asyncio

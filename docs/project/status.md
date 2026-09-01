@@ -7,13 +7,13 @@ supports both the durable topic/audio factory and a guarded Akira anime pipeline
 
 | Area | Status |
 |---|---|
-| Python test suite | 663 tests passing |
+| Python test suite | 684 tests passing |
 | Python and real FFmpeg render CI | Passing on `main` |
 | Remotion type-check and smoke frame CI | Passing on `main` |
 | Topic/audio production factory | Implemented and live-validated |
 | Akira character reference workflow | Implemented |
 | Human keyframe approval boundary | Enforced and fail-closed |
-| Two-pass ComfyUI motion workflow | Implemented and automated-test validated |
+| Two-pass ComfyUI motion workflow | Automated-test and 10-second local GPU smoke validated |
 | FFmpeg layered composition | Real integration coverage |
 | LivePortrait lip sync | Explicit mock/passthrough adapter |
 

@@ -13,9 +13,9 @@ set through a tracked GitHub issue and lands through a focused pull request.
 
 ## Next — Akira pilot
 
-- Connect and validate a real local ComfyUI installation.
+- Record repeatable local ComfyUI render evidence across supported GPU profiles.
 - Produce and approve the pilot keyframe set.
-- Run the two-pass motion workflow against approved candidates.
+- Expand the two-pass motion workflow from the Akira smoke shot to the pilot set.
 - Replace the LivePortrait mock with an integration-tested backend.
 - Assemble and review the first reproducible pilot master.
 

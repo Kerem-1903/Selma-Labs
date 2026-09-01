@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import PurePosixPath
 
+from core.domain.value_objects.portable_storage_key import PortableStorageKey
 from core.domain.value_objects.render_profile import RenderProfile
 
 
@@ -35,9 +35,12 @@ class ImageToVideoRequest:
                 raise ValueError(f"{name} must not be empty.")
         if not 0.25 <= self.target_duration_seconds <= 30.0:
             raise ValueError("target_duration_seconds must be between 0.25 and 30.")
-        storage_path = PurePosixPath(self.source_image_storage_key.replace("\\", "/"))
-        if storage_path.is_absolute() or ".." in storage_path.parts or ":" in self.source_image_storage_key:
-            raise ValueError("source_image_storage_key must be a portable relative key.")
+        try:
+            PortableStorageKey(self.source_image_storage_key)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                "source_image_storage_key must be a canonical portable relative key."
+            ) from error
         if self.width <= 0 or self.height <= 0:
             raise ValueError("Video dimensions must be greater than zero.")
         if not 1.0 <= self.fps <= 120.0:

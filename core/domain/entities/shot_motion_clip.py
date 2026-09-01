@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import Enum
-from pathlib import PurePosixPath
 from typing import Any
+
+from core.domain.value_objects.portable_storage_key import PortableStorageKey
 
 
 class MotionClipStatus(str, Enum):
@@ -46,9 +47,12 @@ class ShotMotionClip:
             if not value.strip():
                 raise ValueError("Motion clip identifiers must not be empty.")
         for key in (self.source_image_storage_key, self.storage_key):
-            path = PurePosixPath(key.replace("\\", "/"))
-            if not key.strip() or path.is_absolute() or ".." in path.parts or ":" in key:
-                raise ValueError("Motion clip storage keys must be portable relative keys.")
+            try:
+                PortableStorageKey(key)
+            except (TypeError, ValueError) as error:
+                raise ValueError(
+                    "Motion clip storage keys must be canonical portable relative keys."
+                ) from error
         if self.content_type not in {"video/mp4", "video/webm"}:
             raise ValueError("Motion clip content type is unsupported.")
         if self.width <= 0 or self.height <= 0 or self.duration_seconds <= 0 or self.fps <= 0:
@@ -56,12 +60,12 @@ class ShotMotionClip:
         if self.render_profile not in {"DRAFT", "BALANCED", "FINAL"}:
             raise ValueError("Motion clip render profile is unsupported.")
 
-    def approve(self) -> "ShotMotionClip":
+    def approve(self) -> ShotMotionClip:
         if self.status == MotionClipStatus.REJECTED:
             raise ValueError("A rejected motion clip cannot be approved.")
         return replace(self, status=MotionClipStatus.APPROVED)
 
-    def reject(self) -> "ShotMotionClip":
+    def reject(self) -> ShotMotionClip:
         if self.status == MotionClipStatus.APPROVED:
             raise ValueError("An approved motion clip cannot be rejected.")
         return replace(self, status=MotionClipStatus.REJECTED)
@@ -88,7 +92,7 @@ class ShotMotionClip:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ShotMotionClip":
+    def from_dict(cls, data: dict[str, Any]) -> ShotMotionClip:
         return cls(
             id=str(data["id"]),
             shot_contract_id=str(data["shot_contract_id"]),

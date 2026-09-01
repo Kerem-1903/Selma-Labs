@@ -10,7 +10,8 @@
     "inputs": {
       "model": ["1", 0],
       "model_name": "mm_sdxl_v10_beta.ckpt",
-      "beta_schedule": "linear (AnimateDiff-SDXL)"
+      "beta_schedule": "linear (AnimateDiff-SDXL)",
+      "context_options": ["12", 0]
     }
   },
   "3": {
@@ -95,6 +96,17 @@
       "format": "video/h264-mp4",
       "pingpong": false,
       "save_output": true
+    }
+  },
+  "12": {
+    "class_type": "ADE_StandardStaticContextOptions",
+    "inputs": {
+      "context_length": 16,
+      "context_overlap": 4,
+      "fuse_method": "pyramid",
+      "use_on_equal_length": false,
+      "start_percent": 0.0,
+      "guarantee_steps": 1
     }
   }
 }

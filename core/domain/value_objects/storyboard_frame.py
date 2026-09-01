@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import PurePosixPath
-import re
 from typing import Any
+
+from core.domain.value_objects.portable_storage_key import PortableStorageKey
 
 
 @dataclass(frozen=True)
@@ -27,15 +27,12 @@ class StoryboardFrame:
     def __post_init__(self) -> None:
         if self.sequence_index < 0:
             raise ValueError("sequence_index cannot be negative.")
-        normalized_key = self.storage_key.replace("\\", "/")
-        key_path = PurePosixPath(normalized_key)
-        if (
-            not normalized_key
-            or key_path.is_absolute()
-            or re.match(r"^[A-Za-z]:", normalized_key)
-            or any(part in {"", ".", ".."} for part in key_path.parts)
-        ):
-            raise ValueError("storage_key must be a portable relative key.")
+        try:
+            PortableStorageKey(self.storage_key)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                "storage_key must be a canonical portable relative key."
+            ) from error
         if self.width <= 0 or self.height <= 0:
             raise ValueError("Storyboard frame dimensions must be greater than zero.")
 
@@ -56,7 +53,7 @@ class StoryboardFrame:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "StoryboardFrame":
+    def from_dict(cls, data: dict[str, Any]) -> StoryboardFrame:
         return cls(
             id=str(data["id"]),
             shot_contract_id=str(data["shot_contract_id"]),
