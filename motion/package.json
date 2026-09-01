@@ -5,6 +5,7 @@
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "render:demo": "remotion render src/index.ts StrangeThingsShort ../output/remotion_demo.mp4 --props=src/demo-props.json",
+    "render:akira-pilot": "remotion render src/index.ts Akira10SecondPilot ../output/akira-a10/akira-10s-visual-pilot.mp4",
     "smoke:still": "remotion still src/index.ts StrangeThingsShort remotion-smoke.png --props=src/demo-props.json --frame=30 --log=error",
     "typecheck": "tsc --noEmit"
   },
