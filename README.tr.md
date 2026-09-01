@@ -183,6 +183,7 @@ görünüş eski asset'in üzerine yazmadan yeni revision oluşturur.
 core/             Domain entity, value object, port ve uygulama servisleri
 infrastructure/   Provider, repository, storage ve medya adapter'ları
 config/           Ortam tabanlı ayarlar ve provider composition
+cli/              Karakter inceleme, senaryo breakdown ve onaylı-shot komutları
 scripts/          Üretim, doğrulama, smoke test ve bakım komutları
 tests/            Unit, integration, end-to-end ve performans kapsamı
 motion/           Remotion kompozisyonları ve TypeScript asset'leri
@@ -227,3 +228,33 @@ kullanın ve [Davranış Kuralları'na](CODE_OF_CONDUCT.md) uyun. Güvenlik aç�
 [SECURITY.md](SECURITY.md) sürecine göre özel olarak bildirilmelidir.
 
 SELMA Labs, [Apache Lisansı 2.0](LICENSE) ile sunulur.
+
+## İki geçişli anime üretim hattı
+
+Anime üretim sınırı; senaryo yorumlama, karakter kimliği, motion üretimi,
+lip-sync ve kompozisyonu birbirinden ayırır:
+
+```text
+senaryo satırları -> onaysız shot planları -> insan onaylı keyframe'ler
+                  -> ComfyUI motion pass 1 -> kimlik iyileştirme pass 2
+                  -> LivePortrait sınırı -> FFmpeg katmanlı kompozisyon
+```
+
+Akira'nın kanonik kimliği `CharacterBible.akira()` ile sağlanır. Motion ve
+lip-sync motorları domain port'larını uygular; `config/container.py` ise yerel
+adapter'ları ve ortam tabanlı ayarları birbirine bağlar. Güncel LivePortrait
+adapter'ı açıkça belirtilmiş deterministik bir passthrough mock'tur; gerçek ağız
+animasyonu yaptığını iddia etmez.
+
+ComfyUI'yi başlatmadan karakteri inceleyebilir veya UTF-8 senaryoyu planlara
+ayırabilirsiniz:
+
+```bash
+python -m cli.main character show
+python -m cli.main script breakdown --input story.txt --output shot-plan.json
+```
+
+Render komutu yalnızca keyframe'i A7 insan inceleme akışında `COMMITTED` olarak
+kaydedilmiş adayla eşleşen planı kabul eder. Görsel, arka plan ve ses girdileri
+portable storage key kullanır; ComfyUI ve model konumları kod yerine ortam
+ayarlarından alınır.

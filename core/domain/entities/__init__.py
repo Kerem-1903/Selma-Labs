@@ -4,6 +4,7 @@ from core.domain.entities.subtitle_track import SubtitleTrack
 from core.domain.entities.translated_subtitle_track import TranslatedSubtitleTrack
 from core.domain.entities.audio_asset import AudioAsset
 from core.domain.entities.pipeline_run import PipelineRun, PipelineRunStatus
+from core.domain.entities.shot_animation import AnimationShotPlan, ShotMotionClip
 
 __all__ = [
     "Script",
@@ -14,4 +15,6 @@ __all__ = [
     "AudioAsset",
     "PipelineRun",
     "PipelineRunStatus",
+    "AnimationShotPlan",
+    "ShotMotionClip",
 ]
