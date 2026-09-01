@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "character_id": "akira",
+  "lock_version": "v1",
+  "status": "LOCKED",
+  "master_reference": {
+    "path": "characters/akira/identity_lock/v1/akira-identity-lock-v1.png",
+    "sha256": "7761e8fa41580049515c6e55b71db1376c0be5acd9b39d9d58370cef47072513"
+  },
+  "video_reference_priority": [
+    "characters/akira/identity_lock/v1/face-neutral.png",
+    "characters/akira/identity_lock/v1/front.png",
+    "characters/akira/identity_lock/v1/three-quarter-left.png"
+  ],
+  "references": {
+    "FACE_DETERMINED": {
+      "path": "characters/akira/identity_lock/v1/face-determined.png",
+      "sha256": "f5d52ed9d855939561a590122c0f2e9ad5d92c2706fb6d8b8f2adafe01108c80"
+    },
+    "FACE_NEUTRAL": {
+      "path": "characters/akira/identity_lock/v1/face-neutral.png",
+      "sha256": "f5f30f0111153ac5e2fe04dc5d7e9c516951e7311687756f170455211bcc08db"
+    },
+    "FRONT": {
+      "path": "characters/akira/identity_lock/v1/front.png",
+      "sha256": "b27e72ef1a74e3dfc17b3457d6cdb448e5c095ff2f2c365548c5ff26afc02433"
+    },
+    "PROFILE_LEFT": {
+      "path": "characters/akira/identity_lock/v1/profile-left.png",
+      "sha256": "ed23c715e16822d0773be0ade848a359788bed1ca834356b4564fa64b402663e"
+    },
+    "THREE_QUARTER_LEFT": {
+      "path": "characters/akira/identity_lock/v1/three-quarter-left.png",
+      "sha256": "1c874563f5483a45dfad2f7911ba21ba600579abca2ce6360d3308ea627eaa0b"
+    }
+  },
+  "immutable_identity": {
+    "appearance": "adult athletic anime woman with a narrow angular jaw and warm pale skin",
+    "eyes": "amber-orange, sharp almond shape",
+    "hair": "long near-black dark-brown hair with layered bangs",
+    "signature_mark": "one vivid red front streak on the viewer-right side in frontal views",
+    "outfit": "cropped charcoal tactical jacket with deep-red lining and piping, fitted black high-neck shirt, gray tactical trousers, black belt, paired thigh holsters, black fingerless gloves, dark knee pads, tall black tactical boots"
+  },
+  "style_lock": {
+    "medium": "clean premium 2D anime production art",
+    "rendering": "controlled line art with restrained cel shading",
+    "lighting": "neutral soft studio lighting for reference inputs",
+    "palette": [
+      "near-black",
+      "charcoal",
+      "muted-gray",
+      "deep-red",
+      "amber-orange",
+      "warm-pale-skin"
+    ]
+  },
+  "forbidden_drift": [
+    "different face or apparent age",
+    "different eye color",
+    "missing, duplicated, or relocated red hair streak",
+    "short hair or changed fringe",
+    "different outfit or jacket length",
+    "missing paired holsters, knee pads, or tall boots",
+    "weapons not required by the shot",
+    "photorealistic, 3D, chibi, or painterly rendering"
+  ]
+}
