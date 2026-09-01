@@ -9,7 +9,10 @@ updates:
       day: monday
       time: "06:00"
       timezone: Europe/Istanbul
-    open-pull-requests-limit: 5
+    # Python requirements intentionally use compatible lower bounds instead of
+    # a lock file. Disable routine minimum-version bump PRs; Dependabot security
+    # updates remain enabled and are not counted against this limit.
+    open-pull-requests-limit: 0
     rebase-strategy: auto
     commit-message:
       prefix: deps(python)
