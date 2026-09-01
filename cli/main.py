@@ -52,6 +52,17 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark = blender_commands.add_parser("benchmark")
     benchmark.add_argument("--model", required=True, help="Path to 3D model")
 
+    rig = commands.add_parser("rig", help="A9 Rig and Acting Validation Tools")
+    rig_commands = rig.add_subparsers(dest="rig_command", required=True)
+
+    validate = rig_commands.add_parser("validate")
+    validate.add_argument("--model", required=True, help="Path to blender model")
+
+    preview = rig_commands.add_parser("preview")
+    preview.add_argument("--model", required=True, help="Path to blender model")
+    preview.add_argument("--action", required=True, help="Action name to preview")
+    preview.add_argument("--output", default="output/blender/preview.mp4", help="Output video path")
+
     return parser
 
 
@@ -70,6 +81,8 @@ def main(
             asyncio.run(_render_shot(arguments, container_factory()))
         elif arguments.command == "blender":
             asyncio.run(_run_blender_commands(arguments, container_factory()))
+        elif arguments.command == "rig":
+            asyncio.run(_run_rig_commands(arguments))
         return 0
     except Exception as error:  # noqa: BLE001 - CLI boundary
         print(f"SELMA command failed: {error}", file=sys.stderr)
@@ -147,6 +160,38 @@ async def _run_blender_commands(
         adapter = BlenderSceneAdapter(blender_bin_path=get_settings().blender_bin_path)
         stats = await adapter.run_benchmark(model_path=arguments.model)
         print(json.dumps(stats, indent=2))
+
+
+async def _run_rig_commands(arguments: argparse.Namespace) -> None:
+    from config.settings import get_settings
+    from infrastructure.providers.blender.blender_rig_adapter import BlenderRigAdapter
+    from core.application.services.rig_validation_service import RigValidationService
+    from dataclasses import asdict
+
+    adapter = BlenderRigAdapter(blender_bin_path=get_settings().blender_bin_path)
+    service = RigValidationService(adapter)
+
+    if arguments.rig_command == "validate":
+        report = await service.validate_character_rig(arguments.model)
+
+        # Convert frozensets to lists for JSON serialization
+        spec_dict = asdict(report.specification)
+        spec_dict["shape_keys"] = list(spec_dict["shape_keys"])
+        spec_dict["available_actions"] = list(spec_dict["available_actions"])
+
+        output = {
+            "is_valid": report.is_valid,
+            "errors": report.errors,
+            "specification": spec_dict
+        }
+        print(json.dumps(output, indent=2))
+    elif arguments.rig_command == "preview":
+        output_path = await adapter.bake_action_preview(
+            model_path=arguments.model,
+            action_name=arguments.action,
+            output_path=arguments.output
+        )
+        print(f"Preview saved to: {output_path}")
 
 
 def _select_shot_payload(payload: Any, shot_id: str | None) -> dict[str, Any]:

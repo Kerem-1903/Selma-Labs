@@ -5,7 +5,8 @@ from unittest import mock
 
 import pytest
 
-from infrastructure.providers.blender.blender_binary_resolver import BlenderBinaryResolver, BlenderNotFoundError
+from core.domain.exceptions import BlenderNotFoundError
+from infrastructure.providers.blender.blender_binary_resolver import BlenderBinaryResolver
 
 def test_resolve_from_bin_path_valid():
     with mock.patch("pathlib.Path.is_file", return_value=True), \

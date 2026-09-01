@@ -4,16 +4,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-
-class BlenderNotFoundError(Exception):
-    def __init__(self, message: str = "Blender executable not found."):
-        self.message = (
-            f"{message}\n"
-            "Please ensure Blender (4.x or 5.x) is installed.\n"
-            "If it is not in your PATH, you can set the BLENDER_BIN_PATH "
-            "environment variable to point to the blender executable."
-        )
-        super().__init__(self.message)
+from core.domain.exceptions import BlenderNotFoundError
 
 
 class BlenderBinaryResolver:

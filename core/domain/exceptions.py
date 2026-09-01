@@ -17,6 +17,23 @@ class SelmaError(Exception):
     """Base class for all SELMA Labs domain/application errors."""
 
 
+class EngineException(SelmaError):
+    """Base class for errors related to underlying execution engines."""
+
+
+class BlenderNotFoundError(EngineException):
+    """Raised when the Blender executable cannot be located on the system."""
+
+    def __init__(self, message: str = "Blender executable not found.") -> None:
+        self.message = (
+            f"{message}\n"
+            "Please ensure Blender (4.x or 5.x) is installed.\n"
+            "If it is not in your PATH, you can set the BLENDER_BIN_PATH "
+            "environment variable to point to the blender executable."
+        )
+        super().__init__(self.message)
+
+
 class ProviderError(SelmaError):
     """Base class for errors raised by external provider adapters."""
 
