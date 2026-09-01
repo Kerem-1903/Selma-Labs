@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/Kerem-1903/Selma-Labs/actions/workflows/quality-gates.yml"><img src="https://github.com/Kerem-1903/Selma-Labs/actions/workflows/quality-gates.yml/badge.svg" alt="Quality Gates" /></a>
+  <a href="https://github.com/Kerem-1903/Selma-Labs/actions/workflows/codeql.yml"><img src="https://github.com/Kerem-1903/Selma-Labs/actions/workflows/codeql.yml/badge.svg" alt="CodeQL" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-D22128.svg" alt="Apache License 2.0" /></a>
   <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white" alt="Python 3.10+" />
   <img src="https://img.shields.io/badge/Remotion-4.x-0B84F3?logo=react&logoColor=white" alt="Remotion 4.x" />
