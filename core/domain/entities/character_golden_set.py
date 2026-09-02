@@ -192,52 +192,52 @@ def default_akira_golden_cases() -> tuple[GoldenTestCase, ...]:
     descriptions = (
         (
             GoldenScenario.FACE_FRONT,
-            "front face close-up, neutral expression",
+            "masterpiece, best quality, anime screencap, solo, symmetrical front-facing head-and-shoulders portrait, entire head visible, neutral restrained expression, plain light background",
             ReferenceView.FACE_CLOSEUP,
         ),
         (
             GoldenScenario.PROFILE_LEFT,
-            "clean left profile portrait",
+            "masterpiece, best quality, anime screencap, solo, head-and-shoulders portrait, strict left-facing side profile, entire head and both shoulders visible, plain light background",
             ReferenceView.PROFILE_LEFT,
         ),
         (
             GoldenScenario.FULL_BODY,
-            "full body standing turnaround pose",
+            "masterpiece, best quality, anime character sheet, solo, full body, head-to-toe visible, centered standing turnaround pose, both boots visible, plain light background",
             ReferenceView.FRONT,
         ),
         (
             GoldenScenario.RUNNING,
-            "readable full-body running action",
+            "masterpiece, best quality, cinematic anime action frame, solo, full body running from left to right, head-to-toe visible, strong readable sprint silhouette, arms and legs separated, urban street background",
             ReferenceView.THREE_QUARTER_LEFT,
         ),
         (
             GoldenScenario.KATANA_GRIP,
-            "correct two-handed single katana grip",
+            "masterpiece, best quality, cinematic anime action frame, solo, medium full shot, exactly one katana held with both hands, both hands fully visible on one hilt, correct grip anatomy, guarded combat stance",
             ReferenceView.THREE_QUARTER_LEFT,
         ),
         (
             GoldenScenario.TWO_CHARACTER_DIALOGUE,
-            "dialogue with doctor, Akira identity unobstructed",
+            "masterpiece, best quality, anime dialogue scene, medium two-shot, Akira on the left speaking with one adult male doctor on the right, both faces visible, clear eyelines, hospital room background",
             ReferenceView.FACE_CLOSEUP,
         ),
         (
             GoldenScenario.RAIN_ROOFTOP,
-            "rainy night rooftop, controlled rim light",
+            "masterpiece, best quality, cinematic anime frame, medium-wide shot, Akira standing on a rainy night rooftop, complete upper body and hands visible, city skyline, controlled cool rim light, visible rain",
             ReferenceView.THREE_QUARTER_LEFT,
         ),
         (
             GoldenScenario.IMPACT_ACTION,
-            "readable impact pose with one katana",
+            "masterpiece, best quality, dynamic anime action frame, full body Akira delivering a single katana strike, exactly one katana, readable impact pose, strong silhouette, motion lines, ruined street background",
             ReferenceView.FRONT,
         ),
         (
             GoldenScenario.WIDE_STREET,
-            "wide old market street perspective",
+            "masterpiece, best quality, cinematic anime establishing shot, very wide old market street perspective, full body Akira small in frame walking away from camera, buildings and street dominate the composition, rainy evening",
             ReferenceView.BACK,
         ),
         (
             GoldenScenario.DETERMINED_EXPRESSION,
-            "determined restrained facial expression",
+            "masterpiece, best quality, anime screencap, solo, head-and-shoulders close-up, entire head visible, restrained determined expression, amber eyes focused forward, subtle dramatic shadow",
             ReferenceView.FACE_CLOSEUP,
         ),
     )
