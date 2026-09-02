@@ -250,7 +250,7 @@ class KeyframeGenerationService:
         start_contract = ShotContract(
             id=shot_plan.id + "_start",
             camera_constraints=CameraConstraints(angle="", lens="", movement=""),
-            action_constraints=ActionConstraints(primary_action="start", secondary_actions=[]),
+            action_constraints=ActionConstraints(primary_action=shot_plan.prompt, secondary_actions=[]),
             visual_constraints=VisualConstraints(
                 lighting="",
                 environment_style="",
@@ -261,7 +261,7 @@ class KeyframeGenerationService:
         end_contract = ShotContract(
             id=shot_plan.id + "_end",
             camera_constraints=CameraConstraints(angle="", lens="", movement=""),
-            action_constraints=ActionConstraints(primary_action="end", secondary_actions=[]),
+            action_constraints=ActionConstraints(primary_action=shot_plan.prompt_end or shot_plan.prompt, secondary_actions=[]),
             visual_constraints=VisualConstraints(
                 lighting="",
                 environment_style="",

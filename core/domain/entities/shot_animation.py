@@ -42,6 +42,7 @@ class AnimationShotPlan:
     pose_reference_key: str | None = None
     controlnet_type: str | None = "openpose"
     metadata: dict[str, Any] = field(default_factory=dict)
+    prompt_end: str | None = None
 
     def __post_init__(self) -> None:
         for field_name, value in (
@@ -87,6 +88,7 @@ class AnimationShotPlan:
             "script_id": self.script_id,
             "scene_plan_id": self.scene_plan_id,
             "prompt": self.prompt,
+            "prompt_end": self.prompt_end,
             "duration_seconds": self.duration_seconds,
             "character_state": self.character_state.to_dict(),
             "dialogue": self.dialogue,
@@ -107,6 +109,7 @@ class AnimationShotPlan:
             script_id=str(data["script_id"]),
             scene_plan_id=str(data["scene_plan_id"]),
             prompt=str(data["prompt"]),
+            prompt_end=data.get("prompt_end"),
             duration_seconds=float(data["duration_seconds"]),
             character_state=CharacterState.from_dict(dict(data["character_state"])),
             dialogue=str(data.get("dialogue", "")),

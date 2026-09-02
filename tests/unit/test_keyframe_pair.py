@@ -49,6 +49,7 @@ async def test_generate_keyframe_pair_calls_provider_twice():
         script_id="script1",
         scene_plan_id="scene1",
         prompt="prompt",
+            prompt_end="prompt end",
         duration_seconds=2.0,
         character_state=CharacterState(character_id="akira", active_outfit_id="casual", injuries=[], held_objects=[]),
         start_keyframe_key="start_kf.png",
