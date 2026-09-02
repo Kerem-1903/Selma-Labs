@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     ollama_api_url: str = "http://localhost:11434/api/generate"
     ollama_script_model: str = "llama3"
+    story_development_model: str = "qwen3:8b"
+    preproduction_canon_dir: str = "assets/preproduction"
+    preproduction_character_dir: str = "assets/character_bibles"
+    preproduction_approval_dir: str = "output/preproduction/story-approvals"
+    golden_review_manifest: str = "assets/preproduction/golden-set-review.example.json"
 
     selmagpt_api_url: str = "http://localhost:11434/v1/chat/completions"
     selmagpt_model_name: str = "llama3.1:8b"

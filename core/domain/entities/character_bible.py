@@ -5,6 +5,9 @@ from core.domain.value_objects.character_identity import (
     IdentityConstraints,
     ReferenceView,
 )
+from core.domain.value_objects.character_narrative_profile import (
+    CharacterNarrativeProfile,
+)
 from core.domain.value_objects.character_reference import CharacterReference
 from core.domain.value_objects.outfit import Outfit
 from core.domain.value_objects.style_profile import StyleProfile
@@ -17,6 +20,7 @@ class CharacterBible:
     style_profile: StyleProfile
     reference_pack: dict[ReferenceView, CharacterReference] = field(default_factory=dict)
     outfit_catalog: list[Outfit] = field(default_factory=list)
+    narrative_profile: CharacterNarrativeProfile | None = None
 
     def __post_init__(self) -> None:
         if not self.character_id.strip():
@@ -72,6 +76,19 @@ class CharacterBible:
                     reference_image_keys=[],
                 )
             ],
+            narrative_profile=CharacterNarrativeProfile(
+                canonical_names=("Akira",),
+                motivation="Protect civilians without becoming a weapon of the memory regime.",
+                backstory=(
+                    "A disciplined swordswoman hunting the source of altered memories "
+                    "inside a rain-soaked controlled city."
+                ),
+                voice_traits=("concise", "restrained", "observant"),
+                allowed_abilities=("Crimson Arc",),
+                forbidden_behaviors=("abandons civilians",),
+                forbidden_voice_phrases=("I give up",),
+                locked=True,
+            ),
         )
 
     @property
@@ -101,7 +118,10 @@ class CharacterBible:
                 view.value: ref.to_dict()
                 for view, ref in self.reference_pack.items()
             },
-            "outfit_catalog": [outfit.to_dict() for outfit in self.outfit_catalog]
+            "outfit_catalog": [outfit.to_dict() for outfit in self.outfit_catalog],
+            "narrative_profile": (
+                self.narrative_profile.to_dict() if self.narrative_profile else None
+            ),
         }
 
     @classmethod
@@ -119,5 +139,10 @@ class CharacterBible:
             identity_constraints=IdentityConstraints.from_dict(data.get("identity_constraints", {})),
             style_profile=StyleProfile.from_dict(data.get("style_profile", {})),
             reference_pack=refs,
-            outfit_catalog=outfits
+            outfit_catalog=outfits,
+            narrative_profile=(
+                CharacterNarrativeProfile.from_dict(dict(data["narrative_profile"]))
+                if data.get("narrative_profile")
+                else None
+            ),
         )

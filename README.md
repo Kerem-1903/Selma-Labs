@@ -211,6 +211,10 @@ remain explicit.
 
 ## Documentation
 
+- [Anime Pre-Production P1–P8](docs/ANIME_PREPRODUCTION_P1_P8.md) — locked story,
+  canon, Golden Set, hierarchical shot planning, 24 FPS animatic and
+  animation-ready package contracts.
+
 Start with the [documentation index](docs/README.md). Key references:
 
 - [Current status](docs/project/status.md)

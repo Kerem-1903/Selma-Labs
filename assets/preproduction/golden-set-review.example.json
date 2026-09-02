@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "reviews": {
+    "FACE_FRONT": {"identity_score": 0.0, "style_score": 0.0, "anatomy_score": 0.0, "human_approved": false, "notes": "pending"},
+    "PROFILE_LEFT": {"identity_score": 0.0, "style_score": 0.0, "anatomy_score": 0.0, "human_approved": false, "notes": "pending"},
+    "FULL_BODY": {"identity_score": 0.0, "style_score": 0.0, "anatomy_score": 0.0, "human_approved": false, "notes": "pending"},
+    "RUNNING": {"identity_score": 0.0, "style_score": 0.0, "anatomy_score": 0.0, "human_approved": false, "notes": "pending"},
+    "KATANA_GRIP": {"identity_score": 0.0, "style_score": 0.0, "anatomy_score": 0.0, "human_approved": false, "notes": "pending"},
+    "TWO_CHARACTER_DIALOGUE": {"identity_score": 0.0, "style_score": 0.0, "anatomy_score": 0.0, "human_approved": false, "notes": "pending"},
+    "RAIN_ROOFTOP": {"identity_score": 0.0, "style_score": 0.0, "anatomy_score": 0.0, "human_approved": false, "notes": "pending"},
+    "IMPACT_ACTION": {"identity_score": 0.0, "style_score": 0.0, "anatomy_score": 0.0, "human_approved": false, "notes": "pending"},
+    "WIDE_STREET": {"identity_score": 0.0, "style_score": 0.0, "anatomy_score": 0.0, "human_approved": false, "notes": "pending"},
+    "DETERMINED_EXPRESSION": {"identity_score": 0.0, "style_score": 0.0, "anatomy_score": 0.0, "human_approved": false, "notes": "pending"}
+  }
+}

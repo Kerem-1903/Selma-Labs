@@ -10,9 +10,20 @@
         "single red hair streak on the left-front section",
         "amber eyes"
       ],
-      "silhouette": "lean swordswoman in a cropped field jacket and tall boots"
+      "silhouette": "lean swordswoman in a cropped field jacket and tall boots",
+      "trigger_prompt": "akira_girl"
     },
     "outfit_catalog": [],
+    "narrative_profile": {
+      "allowed_abilities": ["Crimson Arc"],
+      "backstory": "A disciplined swordswoman hunting the source of altered memories inside a rain-soaked controlled city.",
+      "canonical_names": ["Akira"],
+      "forbidden_behaviors": ["abandons civilians"],
+      "forbidden_voice_phrases": ["I give up"],
+      "locked": true,
+      "motivation": "Protect civilians without becoming a weapon of the memory regime.",
+      "voice_traits": ["concise", "restrained", "observant"]
+    },
     "reference_pack": {
       "BACK": {
         "asset_id": "f24c06f1-5c8d-46d8-85a5-6cb71ab8638c",

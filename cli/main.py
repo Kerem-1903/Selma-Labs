@@ -11,6 +11,7 @@ from typing import Any
 from config.container import AnimationContainer, create_container
 from core.application.services.script_breakdown_service import ScriptBreakdownService
 from core.domain.entities.character_bible import CharacterBible
+from core.domain.entities.episode_script import EpisodeScript
 from core.domain.entities.shot_animation import ShotPlan
 
 
@@ -75,6 +76,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--output", default="output/blender/preview.mp4", help="Output video path"
     )
 
+    preproduction = commands.add_parser(
+        "preproduction", help="Run the locked P1-P8 anime pre-production workflow"
+    )
+    preproduction_commands = preproduction.add_subparsers(
+        dest="preproduction_command", required=True
+    )
+    preproduction_commands.add_parser("status", help="Validate active canon locks")
+    production_plan = preproduction_commands.add_parser(
+        "plan", help="Convert an approved EpisodeScript JSON into a shot hierarchy"
+    )
+    production_plan.add_argument("--input", required=True)
+    production_plan.add_argument("--output", required=True)
+
     return parser
 
 
@@ -95,6 +109,10 @@ def main(
             asyncio.run(_run_blender_commands(arguments, container_factory()))
         elif arguments.command == "rig":
             return asyncio.run(_run_rig_commands(arguments))
+        elif arguments.command == "preproduction":
+            return asyncio.run(
+                _run_preproduction_commands(arguments, container_factory())
+            )
         return 0
     except Exception as error:  # noqa: BLE001 - CLI boundary
         print(f"SELMA command failed: {error}", file=sys.stderr)
@@ -220,6 +238,57 @@ async def _run_rig_commands(arguments: argparse.Namespace) -> int:
         print(f"Preview saved to: {output_path}")
         return 0
     raise ValueError(f"Unsupported rig command: {arguments.rig_command}")
+
+
+async def _run_preproduction_commands(
+    arguments: argparse.Namespace,
+    container: AnimationContainer,
+) -> int:
+    if arguments.preproduction_command == "status":
+        direction = await container.canon_repository.get_creative_direction()
+        world = await container.canon_repository.get_world_bible()
+        visual = await container.canon_repository.get_visual_style()
+        characters = await container.canon_repository.get_character_bibles()
+        payload = {
+            "schema_version": 1,
+            "story_canon_locked": direction.status.value == "LOCKED",
+            "world_canon_locked": world.status.value == "LOCKED",
+            "visual_style_locked": visual.status.value == "LOCKED",
+            "characters": [
+                {
+                    "character_id": bible.character_id,
+                    "narrative_locked": bool(
+                        bible.narrative_profile and bible.narrative_profile.locked
+                    ),
+                    "reference_count": len(bible.reference_pack),
+                }
+                for bible in characters
+            ],
+            "next_gate": "GOLDEN_SET",
+        }
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
+    if arguments.preproduction_command == "plan":
+        source = json.loads(Path(arguments.input).read_text(encoding="utf-8"))
+        script_payload = source.get("episode_script", source)
+        script = EpisodeScript.from_dict(dict(script_payload))
+        plan = container.hierarchical_shot_planning_service.plan(script)
+        target = Path(arguments.output)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(
+                {"schema_version": 1, "episode_production_plan": plan.to_dict()},
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        print(str(target.resolve()))
+        return 0
+    raise ValueError(
+        f"Unsupported preproduction command: {arguments.preproduction_command}"
+    )
 
 
 def _select_shot_payload(payload: Any, shot_id: str | None) -> dict[str, Any]:

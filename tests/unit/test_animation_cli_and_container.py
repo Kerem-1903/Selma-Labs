@@ -7,6 +7,13 @@ from cli.main import main
 from config.container import AnimationContainer, create_container
 from config.settings import Settings
 from core.domain.entities.character_rig import RigSpecification
+from core.domain.entities.episode_script import (
+    DialogueLine,
+    EpisodeScene,
+    EpisodeScript,
+    EpisodeScriptStatus,
+    EpisodeSequence,
+)
 from core.domain.ports.character_rig_port import RigValidationReport
 from infrastructure.storage.local_fs_storage import LocalFsStorage
 
@@ -77,6 +84,62 @@ def test_cli_breakdown_writes_unapproved_shot_plan(tmp_path):
     assert exit_code == 0
     assert len(payload["shots"]) == 2
     assert all(shot["keyframe_approved"] is False for shot in payload["shots"])
+
+
+def test_preproduction_status_and_locked_episode_plan_commands(tmp_path, capsys):
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path / "storage"),
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+    )
+
+    def factory():
+        return create_container(
+            settings=settings,
+            storage=LocalFsStorage(str(tmp_path / "storage")),
+            comfyui_client=FakeComfyClient(),
+        )
+
+    assert main(["preproduction", "status"], container_factory=factory) == 0
+    status = json.loads(capsys.readouterr().out)
+    assert status["story_canon_locked"] is True
+    assert status["visual_style_locked"] is True
+    assert status["next_gate"] == "GOLDEN_SET"
+
+    scene = EpisodeScene(
+        "scene-1",
+        "Signal",
+        "Rain Rooftop",
+        "Akira follows the signal.",
+        ("Akira",),
+        (DialogueLine("Akira", "Stay behind me."),),
+    )
+    script = (
+        EpisodeScript.create(
+            title="Signal",
+            logline="Akira hears a stolen memory.",
+            episode_number=1,
+            provider_used="test",
+            sequences=(EpisodeSequence("seq-1", "Opening", (scene,)),),
+        )
+        .with_status(EpisodeScriptStatus.READY_FOR_APPROVAL)
+        .lock("Kerem")
+    )
+    source = tmp_path / "episode.json"
+    output = tmp_path / "plan.json"
+    source.write_text(json.dumps(script.to_dict()), encoding="utf-8")
+
+    assert (
+        main(
+            ["preproduction", "plan", "--input", str(source), "--output", str(output)],
+            container_factory=factory,
+        )
+        == 0
+    )
+    plan = json.loads(output.read_text(encoding="utf-8"))
+    assert (
+        len(plan["episode_production_plan"]["sequences"][0]["scenes"][0]["shots"]) == 2
+    )
 
 
 def test_rig_validate_returns_nonzero_for_invalid_rig(capsys):
