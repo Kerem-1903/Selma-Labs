@@ -1,4 +1,4 @@
-from typing import Protocol, TypeVar
+from typing import Protocol, TypeVar, Generic
 from dataclasses import dataclass
 
 T = TypeVar('T')

@@ -1,6 +1,8 @@
+import asyncio
 import os
 import re
 import uuid
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -335,7 +337,7 @@ async def system_metrics():
     try:
         from core.application.services.system_monitor import get_system_stats
         return JSONResponse(get_system_stats())
-    except Exception:
+    except Exception as e:
         return JSONResponse({"cpu": "--", "ram": "--", "disk": "--", "gpu": "N/A"})
 
 @app.get("/api/stats")
@@ -347,7 +349,7 @@ async def stats():
             "avg_view_rate": "0%",
             "best_format": "N/A"
         })
-    except Exception:
+    except Exception as e:
         return JSONResponse({"total_videos": 0, "avg_view_rate": "0%", "best_format": "N/A"})
 
 @app.get("/api/status/{job_id}")

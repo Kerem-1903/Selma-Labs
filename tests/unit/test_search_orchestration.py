@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 import random
 from unittest.mock import AsyncMock, patch
 from core.domain.entities.media_asset import MediaAsset

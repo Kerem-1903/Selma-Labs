@@ -6,7 +6,7 @@ import inspect
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from core.domain.entities.pipeline_run import PipelineRunStatus
+from core.domain.entities.pipeline_run import PipelineRun, PipelineRunStatus
 from core.domain.exceptions import PipelineRunStateError
 from core.domain.ports.run_repository_port import RunRepositoryPort
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import math
+from pathlib import Path
 
 try:
     import librosa

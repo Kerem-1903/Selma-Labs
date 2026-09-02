@@ -119,6 +119,9 @@ class Settings(BaseSettings):
     comfyui_keyframe_timeout_seconds: float = 300.0
     comfyui_keyframe_poll_interval_seconds: float = 1.0
     keyframe_candidate_db_path: str = "data/keyframe_candidates.db"
+    keyframe_storage_root_dir: str = "assets"
+    character_bible_repository_dir: str = "assets/character_bibles"
+    storyboard_repository_dir: str = "output/storyboards"
     image_to_video_provider: Literal["fake", "comfyui"] = "fake"
     comfyui_i2v_workflow_path: str = "assets/comfyui_i2v_workflow.json"
     comfyui_i2v_timeout_seconds: float = 900.0

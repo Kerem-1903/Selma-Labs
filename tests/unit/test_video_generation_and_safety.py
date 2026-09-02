@@ -1,4 +1,5 @@
 import pytest
+import asyncio
 from unittest.mock import MagicMock, AsyncMock
 
 from core.domain.entities.media_asset import MediaAsset
@@ -13,6 +14,7 @@ async def test_luma_video_generation_provider():
     assert provider.name == "luma_dream_machine"
 
     # Mock httpx AsyncClient
+    import httpx
 
     mock_post_resp = MagicMock()
     mock_post_resp.json.return_value = {"id": "fake_gen_id"}

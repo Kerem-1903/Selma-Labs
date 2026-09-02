@@ -81,7 +81,8 @@ def build_parser() -> argparse.ArgumentParser:
     pair.add_argument("--shot-id", required=True)
     pair.add_argument("--prompt-start", required=True)
     pair.add_argument("--prompt-end", required=True)
-    pair.add_argument("--pose", required=True)
+    pair.add_argument("--start-pose", required=True)
+    pair.add_argument("--end-pose", required=True)
 
     return parser
 
@@ -252,9 +253,6 @@ def _select_shot_payload(payload: Any, shot_id: str | None) -> dict[str, Any]:
     return payload
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
-
 async def _run_keyframe_commands(
     arguments: argparse.Namespace,
     container: AnimationContainer,
@@ -263,7 +261,6 @@ async def _run_keyframe_commands(
         from core.domain.entities.character_state import CharacterState
         from core.domain.entities.shot_animation import AnimationShotPlan
 
-        # Create a dummy shot plan to test generation
         shot = AnimationShotPlan(
             id=arguments.shot_id,
             script_id="test",
@@ -272,13 +269,20 @@ async def _run_keyframe_commands(
             prompt_end=arguments.prompt_end,
             duration_seconds=2.0,
             character_state=CharacterState(character_id="akira", active_outfit_id="casual", injuries=[], held_objects=[]),
-            start_keyframe_key="dummy_start",
-            end_keyframe_key="dummy_end",
-            pose_reference_key=arguments.pose,
+            start_pose_reference_key=arguments.start_pose,
+            end_pose_reference_key=arguments.end_pose,
             controlnet_type="openpose"
         )
 
         pair = await container.keyframe_generation_service.generate_keyframe_pair(shot)
 
-        print(f"Generated start keyframe: {pair.start_keyframe.content_type} {pair.start_keyframe.width}x{pair.start_keyframe.height}")
-        print(f"Generated end keyframe: {pair.end_keyframe.content_type} {pair.end_keyframe.width}x{pair.end_keyframe.height}")
+        print(json.dumps({
+            "shot_id": arguments.shot_id,
+            "start_storage_key": pair.start_storage_key,
+            "end_storage_key": pair.end_storage_key,
+            "human_approved": pair.human_approved,
+        }, indent=2))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

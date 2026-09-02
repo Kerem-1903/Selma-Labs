@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from infrastructure.providers.render.smart_cropping_service import SmartCroppingService
+from infrastructure.providers.render.smart_cropping_service import SmartCroppingService, HAS_ULTRALYTICS
 
 @pytest.fixture
 def service():

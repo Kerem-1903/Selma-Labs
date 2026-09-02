@@ -1,5 +1,6 @@
 import aiohttp
 import logging
+from typing import Optional
 from core.domain.ports.script_generator_port import ScriptGeneratorPort
 from core.domain.entities.script import Script
 from core.domain.exceptions import ProviderError

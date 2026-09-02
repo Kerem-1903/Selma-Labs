@@ -1,5 +1,6 @@
 import logging
 import os
+import uuid
 import asyncio
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.value_objects.generated_audio import GeneratedAudio

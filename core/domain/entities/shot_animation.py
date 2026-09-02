@@ -39,7 +39,8 @@ class AnimationShotPlan:
     negative_prompt: str = ""
     start_keyframe_key: str | None = None
     end_keyframe_key: str | None = None
-    pose_reference_key: str | None = None
+    start_pose_reference_key: str | None = None
+    end_pose_reference_key: str | None = None
     controlnet_type: str | None = "openpose"
     metadata: dict[str, Any] = field(default_factory=dict)
     prompt_end: str | None = None
@@ -65,6 +66,16 @@ class AnimationShotPlan:
         )
         if self.keyframe_approved and not self.source_image_storage_key:
             raise ValueError("An approved animation shot requires a source image storage key.")
+        for name, value in (
+            ("start_keyframe_key", self.start_keyframe_key),
+            ("end_keyframe_key", self.end_keyframe_key),
+            ("start_pose_reference_key", self.start_pose_reference_key),
+            ("end_pose_reference_key", self.end_pose_reference_key),
+        ):
+            if value:
+                _validate_storage_key(value, name)
+        if bool(self.start_pose_reference_key) != bool(self.end_pose_reference_key):
+            raise ValueError("Start and end pose references must be supplied together.")
 
     def approve_keyframe(self, storage_key: str) -> AnimationShotPlan:
         _validate_storage_key(storage_key, "source_image_storage_key")
@@ -97,7 +108,8 @@ class AnimationShotPlan:
             "negative_prompt": self.negative_prompt,
             "start_keyframe_key": self.start_keyframe_key,
             "end_keyframe_key": self.end_keyframe_key,
-            "pose_reference_key": self.pose_reference_key,
+            "start_pose_reference_key": self.start_pose_reference_key,
+            "end_pose_reference_key": self.end_pose_reference_key,
             "controlnet_type": self.controlnet_type,
             "metadata": dict(self.metadata),
         }
@@ -118,7 +130,8 @@ class AnimationShotPlan:
             negative_prompt=str(data.get("negative_prompt", "")),
             start_keyframe_key=data.get("start_keyframe_key"),
             end_keyframe_key=data.get("end_keyframe_key"),
-            pose_reference_key=data.get("pose_reference_key"),
+            start_pose_reference_key=data.get("start_pose_reference_key"),
+            end_pose_reference_key=data.get("end_pose_reference_key"),
             controlnet_type=data.get("controlnet_type", "openpose"),
             metadata=dict(data.get("metadata", {})),
         )

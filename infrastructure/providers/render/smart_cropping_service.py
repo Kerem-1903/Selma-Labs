@@ -1,4 +1,6 @@
 import logging
+from typing import Optional, Tuple
+from pathlib import Path
 
 # Try importing ultralytics. If not available, fail gracefully.
 try:

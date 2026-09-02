@@ -102,8 +102,15 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             use_reference=bool(selected_references),
             base_model_source=base_model_source,
         )
-        controlnet_type = str(request.visual_constraints.get("controlnet_type", "openpose")).strip()
-        self._select_pose_conditioning(workflow, request, use_pose=bool(pose_storage_key), controlnet_type=controlnet_type)
+        controlnet_type = str(
+            request.visual_constraints.get("controlnet_type", "openpose")
+        ).strip()
+        self._select_pose_conditioning(
+            workflow,
+            request,
+            use_pose=bool(pose_storage_key),
+            controlnet_type=controlnet_type,
+        )
         pose_nodes = self._connected_nodes_for_role(workflow, "pose_control_image")
         if pose_storage_key and len(pose_nodes) != 1:
             raise ProviderError(
@@ -657,7 +664,12 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         inputs["end_at"] = end_at
 
     def _select_pose_conditioning(
-        self, workflow: dict[str, Any], request: KeyframeGenerationRequest, *, use_pose: bool, controlnet_type: str = "openpose"
+        self,
+        workflow: dict[str, Any],
+        request: KeyframeGenerationRequest,
+        *,
+        use_pose: bool,
+        controlnet_type: str = "openpose",
     ) -> None:
         pose_control = self._node_for_role(workflow, "pose_control")
         if pose_control is None:
@@ -665,15 +677,10 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                 raise ProviderError("ComfyUI workflow has no pose-control node.")
             return
 
-        # Support dynamic controlnet injection if node supports it or just check its presence
-        if use_pose:
-            # You could dynamically change the model inside ControlNetLoader here
-            cn_loader = self._node_for_role(workflow, "controlnet_loader")
-            if cn_loader is not None:
-                # If we have a controlnet_type, try to load it
-                if controlnet_type == "openpose":
-                    cn_loader[1]["inputs"]["control_net_name"] = "control_v11p_sd15_openpose.pth"
-                # other types can be mapped similarly
+        if use_pose and controlnet_type != "openpose":
+            raise ProviderError(
+                f"Unsupported keyframe ControlNet type: {controlnet_type!r}."
+            )
 
         sampler = self._node_for_role(workflow, "sampler", "KSampler")
         positive = self._node_for_role(workflow, "positive_prompt", "CLIPTextEncode")

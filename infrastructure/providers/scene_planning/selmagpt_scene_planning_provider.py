@@ -18,7 +18,7 @@ class SelmaGPTScenePlanningProvider(ScenePlanningPort):
         self.timeout_seconds = timeout_seconds
 
     async def plan_scenes(self, script_text: str, visual_manifest_context: Optional[str] = None) -> List[Scene]:
-        logger.info("Planning scenes via SelmaGPT...")
+        logger.info(f"Planning scenes via SelmaGPT...")
 
         system_prompt = (
             "You are a master cinematic director. Split the provided narration script into a list of exact scenes. "

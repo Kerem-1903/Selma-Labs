@@ -1,5 +1,7 @@
 import pytest
+import io
 from PIL import Image
+from unittest import mock
 from unittest.mock import AsyncMock
 
 from core.application.services.multiview_asset_registration_service import MultiviewAssetRegistrationService

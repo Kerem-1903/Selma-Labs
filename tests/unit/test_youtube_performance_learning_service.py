@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import asyncio
+import json
 
 import pytest
 
@@ -8,6 +9,7 @@ from core.application.services.youtube_performance_learning_service import (
 )
 from core.domain.value_objects.youtube_performance import YoutubePerformanceRecord
 from infrastructure.repositories.sqlite_youtube_performance_repository import SQLiteYoutubePerformanceRepository
+from core.domain.exceptions import PerformanceDataError
 
 
 def _record(

@@ -83,4 +83,4 @@ class SelmaGPTProvider(ScriptGeneratorPort):
             logger.error(f"SelmaGPT connection error: {e}")
             raise ProviderError(f"Could not connect to SelmaGPT at {self.api_url}: {e}")
         except TimeoutError:
-             raise ProviderTimeoutError("SelmaGPT request timed out after 60 seconds.")
+             raise ProviderTimeoutError(f"SelmaGPT request timed out after 60 seconds.")

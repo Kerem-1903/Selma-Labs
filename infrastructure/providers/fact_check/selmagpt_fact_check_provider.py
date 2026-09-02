@@ -1,6 +1,7 @@
 import aiohttp
 import logging
 import json
+from typing import List, Optional
 from core.domain.ports.fact_check_port import FactCheckPort
 from core.domain.value_objects.fact_check_report import FactCheckReport
 from core.domain.value_objects.fact_source import FactSource
@@ -23,7 +24,7 @@ class SelmaGPTFactCheckProvider(FactCheckPort):
         return f"SelmaGPTFactCheckProvider({self.model})"
 
     async def verify(self, *, topic: str, script_text: str, sources: list[FactSource]) -> FactCheckReport:
-        logger.info("Verifying facts via SelmaGPT...")
+        logger.info(f"Verifying facts via SelmaGPT...")
 
         system_prompt = (
             "You are a rigorous professional fact-checker. Evaluate the provided text for factual accuracy. "
