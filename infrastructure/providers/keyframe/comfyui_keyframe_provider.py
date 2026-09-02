@@ -102,7 +102,15 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             use_reference=bool(selected_references),
             base_model_source=base_model_source,
         )
-        self._select_pose_conditioning(workflow, use_pose=bool(pose_storage_key))
+        controlnet_type = str(
+            request.visual_constraints.get("controlnet_type", "openpose")
+        ).strip()
+        self._select_pose_conditioning(
+            workflow,
+            request,
+            use_pose=bool(pose_storage_key),
+            controlnet_type=controlnet_type,
+        )
         pose_nodes = self._connected_nodes_for_role(workflow, "pose_control_image")
         if pose_storage_key and len(pose_nodes) != 1:
             raise ProviderError(
@@ -656,13 +664,24 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         inputs["end_at"] = end_at
 
     def _select_pose_conditioning(
-        self, workflow: dict[str, Any], *, use_pose: bool
+        self,
+        workflow: dict[str, Any],
+        request: KeyframeGenerationRequest,
+        *,
+        use_pose: bool,
+        controlnet_type: str = "openpose",
     ) -> None:
         pose_control = self._node_for_role(workflow, "pose_control")
         if pose_control is None:
             if use_pose:
                 raise ProviderError("ComfyUI workflow has no pose-control node.")
             return
+
+        if use_pose and controlnet_type != "openpose":
+            raise ProviderError(
+                f"Unsupported keyframe ControlNet type: {controlnet_type!r}."
+            )
+
         sampler = self._node_for_role(workflow, "sampler", "KSampler")
         positive = self._node_for_role(workflow, "positive_prompt", "CLIPTextEncode")
         negative = self._node_for_role(workflow, "negative_prompt")
@@ -673,6 +692,10 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         if use_pose:
             sampler[1]["inputs"]["positive"] = [pose_control[0], 0]
             sampler[1]["inputs"]["negative"] = [pose_control[0], 1]
+            # Adjust strength if node allows
+            if "strength" in pose_control[1]["inputs"]:
+                pose_strength = request.visual_constraints.get("pose_strength")
+                pose_control[1]["inputs"]["strength"] = float(pose_strength) if pose_strength is not None else 0.8
         else:
             sampler[1]["inputs"]["positive"] = [positive[0], 0]
             sampler[1]["inputs"]["negative"] = [negative[0], 0]

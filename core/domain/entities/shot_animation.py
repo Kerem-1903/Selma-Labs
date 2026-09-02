@@ -37,7 +37,13 @@ class AnimationShotPlan:
     source_image_storage_key: str = ""
     keyframe_approved: bool = False
     negative_prompt: str = ""
+    start_keyframe_key: str | None = None
+    end_keyframe_key: str | None = None
+    start_pose_reference_key: str | None = None
+    end_pose_reference_key: str | None = None
+    controlnet_type: str | None = "openpose"
     metadata: dict[str, Any] = field(default_factory=dict)
+    prompt_end: str | None = None
 
     def __post_init__(self) -> None:
         for field_name, value in (
@@ -60,6 +66,16 @@ class AnimationShotPlan:
         )
         if self.keyframe_approved and not self.source_image_storage_key:
             raise ValueError("An approved animation shot requires a source image storage key.")
+        for name, value in (
+            ("start_keyframe_key", self.start_keyframe_key),
+            ("end_keyframe_key", self.end_keyframe_key),
+            ("start_pose_reference_key", self.start_pose_reference_key),
+            ("end_pose_reference_key", self.end_pose_reference_key),
+        ):
+            if value:
+                _validate_storage_key(value, name)
+        if bool(self.start_pose_reference_key) != bool(self.end_pose_reference_key):
+            raise ValueError("Start and end pose references must be supplied together.")
 
     def approve_keyframe(self, storage_key: str) -> AnimationShotPlan:
         _validate_storage_key(storage_key, "source_image_storage_key")
@@ -83,12 +99,18 @@ class AnimationShotPlan:
             "script_id": self.script_id,
             "scene_plan_id": self.scene_plan_id,
             "prompt": self.prompt,
+            "prompt_end": self.prompt_end,
             "duration_seconds": self.duration_seconds,
             "character_state": self.character_state.to_dict(),
             "dialogue": self.dialogue,
             "source_image_storage_key": self.source_image_storage_key,
             "keyframe_approved": self.keyframe_approved,
             "negative_prompt": self.negative_prompt,
+            "start_keyframe_key": self.start_keyframe_key,
+            "end_keyframe_key": self.end_keyframe_key,
+            "start_pose_reference_key": self.start_pose_reference_key,
+            "end_pose_reference_key": self.end_pose_reference_key,
+            "controlnet_type": self.controlnet_type,
             "metadata": dict(self.metadata),
         }
 
@@ -99,12 +121,18 @@ class AnimationShotPlan:
             script_id=str(data["script_id"]),
             scene_plan_id=str(data["scene_plan_id"]),
             prompt=str(data["prompt"]),
+            prompt_end=data.get("prompt_end"),
             duration_seconds=float(data["duration_seconds"]),
             character_state=CharacterState.from_dict(dict(data["character_state"])),
             dialogue=str(data.get("dialogue", "")),
             source_image_storage_key=str(data.get("source_image_storage_key", "")),
             keyframe_approved=bool(data.get("keyframe_approved", False)),
             negative_prompt=str(data.get("negative_prompt", "")),
+            start_keyframe_key=data.get("start_keyframe_key"),
+            end_keyframe_key=data.get("end_keyframe_key"),
+            start_pose_reference_key=data.get("start_pose_reference_key"),
+            end_pose_reference_key=data.get("end_pose_reference_key"),
+            controlnet_type=data.get("controlnet_type", "openpose"),
             metadata=dict(data.get("metadata", {})),
         )
 

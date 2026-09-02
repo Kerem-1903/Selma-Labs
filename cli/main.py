@@ -75,6 +75,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--output", default="output/blender/preview.mp4", help="Output video path"
     )
 
+    keyframe = commands.add_parser("keyframe", help="Keyframe generation tools")
+    keyframe_commands = keyframe.add_subparsers(dest="keyframe_command", required=True)
+    pair = keyframe_commands.add_parser("pair")
+    pair.add_argument("--shot-id", required=True)
+    pair.add_argument("--prompt-start", required=True)
+    pair.add_argument("--prompt-end", required=True)
+    pair.add_argument("--start-pose", required=True)
+    pair.add_argument("--end-pose", required=True)
+
     return parser
 
 
@@ -95,6 +104,8 @@ def main(
             asyncio.run(_run_blender_commands(arguments, container_factory()))
         elif arguments.command == "rig":
             return asyncio.run(_run_rig_commands(arguments))
+        elif arguments.command == "keyframe":
+            asyncio.run(_run_keyframe_commands(arguments, container_factory()))
         return 0
     except Exception as error:  # noqa: BLE001 - CLI boundary
         print(f"SELMA command failed: {error}", file=sys.stderr)
@@ -240,6 +251,37 @@ def _select_shot_payload(payload: Any, shot_id: str | None) -> dict[str, Any]:
     if shot_id and str(payload.get("id")) != shot_id:
         raise ValueError(f"Shot plan does not contain requested shot '{shot_id}'.")
     return payload
+
+
+async def _run_keyframe_commands(
+    arguments: argparse.Namespace,
+    container: AnimationContainer,
+) -> None:
+    if arguments.keyframe_command == "pair":
+        from core.domain.entities.character_state import CharacterState
+        from core.domain.entities.shot_animation import AnimationShotPlan
+
+        shot = AnimationShotPlan(
+            id=arguments.shot_id,
+            script_id="test",
+            scene_plan_id="test",
+            prompt=arguments.prompt_start,
+            prompt_end=arguments.prompt_end,
+            duration_seconds=2.0,
+            character_state=CharacterState(character_id="akira", active_outfit_id="casual", injuries=[], held_objects=[]),
+            start_pose_reference_key=arguments.start_pose,
+            end_pose_reference_key=arguments.end_pose,
+            controlnet_type="openpose"
+        )
+
+        pair = await container.keyframe_generation_service.generate_keyframe_pair(shot)
+
+        print(json.dumps({
+            "shot_id": arguments.shot_id,
+            "start_storage_key": pair.start_storage_key,
+            "end_storage_key": pair.end_storage_key,
+            "human_approved": pair.human_approved,
+        }, indent=2))
 
 
 if __name__ == "__main__":

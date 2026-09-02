@@ -8,6 +8,8 @@ from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.candidate.keyframe_candidate import CandidateStatus
 from core.domain.entities.shot_contract import ShotContract
 from core.domain.entities.shot_storyboard import ShotStoryboard
+from core.domain.entities.keyframe import KeyframePair
+from core.domain.entities.shot_animation import ShotPlan
 from core.domain.exceptions import KeyframeGenerationError, StorageError
 from core.domain.ports.character_bible_repository_port import CharacterBibleRepositoryPort
 from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
@@ -240,3 +242,107 @@ class KeyframeGenerationService:
             raise KeyframeGenerationError(
                 "Generator bytes do not match the declared image content type."
             )
+
+    async def generate_keyframe_pair(
+        self,
+        shot_plan: ShotPlan,
+        *,
+        width: int = 1024,
+        height: int = 1024,
+    ) -> KeyframePair:
+        """Generate and persist an unapproved start/end candidate pair."""
+        from core.domain.value_objects.shot_constraints import (
+            ActionConstraints,
+            CameraConstraints,
+            VisualConstraints,
+        )
+
+        if not self._SAFE_ID.fullmatch(shot_plan.id):
+            raise KeyframeGenerationError("Shot ID is not storage-key safe.")
+        if not shot_plan.prompt_end or not shot_plan.prompt_end.strip():
+            raise KeyframeGenerationError("A distinct end-frame prompt is required.")
+        if not shot_plan.start_pose_reference_key or not shot_plan.end_pose_reference_key:
+            raise KeyframeGenerationError("Start and end OpenPose references are required.")
+        if shot_plan.start_pose_reference_key == shot_plan.end_pose_reference_key:
+            raise KeyframeGenerationError("Start and end OpenPose references must differ.")
+        for pose_key in (
+            shot_plan.start_pose_reference_key,
+            shot_plan.end_pose_reference_key,
+        ):
+            if not await self._storage.exists(pose_key):
+                raise StorageError(f"OpenPose asset '{pose_key}' was not found.")
+
+        bible = await self._character_bibles.load(
+            shot_plan.character_state.character_id
+        )
+
+        def contract(identifier: str, action: str) -> ShotContract:
+            return ShotContract(
+                id=identifier,
+                camera_constraints=CameraConstraints(
+                    angle="full body", lens="35mm", movement="locked"
+                ),
+                action_constraints=ActionConstraints(
+                    primary_action=action, secondary_actions=[]
+                ),
+                visual_constraints=VisualConstraints(
+                    lighting="controlled cinematic light",
+                    environment_style="cinematic anime",
+                    weather="clear",
+                ),
+                required_character_states=[shot_plan.character_state],
+            )
+
+        requests = []
+        for identifier, action, pose_key in (
+            (f"{shot_plan.id}_start", shot_plan.prompt, shot_plan.start_pose_reference_key),
+            (f"{shot_plan.id}_end", shot_plan.prompt_end, shot_plan.end_pose_reference_key),
+        ):
+            request = self._conditioning_builder.build(
+                shot_contract=contract(identifier, action),
+                character_bibles=[bible],
+                width=width,
+                height=height,
+            )
+            request_payload = request.to_dict()
+            request_payload["visual_constraints"] = {
+                **request.visual_constraints,
+                "pose_storage_key": pose_key,
+                "controlnet_type": shot_plan.controlnet_type or "openpose",
+                "pose_strength": 0.85,
+                "identity_strength": 0.65,
+                "identity_mode": "identity_only",
+            }
+            requests.append(request.from_dict(request_payload))
+
+        generated_frames = []
+        storage_keys = []
+        for label, request in zip(("start", "end"), requests):
+            generated = await self._generator.generate_keyframe(request)
+            self._validate_generated_image(
+                generated.image_bytes, generated.content_type
+            )
+            if generated.width <= 0 or generated.height <= 0:
+                raise KeyframeGenerationError(
+                    f"Generator returned invalid {label} frame dimensions."
+                )
+            extension = self._CONTENT_TYPES[generated.content_type]
+            storage_key = (
+                f"keyframe-pairs/{shot_plan.id}/{label}-{uuid.uuid4()}{extension}"
+            )
+            stored = await self._storage.save(
+                storage_key, generated.image_bytes, generated.content_type
+            )
+            if stored.key != storage_key:
+                raise StorageError(
+                    f"Storage adapter returned a different key for the {label} frame."
+                )
+            generated_frames.append(generated)
+            storage_keys.append(storage_key)
+
+        return KeyframePair(
+            start_keyframe=generated_frames[0],
+            end_keyframe=generated_frames[1],
+            start_storage_key=storage_keys[0],
+            end_storage_key=storage_keys[1],
+        )

@@ -5,11 +5,15 @@ from pathlib import Path
 from typing import Any
 
 from config.settings import Settings, get_settings
+from config.provider_registry import get_keyframe_generation_provider
 from core.application.services.animation_orchestrator_service import (
     AnimationOrchestratorService,
 )
 from core.application.services.candidate.candidate_evaluation_service import (
     CandidateEvaluationService,
+)
+from core.application.services.keyframe_generation_service import (
+    KeyframeGenerationService,
 )
 from core.application.services.script_breakdown_service import ScriptBreakdownService
 from core.domain.entities.character_bible import CharacterBible
@@ -22,6 +26,12 @@ from infrastructure.providers.motion.comfyui_ws_client import ComfyUIWsClient
 from infrastructure.repositories.candidate.sqlite_keyframe_candidate_repository import (
     SqliteKeyframeCandidateRepository,
 )
+from infrastructure.repositories.local_json_character_bible_repository import (
+    LocalJsonCharacterBibleRepository,
+)
+from infrastructure.repositories.local_json_shot_storyboard_repository import (
+    LocalJsonShotStoryboardRepository,
+)
 from infrastructure.storage.local_fs_storage import LocalFsStorage
 
 
@@ -31,6 +41,7 @@ class AnimationContainer:
     storage: StoragePort
     script_breakdown_service: ScriptBreakdownService
     animation_orchestrator_service: AnimationOrchestratorService
+    keyframe_generation_service: KeyframeGenerationService
 
     def __getitem__(self, name: str) -> Any:
         """Keep dictionary-style access for early CLI consumers."""
@@ -48,6 +59,7 @@ def create_container(
 ) -> AnimationContainer:
     resolved = settings or get_settings()
     asset_storage = storage or LocalFsStorage(resolved.storage_root_dir)
+    keyframe_storage = LocalFsStorage(resolved.keyframe_storage_root_dir)
     character_bible = CharacterBible.akira()
     render_config = RenderConfig(
         width=resolved.two_pass_motion_width,
@@ -87,9 +99,24 @@ def create_container(
     )
     breakdown = ScriptBreakdownService(character_bible)
     orchestrator = AnimationOrchestratorService(motion, lipsync, compositor)
+    keyframe_service = KeyframeGenerationService(
+        generator=get_keyframe_generation_provider(
+            resolved, storage=keyframe_storage
+        ),
+        storage=keyframe_storage,
+        character_bibles=LocalJsonCharacterBibleRepository(
+            resolved.character_bible_repository_dir
+        ),
+        storyboards=LocalJsonShotStoryboardRepository(
+            resolved.storyboard_repository_dir
+        ),
+        candidate_evaluation=candidate_evaluation,
+        human_review_required=False,
+    )
     return AnimationContainer(
         character_bible=character_bible,
         storage=asset_storage,
         script_breakdown_service=breakdown,
         animation_orchestrator_service=orchestrator,
+        keyframe_generation_service=keyframe_service,
     )
