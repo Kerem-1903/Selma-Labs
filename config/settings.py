@@ -33,7 +33,9 @@ class Settings(BaseSettings):
     preproduction_canon_dir: str = "assets/preproduction"
     preproduction_character_dir: str = "assets/character_bibles"
     preproduction_approval_dir: str = "output/preproduction/story-approvals"
+    preproduction_asset_root: str = "assets"
     golden_review_manifest: str = "assets/preproduction/golden-set-review.example.json"
+    golden_set_output_prefix: str = "preproduction/golden-set/generated"
 
     selmagpt_api_url: str = "http://localhost:11434/v1/chat/completions"
     selmagpt_model_name: str = "llama3.1:8b"

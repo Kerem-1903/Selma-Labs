@@ -82,6 +82,7 @@ def create_container(
 ) -> AnimationContainer:
     resolved = settings or get_settings()
     asset_storage = storage or LocalFsStorage(resolved.storage_root_dir)
+    preproduction_storage = LocalFsStorage(resolved.preproduction_asset_root)
     character_bible = CharacterBible.akira()
     render_config = RenderConfig(
         width=resolved.two_pass_motion_width,
@@ -149,8 +150,11 @@ def create_container(
     )
     golden_set = CharacterGoldenSetService(
         GoldenSetKeyframeAdapter(
-            get_keyframe_generation_provider(resolved, storage=asset_storage),
-            asset_storage,
+            get_keyframe_generation_provider(
+                resolved, storage=preproduction_storage
+            ),
+            preproduction_storage,
+            output_prefix=resolved.golden_set_output_prefix,
         ),
         LocalGoldenReviewEvaluator(resolved.golden_review_manifest),
     )

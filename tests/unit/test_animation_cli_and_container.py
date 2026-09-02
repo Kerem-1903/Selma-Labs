@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from cli.main import main
@@ -140,6 +141,45 @@ def test_preproduction_status_and_locked_episode_plan_commands(tmp_path, capsys)
     assert (
         len(plan["episode_production_plan"]["sequences"][0]["scenes"][0]["shots"]) == 2
     )
+
+
+def test_preproduction_golden_set_runs_through_selma_pipeline(tmp_path, capsys):
+    output = tmp_path / "akira-golden-set.json"
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path / "runtime"),
+        preproduction_asset_root=str(tmp_path / "assets"),
+        keyframe_generation_provider="fake",
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+    )
+
+    def factory():
+        return create_container(settings=settings)
+
+    assert (
+        main(
+            [
+                "preproduction",
+                "golden-set",
+                "--model-id",
+                "offline-smoke",
+                "--model-revision",
+                "v1",
+                "--output",
+                str(output),
+            ],
+            container_factory=factory,
+        )
+        == 0
+    )
+
+    assert Path(capsys.readouterr().out.strip()) == output.resolve()
+    payload = json.loads(output.read_text(encoding="utf-8"))["golden_set"]
+    assert len(payload["results"]) == 10
+    assert payload["model_id"] == "offline-smoke"
+    assert payload["locked_at"] is None
+    assert all(result["human_approved"] is False for result in payload["results"])
+    assert len(list((tmp_path / "assets").rglob("*.png"))) == 10
 
 
 def test_rig_validate_returns_nonzero_for_invalid_rig(capsys):

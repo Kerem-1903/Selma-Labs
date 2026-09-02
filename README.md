@@ -181,6 +181,20 @@ python scripts/import_akira_reference_pack.py \
 Re-importing identical content is idempotent; a changed view creates a new
 revision without overwriting the previous asset.
 
+Generate the ten-case Akira consistency set through SELMA Labs and the
+configured keyframe provider:
+
+```bash
+python -m cli.main preproduction golden-set \
+  --model-id animagine-xl-4.0-opt \
+  --model-revision local-v1 \
+  --output output/preproduction/akira-golden-set.json
+```
+
+Set `KEYFRAME_GENERATION_PROVIDER=comfyui` for real local generation. Candidates
+are written below `assets/preproduction/golden-set/generated`; the result stays
+unlocked until every threshold and explicit human approval pass.
+
 ## Repository map
 
 ```text

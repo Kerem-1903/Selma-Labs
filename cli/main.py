@@ -83,6 +83,14 @@ def build_parser() -> argparse.ArgumentParser:
         dest="preproduction_command", required=True
     )
     preproduction_commands.add_parser("status", help="Validate active canon locks")
+    golden_set = preproduction_commands.add_parser(
+        "golden-set", help="Generate Akira's ten-image consistency set"
+    )
+    golden_set.add_argument("--model-id", required=True)
+    golden_set.add_argument("--model-revision", required=True)
+    golden_set.add_argument(
+        "--output", default="output/preproduction/akira-golden-set.json"
+    )
     production_plan = preproduction_commands.add_parser(
         "plan", help="Convert an approved EpisodeScript JSON into a shot hierarchy"
     )
@@ -278,6 +286,31 @@ async def _run_preproduction_commands(
         target.write_text(
             json.dumps(
                 {"schema_version": 1, "episode_production_plan": plan.to_dict()},
+                ensure_ascii=False,
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        print(str(target.resolve()))
+        return 0
+    if arguments.preproduction_command == "golden-set":
+        visual = await container.canon_repository.get_visual_style()
+        characters = await container.canon_repository.get_character_bibles()
+        matches = [item for item in characters if item.character_id == "akira"]
+        if len(matches) != 1:
+            raise ValueError("The locked Akira Character Bible was not found exactly once.")
+        golden_set = await container.character_golden_set_service.run(
+            character=matches[0],
+            style=visual,
+            model_id=arguments.model_id,
+            model_revision=arguments.model_revision,
+        )
+        target = Path(arguments.output)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(
+            json.dumps(
+                {"schema_version": 1, "golden_set": golden_set.to_dict()},
                 ensure_ascii=False,
                 indent=2,
             )

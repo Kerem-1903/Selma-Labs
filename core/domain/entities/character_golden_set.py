@@ -228,7 +228,7 @@ def default_akira_golden_cases() -> tuple[GoldenTestCase, ...]:
         (
             GoldenScenario.IMPACT_ACTION,
             "readable impact pose with one katana",
-            ReferenceView.FULL_BODY,
+            ReferenceView.FRONT,
         ),
         (
             GoldenScenario.WIDE_STREET,

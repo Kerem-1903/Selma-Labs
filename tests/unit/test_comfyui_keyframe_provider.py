@@ -159,6 +159,7 @@ def _request(*, with_reference: bool = True) -> KeyframeGenerationRequest:
         camera_constraints={"angle": "close-up", "lens": "50mm", "movement": "static"},
         action_constraints={"primary_action": "draw katana", "secondary_actions": []},
         visual_constraints={
+            "prompt": "locked Akira visual identity",
             "lighting": "low-key",
             "environment_style": "neon street",
             "weather": "rain",
@@ -190,6 +191,13 @@ def _request(*, with_reference: bool = True) -> KeyframeGenerationRequest:
         height=720,
         seed=1903,
     )
+
+
+def test_positive_prompt_keeps_explicit_selma_visual_contract():
+    prompt = ComfyUIKeyframeProvider._build_positive_prompt(_request())
+
+    assert "locked Akira visual identity" in prompt
+    assert "draw katana" in prompt
 
 
 @pytest.mark.asyncio

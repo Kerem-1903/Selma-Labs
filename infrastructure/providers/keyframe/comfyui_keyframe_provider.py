@@ -251,6 +251,9 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
     @staticmethod
     def _build_positive_prompt(request: KeyframeGenerationRequest) -> str:
         values: list[str] = []
+        explicit_prompt = request.visual_constraints.get("prompt")
+        if explicit_prompt:
+            values.append(str(explicit_prompt).strip())
         for key in ("primary_action", "secondary_actions"):
             value = request.action_constraints.get(key)
             if isinstance(value, list):
