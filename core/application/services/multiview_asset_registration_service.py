@@ -1,6 +1,5 @@
 import hashlib
 import io
-from typing import Dict
 from PIL import Image
 
 from core.domain.entities.character_bible import CharacterBible

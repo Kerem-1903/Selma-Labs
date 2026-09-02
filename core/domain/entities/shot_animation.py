@@ -37,6 +37,10 @@ class AnimationShotPlan:
     source_image_storage_key: str = ""
     keyframe_approved: bool = False
     negative_prompt: str = ""
+    start_keyframe_key: str | None = None
+    end_keyframe_key: str | None = None
+    pose_reference_key: str | None = None
+    controlnet_type: str | None = "openpose"
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -89,6 +93,10 @@ class AnimationShotPlan:
             "source_image_storage_key": self.source_image_storage_key,
             "keyframe_approved": self.keyframe_approved,
             "negative_prompt": self.negative_prompt,
+            "start_keyframe_key": self.start_keyframe_key,
+            "end_keyframe_key": self.end_keyframe_key,
+            "pose_reference_key": self.pose_reference_key,
+            "controlnet_type": self.controlnet_type,
             "metadata": dict(self.metadata),
         }
 
@@ -105,6 +113,10 @@ class AnimationShotPlan:
             source_image_storage_key=str(data.get("source_image_storage_key", "")),
             keyframe_approved=bool(data.get("keyframe_approved", False)),
             negative_prompt=str(data.get("negative_prompt", "")),
+            start_keyframe_key=data.get("start_keyframe_key"),
+            end_keyframe_key=data.get("end_keyframe_key"),
+            pose_reference_key=data.get("pose_reference_key"),
+            controlnet_type=data.get("controlnet_type", "openpose"),
             metadata=dict(data.get("metadata", {})),
         )
 

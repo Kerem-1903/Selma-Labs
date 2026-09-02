@@ -968,7 +968,7 @@ class PipelineOrchestrator:
                         )
                         gen_asset = await self._video_generation_port.generate_video(req)
                         accepted_asset = ScoredAsset(asset=gen_asset, score=AssetScore(final_score=1.0))
-                    except Exception as e:
+                    except Exception:
                         pass # Fallback to stock reuse if T2V fails
 
                 # If still not accepted, do the stock fallback

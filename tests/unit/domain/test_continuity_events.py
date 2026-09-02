@@ -1,4 +1,3 @@
-import pytest
 from core.domain.events.continuity_event import (
     ContinuityEvent,
     CharacterEnteredLocation,

@@ -1,6 +1,6 @@
 import base64
 import json
-from typing import List, Any
+from typing import List
 import aiohttp
 
 from core.domain.exceptions import ProviderError

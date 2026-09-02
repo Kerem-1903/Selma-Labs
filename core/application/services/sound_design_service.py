@@ -1,5 +1,4 @@
 import logging
-import random
 from typing import Optional
 from core.domain.entities.timeline import Timeline
 from core.domain.value_objects.timeline_sfx import TimelineSfx

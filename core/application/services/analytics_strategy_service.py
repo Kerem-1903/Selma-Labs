@@ -1,6 +1,4 @@
 import logging
-from typing import List
-from core.domain.value_objects.youtube_performance import YoutubePerformanceRecord
 from infrastructure.repositories.sqlite_youtube_performance_repository import SQLiteYoutubePerformanceRepository
 
 logger = logging.getLogger(__name__)

@@ -3,7 +3,6 @@ import logging
 from datetime import datetime
 from scripts.run_factory import build_orchestrator
 from config.settings import get_settings
-from infrastructure.repositories.sqlite_video_repository import SQLiteVideoRepository
 from core.domain.entities.pipeline_run import PipelineRun
 from pathlib import Path
 import uuid

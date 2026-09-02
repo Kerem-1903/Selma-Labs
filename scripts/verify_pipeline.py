@@ -28,12 +28,10 @@ from core.domain.entities.media_asset import MediaAsset
 from core.domain.entities.script import Script
 from core.domain.ports.scene_planning_port import ScenePlanningPort
 from core.domain.ports.script_generator_port import ScriptGeneratorPort
-from core.domain.ports.storage_port import StoragePort
 from core.domain.ports.video_source_port import VideoSourcePort
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.value_objects.generated_audio import GeneratedAudio
 from core.domain.value_objects.scene import Scene
-from core.domain.value_objects.storage_reference import StorageReference
 from infrastructure.storage.local_fs_storage import LocalFsStorage
 
 

@@ -1,4 +1,3 @@
-import os
 
 # Create mock SFX files
 sfx_types = ["whoosh", "impact", "riser", "glitch", "ambient"]

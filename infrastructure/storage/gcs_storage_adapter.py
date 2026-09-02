@@ -1,6 +1,5 @@
 from google.cloud import storage
 import typing
-import os
 import asyncio
 from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.storage_reference import StorageReference

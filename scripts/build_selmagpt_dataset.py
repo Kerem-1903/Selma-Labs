@@ -1,7 +1,6 @@
 import json
 import asyncio
 import os
-import sqlite3
 from typing import List, Dict
 
 # Projeden Youtube Performance Repository'yi ve SQLite altyapısını dahil edelim

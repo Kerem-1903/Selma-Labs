@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Any
 
 from core.domain.exceptions import UploadPreparationError
 from core.domain.ports.media_inspection_port import MediaInspectionPort

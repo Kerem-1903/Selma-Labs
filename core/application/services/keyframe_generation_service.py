@@ -8,6 +8,8 @@ from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.candidate.keyframe_candidate import CandidateStatus
 from core.domain.entities.shot_contract import ShotContract
 from core.domain.entities.shot_storyboard import ShotStoryboard
+from core.domain.entities.keyframe import KeyframePair
+from core.domain.entities.shot_animation import ShotPlan
 from core.domain.exceptions import KeyframeGenerationError, StorageError
 from core.domain.ports.character_bible_repository_port import CharacterBibleRepositoryPort
 from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
@@ -240,3 +242,55 @@ class KeyframeGenerationService:
             raise KeyframeGenerationError(
                 "Generator bytes do not match the declared image content type."
             )
+
+    async def generate_keyframe_pair(self, shot_plan: ShotPlan, *, width: int = 1024, height: int = 1024) -> KeyframePair:
+        """Generates a start and end keyframe for dual keyframing based on the shot plan."""
+        from core.domain.value_objects.shot_constraints import CameraConstraints, ActionConstraints, VisualConstraints
+
+        start_contract = ShotContract(
+            id=shot_plan.id + "_start",
+            camera_constraints=CameraConstraints(angle="", lens="", movement=""),
+            action_constraints=ActionConstraints(primary_action="start", secondary_actions=[]),
+            visual_constraints=VisualConstraints(
+                lighting="",
+                environment_style="",
+                weather=""
+            ),
+            required_character_states=[shot_plan.character_state]
+        )
+        end_contract = ShotContract(
+            id=shot_plan.id + "_end",
+            camera_constraints=CameraConstraints(angle="", lens="", movement=""),
+            action_constraints=ActionConstraints(primary_action="end", secondary_actions=[]),
+            visual_constraints=VisualConstraints(
+                lighting="",
+                environment_style="",
+                weather=""
+            ),
+            required_character_states=[shot_plan.character_state]
+        )
+
+        # Build requests
+        bibles = [await self._character_bibles.load(shot_plan.character_state.character_id)]
+        start_req = self._conditioning_builder.build(
+            shot_contract=start_contract,
+            character_bibles=bibles,
+            width=width,
+            height=height
+        )
+        end_req = self._conditioning_builder.build(
+            shot_contract=end_contract,
+            character_bibles=bibles,
+            width=width,
+            height=height
+        )
+
+        # Inject visual constraints from shot plan
+        if shot_plan.pose_reference_key:
+            start_req = start_req.from_dict({**start_req.to_dict(), "visual_constraints": {**start_req.visual_constraints, "pose_storage_key": shot_plan.pose_reference_key, "controlnet_type": shot_plan.controlnet_type}})
+            end_req = end_req.from_dict({**end_req.to_dict(), "visual_constraints": {**end_req.visual_constraints, "pose_storage_key": shot_plan.pose_reference_key, "controlnet_type": shot_plan.controlnet_type}})
+
+        start_kf = await self._generator.generate_keyframe(start_req)
+        end_kf = await self._generator.generate_keyframe(end_req)
+
+        return KeyframePair(start_keyframe=start_kf, end_keyframe=end_kf)

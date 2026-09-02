@@ -1,9 +1,8 @@
 import aiohttp
-import json
 import logging
 from core.domain.ports.script_generator_port import ScriptGeneratorPort
 from core.domain.entities.script import Script
-from core.domain.exceptions import ProviderError, ProviderTimeoutError, ProviderAuthError
+from core.domain.exceptions import ProviderError, ProviderTimeoutError
 
 logger = logging.getLogger(__name__)
 
@@ -61,4 +60,4 @@ class OllamaScriptProvider(ScriptGeneratorPort):
             logger.error(f"Ollama connection error: {e}")
             raise ProviderError(f"Could not connect to Ollama at {self.api_url}: {e}")
         except TimeoutError:
-             raise ProviderTimeoutError(f"Ollama request timed out after 60 seconds.")
+             raise ProviderTimeoutError("Ollama request timed out after 60 seconds.")

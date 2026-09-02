@@ -41,7 +41,6 @@ from core.domain.ports.translation_port import TranslationPort
 from core.domain.ports.topic_selection_port import TopicSelectionPort
 from core.domain.ports.trend_source_port import TrendSourcePort
 from core.domain.ports.video_source_port import VideoSourcePort
-from core.domain.ports.video_generation_port import VideoGenerationPort
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
 from core.domain.ports.image_to_video_generation_port import ImageToVideoGenerationPort
@@ -96,8 +95,6 @@ from infrastructure.providers.topic_selection.nvidia_topic_selection_provider im
 from infrastructure.providers.trend.youtube_most_popular_provider import (
     YoutubeMostPopularProvider,
 )
-from infrastructure.providers.video.user_uploaded_asset_provider import UserUploadedAssetProvider
-from infrastructure.providers.video.pexels_provider import PexelsProvider
 from infrastructure.providers.video.orchestrated_video_source_provider import (
     OrchestratedVideoSourceProvider,
 )

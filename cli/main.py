@@ -75,6 +75,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--output", default="output/blender/preview.mp4", help="Output video path"
     )
 
+    keyframe = commands.add_parser("keyframe", help="Keyframe generation tools")
+    keyframe_commands = keyframe.add_subparsers(dest="keyframe_command", required=True)
+    pair = keyframe_commands.add_parser("pair")
+    pair.add_argument("--shot-id", required=True)
+    pair.add_argument("--prompt-start", required=True)
+    pair.add_argument("--prompt-end", required=True)
+    pair.add_argument("--pose", required=True)
+
     return parser
 
 
@@ -95,6 +103,8 @@ def main(
             asyncio.run(_run_blender_commands(arguments, container_factory()))
         elif arguments.command == "rig":
             return asyncio.run(_run_rig_commands(arguments))
+        elif arguments.command == "keyframe":
+            asyncio.run(_run_keyframe_commands(arguments, container_factory()))
         return 0
     except Exception as error:  # noqa: BLE001 - CLI boundary
         print(f"SELMA command failed: {error}", file=sys.stderr)
@@ -244,3 +254,30 @@ def _select_shot_payload(payload: Any, shot_id: str | None) -> dict[str, Any]:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+async def _run_keyframe_commands(
+    arguments: argparse.Namespace,
+    container: AnimationContainer,
+) -> None:
+    if arguments.keyframe_command == "pair":
+        from core.domain.entities.character_state import CharacterState
+        from core.domain.entities.shot_animation import AnimationShotPlan
+
+        # Create a dummy shot plan to test generation
+        shot = AnimationShotPlan(
+            id=arguments.shot_id,
+            script_id="test",
+            scene_plan_id="test",
+            prompt=arguments.prompt_start,
+            duration_seconds=2.0,
+            character_state=CharacterState(character_id="akira", outfit="casual"),
+            start_keyframe_key="dummy_start",
+            end_keyframe_key="dummy_end",
+            pose_reference_key=arguments.pose,
+            controlnet_type="openpose"
+        )
+
+        pair = await container.keyframe_generation_service.generate_keyframe_pair(shot)
+
+        print(f"Generated start keyframe: {pair.start_keyframe.content_type} {pair.start_keyframe.width}x{pair.start_keyframe.height}")
+        print(f"Generated end keyframe: {pair.end_keyframe.content_type} {pair.end_keyframe.width}x{pair.end_keyframe.height}")

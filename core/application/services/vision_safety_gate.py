@@ -1,6 +1,5 @@
 import logging
 from core.domain.entities.media_asset import MediaAsset
-from core.domain.value_objects.scene import Scene
 from core.application.services.vision_asset_scoring_service import VisionAssetScoringService
 
 logger = logging.getLogger(__name__)
@@ -23,7 +22,6 @@ class VisionSafetyGate:
 
         # Determine if we are scoring a Scene or a VisualIntent depending on the stage of the pipeline
         if hasattr(self.vision_scoring_service, 'score_visual_intent') and hasattr(scene_or_intent, 'primary_keyword'):
-            from core.domain.value_objects.visual_intent import VisualIntent
             # Fake a ScoredAsset list
             from core.domain.value_objects.asset_score import AssetScore, ScoredAsset
             fake_scored = [ScoredAsset(asset=asset, score=AssetScore(final_score=0.5))]

@@ -1,5 +1,4 @@
 import gradio as gr
-import asyncio
 import os
 import sys
 from pathlib import Path
@@ -12,7 +11,6 @@ if str(PROJECT_ROOT) not in sys.path:
 from config.settings import get_settings
 from scripts.run_factory import build_orchestrator
 from core.domain.entities.pipeline_run import PipelineRun
-from infrastructure.repositories.sqlite_video_repository import SQLiteVideoRepository
 import uuid
 
 async def generate_short(topic: str, language: str, music_theme: str, privacy: str, generation_engine: str, voice_provider: str, apply_mastering: bool = True, i2v_image: str = None):

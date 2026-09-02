@@ -1,4 +1,3 @@
-import pytest
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.value_objects.character_identity import IdentityConstraints, ReferenceView
 from core.domain.value_objects.character_reference import CharacterReference
