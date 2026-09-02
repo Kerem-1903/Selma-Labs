@@ -1,0 +1,12 @@
+{
+  "nodes": [
+    {"type": "LoadImage", "id": "img_start", "params": {"path": "./data/lora/akira/images/start.png"}},
+    {"type": "LoadImage", "id": "img_end", "params": {"path": "./data/lora/akira/images/end.png"}},
+    {"type": "ControlNetPreprocessor", "id": "cn_openpose", "params": {"model_name": "control_openpose-fp16.safetensors", "strength": 0.75}},
+    {"type": "ControlNetPreprocessor", "id": "cn_depth", "params": {"model_name": "control_zoedepth-fp16.safetensors", "strength": 0.60}},
+    {"type": "ControlNetCombine", "id": "cn_combined", "params": {"method": "stack"}},
+    {"type": "StableDiffusionXL", "id": "sdxl", "params": {"base_model": "stabilityai/stable-diffusion-xl-base-1.0", "sampler": "euler_a", "steps": 30, "cfg": 7.0}},
+    {"type": "ApplyControlNet", "id": "apply_cn", "params": {"prompt": "${PROMPT_START}"}},
+    {"type": "SaveImage", "id": "save_start", "params": {"filename": "start_output.png"}}
+  ]
+}

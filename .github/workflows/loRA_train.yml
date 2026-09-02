@@ -1,0 +1,46 @@
+name: LoRA Training (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      epochs:
+        description: 'Number of epochs'
+        default: '10'
+        required: false
+      dim:
+        description: 'LoRA network dimension'
+        default: '32'
+        required: false
+
+jobs:
+  train:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: Selma-Labs
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Create virtual env
+        run: |
+          python -m venv .venv
+          .\.venv\Scripts\activate
+          pip install -r Selma-Labs/requirements.txt
+      - name: Prepare data folder
+        run: |
+          mkdir -p Selma-Labs/data/lora/akira/images
+      - name: Run training
+        env:
+          EPOCHS: ${{ github.event.inputs.epochs }}
+          DIM: ${{ github.event.inputs.dim }}
+        run: |
+          .\.venv\Scripts\activate
+          cd Selma-Labs
+          bash scripts/train_akira.sh --max_train_epochs $EPOCHS --network_dim $DIM
+      - name: Upload LoRA model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: akira_lora
+          path: Selma-Labs/output/akira_lora/*.safetensors

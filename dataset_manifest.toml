@@ -1,0 +1,15 @@
+# Dataset manifest for Akira LoRA training
+# Relative paths are resolved from the repository root.
+
+[general]
+shuffle_caption = true
+keep_tokens = 2
+
+[[datasets]]
+resolution = [1024, 1024]
+batch_size = 1
+
+[[datasets.subsets]]
+image_dir = "./data/lora/akira/images"
+caption_extension = ".txt"
+num_repeats = 10
