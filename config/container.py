@@ -22,6 +22,9 @@ from core.application.services.character_golden_set_service import (
 from core.application.services.hierarchical_shot_planning_service import (
     HierarchicalShotPlanningService,
 )
+from core.application.services.keyframe_generation_service import (
+    KeyframeGenerationService,
+)
 from core.application.services.script_breakdown_service import ScriptBreakdownService
 from core.application.services.story_engine_service import StoryEngineService
 from core.domain.entities.character_bible import CharacterBible
@@ -47,6 +50,12 @@ from infrastructure.repositories.candidate.sqlite_keyframe_candidate_repository 
 from infrastructure.repositories.local_json_canon_repository import (
     LocalJsonCanonRepository,
 )
+from infrastructure.repositories.local_json_character_bible_repository import (
+    LocalJsonCharacterBibleRepository,
+)
+from infrastructure.repositories.local_json_shot_storyboard_repository import (
+    LocalJsonShotStoryboardRepository,
+)
 from infrastructure.repositories.local_json_story_approval_repository import (
     LocalJsonStoryApprovalRepository,
 )
@@ -65,6 +74,7 @@ class AnimationContainer:
     animatic_planning_service: AnimaticPlanningService
     animation_ready_packaging_service: AnimationReadyPackagingService
     canon_repository: CanonRepositoryPort
+    keyframe_generation_service: KeyframeGenerationService
 
     def __getitem__(self, name: str) -> Any:
         """Keep dictionary-style access for early CLI consumers."""
@@ -83,6 +93,7 @@ def create_container(
     resolved = settings or get_settings()
     asset_storage = storage or LocalFsStorage(resolved.storage_root_dir)
     preproduction_storage = LocalFsStorage(resolved.preproduction_asset_root)
+    keyframe_storage = LocalFsStorage(resolved.keyframe_storage_root_dir)
     character_bible = CharacterBible.akira()
     render_config = RenderConfig(
         width=resolved.two_pass_motion_width,
@@ -159,6 +170,20 @@ def create_container(
         LocalGoldenReviewEvaluator(resolved.golden_review_manifest),
     )
     hierarchical = HierarchicalShotPlanningService(breakdown)
+    keyframe_service = KeyframeGenerationService(
+        generator=get_keyframe_generation_provider(
+            resolved, storage=keyframe_storage
+        ),
+        storage=keyframe_storage,
+        character_bibles=LocalJsonCharacterBibleRepository(
+            resolved.character_bible_repository_dir
+        ),
+        storyboards=LocalJsonShotStoryboardRepository(
+            resolved.storyboard_repository_dir
+        ),
+        candidate_evaluation=candidate_evaluation,
+        human_review_required=False,
+    )
     return AnimationContainer(
         character_bible=character_bible,
         storage=asset_storage,
@@ -170,4 +195,5 @@ def create_container(
         animatic_planning_service=AnimaticPlanningService(asset_storage),
         animation_ready_packaging_service=AnimationReadyPackagingService(asset_storage),
         canon_repository=canon_repository,
+        keyframe_generation_service=keyframe_service,
     )
