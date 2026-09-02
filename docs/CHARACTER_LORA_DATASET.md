@@ -11,7 +11,8 @@ python scripts/build_character_lora_dataset.py `
   --source assets/references/akira `
   --output output/training/akira-lora-v1 `
   --character-id akira `
-  --trigger-token selma_akira_v1
+  --trigger-token selma_akira_v1 `
+  --character-bible assets/character_bibles/akira.json
 ```
 
 The command writes normalized 1024×1024 images, matching caption files and an

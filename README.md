@@ -165,7 +165,14 @@ The factory performs a secret-free preflight before constructing paid
 providers. See [.env.example](.env.example) for provider switches and
 [the runbook](docs/operations/runbook.md) for operational setup.
 
-## Akira reference pack
+## Character reference factory
+
+New characters do not require character-specific code. Start with a descriptive
+brief, generate a Character Bible, then let SELMA create the anchor, 20 training
+views, 3 holdouts, LoRA dataset and generic Golden Set. See the
+[Character Factory guide](docs/CHARACTER_FACTORY.md).
+
+Akira remains the calibration pack for the same generic flow.
 
 The approved model sheet is split deterministically into five storage-backed
 assets. Character Bible metadata contains portable storage keys rather than
@@ -186,6 +193,7 @@ configured keyframe provider:
 
 ```bash
 python -m cli.main preproduction golden-set \
+  --character-id akira \
   --model-id animagine-xl-4.0-opt \
   --model-revision local-v1 \
   --output output/preproduction/akira-golden-set.json
@@ -214,7 +222,7 @@ docs/             Architecture, production, quality, and historical documentatio
 | Interface | Command | Status |
 |---|---|---|
 | Production factory | `python scripts/run_factory.py` | Primary production path |
-| Anime CLI | `python -m cli.main` | Supported Akira planning/render boundary |
+| Anime CLI | `python -m cli.main` | Supported multi-character planning/render boundary |
 | FastAPI UI | `uvicorn server:app` | Experimental local interface |
 | Gradio UI | `python app.py` | Legacy experimental interface |
 | Remotion | commands under `motion/` | Supported composition workspace |
@@ -228,6 +236,8 @@ remain explicit.
 - [Anime Pre-Production P1–P8](docs/ANIME_PREPRODUCTION_P1_P8.md) — locked story,
   canon, Golden Set, hierarchical shot planning, 24 FPS animatic and
   animation-ready package contracts.
+- [Character Factory](docs/CHARACTER_FACTORY.md) — brief-to-Bible, reference-pack,
+  dataset, LoRA training and Golden Set automation.
 
 Start with the [documentation index](docs/README.md). Key references:
 

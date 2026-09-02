@@ -19,6 +19,9 @@ from core.application.services.candidate.candidate_evaluation_service import (
 from core.application.services.character_golden_set_service import (
     CharacterGoldenSetService,
 )
+from core.application.services.character_onboarding_service import (
+    CharacterOnboardingService,
+)
 from core.application.services.hierarchical_shot_planning_service import (
     HierarchicalShotPlanningService,
 )
@@ -70,6 +73,7 @@ class AnimationContainer:
     animation_orchestrator_service: AnimationOrchestratorService
     story_engine_service: StoryEngineService
     character_golden_set_service: CharacterGoldenSetService
+    character_onboarding_service: CharacterOnboardingService
     hierarchical_shot_planning_service: HierarchicalShotPlanningService
     animatic_planning_service: AnimaticPlanningService
     animation_ready_packaging_service: AnimationReadyPackagingService
@@ -161,19 +165,18 @@ def create_container(
     )
     golden_set = CharacterGoldenSetService(
         GoldenSetKeyframeAdapter(
-            get_keyframe_generation_provider(
-                resolved, storage=preproduction_storage
-            ),
+            get_keyframe_generation_provider(resolved, storage=preproduction_storage),
             preproduction_storage,
             output_prefix=resolved.golden_set_output_prefix,
         ),
         LocalGoldenReviewEvaluator(resolved.golden_review_manifest),
     )
     hierarchical = HierarchicalShotPlanningService(breakdown)
+    keyframe_generator = get_keyframe_generation_provider(
+        resolved, storage=keyframe_storage
+    )
     keyframe_service = KeyframeGenerationService(
-        generator=get_keyframe_generation_provider(
-            resolved, storage=keyframe_storage
-        ),
+        generator=keyframe_generator,
         storage=keyframe_storage,
         character_bibles=LocalJsonCharacterBibleRepository(
             resolved.character_bible_repository_dir
@@ -191,6 +194,9 @@ def create_container(
         animation_orchestrator_service=orchestrator,
         story_engine_service=story_engine,
         character_golden_set_service=golden_set,
+        character_onboarding_service=CharacterOnboardingService(
+            keyframe_generator, keyframe_storage
+        ),
         hierarchical_shot_planning_service=hierarchical,
         animatic_planning_service=AnimaticPlanningService(asset_storage),
         animation_ready_packaging_service=AnimationReadyPackagingService(asset_storage),

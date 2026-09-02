@@ -1,0 +1,9 @@
+{
+  "views": {
+    "FRONT": "character-candidates/nova/runs/<run-id>/source/front-neutral-01.png",
+    "THREE_QUARTER_LEFT": "character-candidates/nova/runs/<run-id>/source/three-quarter-neutral-01.png",
+    "PROFILE_LEFT": "character-candidates/nova/runs/<run-id>/source/profile-left-neutral-01.png",
+    "BACK": "character-candidates/nova/runs/<run-id>/source/back-neutral-01.png",
+    "FACE_CLOSEUP": "character-candidates/nova/runs/<run-id>/source/face-closeup-neutral-01.png"
+  }
+}

@@ -7,6 +7,7 @@ from PIL import Image
 from core.application.services.character_lora_dataset_service import (
     CharacterLoraDatasetService,
 )
+from core.domain.entities.character_bible import CharacterBible
 
 
 def _image(path, *, size=(1024, 1024), color="black"):
@@ -84,6 +85,7 @@ def test_service_captions_canonical_akira_identity_and_action_pose(tmp_path):
         output_dir=output,
         character_id="akira",
         trigger_token="selma_akira_v1",
+        character_bible=CharacterBible.akira(),
     )
 
     caption = report.samples[0].caption

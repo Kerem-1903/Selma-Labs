@@ -3,7 +3,7 @@ from __future__ import annotations
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.character_golden_set import (
     CharacterGoldenSet,
-    default_akira_golden_cases,
+    default_character_golden_cases,
 )
 from core.domain.entities.direction_bible import BibleStatus, VisualStyleBible
 from core.domain.exceptions import GoldenSetValidationError
@@ -39,7 +39,19 @@ class CharacterGoldenSetService:
         if not reference_report.is_complete:
             raise GoldenSetValidationError("Character reference pack is incomplete.")
         results = []
-        for test_case in default_akira_golden_cases():
+        character_name = (
+            character.narrative_profile.canonical_names[0]
+            if character.narrative_profile
+            and character.narrative_profile.canonical_names
+            else character.character_id
+        )
+        signature_action = (
+            "performing their signature action while preserving "
+            f"this canonical silhouette: {character.identity_constraints.silhouette}"
+        )
+        for test_case in default_character_golden_cases(
+            character_name, signature_action
+        ):
             storage_key = await self._generator.generate(
                 character=character, style=style, test_case=test_case
             )

@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, patch
 from cli.main import main
 from config.container import AnimationContainer, create_container
 from config.settings import Settings
+from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.character_rig import RigSpecification
 from core.domain.entities.episode_script import (
     DialogueLine,
@@ -59,6 +60,27 @@ def test_cli_shows_character_without_constructing_provider_container(capsys):
     assert exit_code == 0
     assert payload["character_id"] == "akira"
     assert "akira_girl" in payload["prompt_fragments"]
+
+
+def test_cli_creates_generic_character_onboarding_plan(tmp_path, capsys):
+    source = tmp_path / "character.json"
+    output = tmp_path / "onboarding.json"
+    source.write_text(
+        json.dumps({"character_bible": CharacterBible.akira().to_dict()}),
+        encoding="utf-8",
+    )
+
+    assert (
+        main(["character", "plan", "--input", str(source), "--output", str(output)])
+        == 0
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["training_count"] == 20
+    assert payload["holdout_count"] == 3
+    assert payload["trigger_token"] == "selma_akira_v1"
+    assert len(payload["recipes"]) == 23
+    assert Path(capsys.readouterr().out.strip()) == output.resolve()
 
 
 def test_cli_breakdown_writes_unapproved_shot_plan(tmp_path):

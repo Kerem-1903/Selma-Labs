@@ -18,7 +18,9 @@ class CharacterBible:
     character_id: str
     identity_constraints: IdentityConstraints
     style_profile: StyleProfile
-    reference_pack: dict[ReferenceView, CharacterReference] = field(default_factory=dict)
+    reference_pack: dict[ReferenceView, CharacterReference] = field(
+        default_factory=dict
+    )
     outfit_catalog: list[Outfit] = field(default_factory=list)
     narrative_profile: CharacterNarrativeProfile | None = None
 
@@ -27,11 +29,19 @@ class CharacterBible:
             raise ValueError("CharacterBible character_id must not be empty.")
         for view, reference in self.reference_pack.items():
             if view != reference.view:
-                raise ValueError("CharacterBible reference view does not match its pack key.")
+                raise ValueError(
+                    "CharacterBible reference view does not match its pack key."
+                )
             if reference.character_id != self.character_id:
-                raise ValueError("CharacterBible references must belong to the same character.")
-        if any(outfit.character_id != self.character_id for outfit in self.outfit_catalog):
-            raise ValueError("CharacterBible outfits must belong to the same character.")
+                raise ValueError(
+                    "CharacterBible references must belong to the same character."
+                )
+        if any(
+            outfit.character_id != self.character_id for outfit in self.outfit_catalog
+        ):
+            raise ValueError(
+                "CharacterBible outfits must belong to the same character."
+            )
 
     @classmethod
     def akira(cls) -> "CharacterBible":
@@ -40,20 +50,23 @@ class CharacterBible:
             character_id="akira",
             identity_constraints=IdentityConstraints(
                 eye_color="amber",
-                hair="black hair with one controlled deep-red front streak",
+                hair="long straight black hair with one controlled deep-red front streak",
                 facial_geometry="angular anime face, defined jaw, straight nose",
                 body_proportions="athletic adult woman, consistent limb proportions",
                 silhouette="cropped combat jacket, tapered combat trousers, single katana",
                 trigger_prompt="akira_girl",
                 immutable_marks=[
-                    "single deep-red front hair streak",
+                    "single deep-red hair streak on the left-front section",
                     "amber eyes",
                     "one katana only",
                 ],
             ),
             style_profile=StyleProfile(
                 base_style="cinematic cyberpunk anime",
-                lighting_preferences=["controlled rim light", "high-contrast practical light"],
+                lighting_preferences=[
+                    "controlled rim light",
+                    "high-contrast practical light",
+                ],
                 color_palette=["charcoal", "black", "muted gray", "deep red", "amber"],
                 negative_prompts=[
                     "identity drift",
@@ -104,10 +117,13 @@ class CharacterBible:
             self.identity_constraints.facial_geometry,
             self.identity_constraints.body_proportions,
             self.identity_constraints.silhouette,
+            *self.identity_constraints.immutable_marks,
             self.outfit_catalog[0].description if self.outfit_catalog else "",
             self.style_profile.base_style,
         )
-        return tuple(dict.fromkeys(value.strip() for value in fragments if value.strip()))
+        return tuple(
+            dict.fromkeys(value.strip() for value in fragments if value.strip())
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -115,8 +131,7 @@ class CharacterBible:
             "identity_constraints": self.identity_constraints.to_dict(),
             "style_profile": self.style_profile.to_dict(),
             "reference_pack": {
-                view.value: ref.to_dict()
-                for view, ref in self.reference_pack.items()
+                view.value: ref.to_dict() for view, ref in self.reference_pack.items()
             },
             "outfit_catalog": [outfit.to_dict() for outfit in self.outfit_catalog],
             "narrative_profile": (
@@ -131,12 +146,13 @@ class CharacterBible:
             for view_str, ref_data in data.get("reference_pack", {}).items()
         }
         outfits = [
-            Outfit.from_dict(o_data)
-            for o_data in data.get("outfit_catalog", [])
+            Outfit.from_dict(o_data) for o_data in data.get("outfit_catalog", [])
         ]
         return cls(
             character_id=data["character_id"],
-            identity_constraints=IdentityConstraints.from_dict(data.get("identity_constraints", {})),
+            identity_constraints=IdentityConstraints.from_dict(
+                data.get("identity_constraints", {})
+            ),
             style_profile=StyleProfile.from_dict(data.get("style_profile", {})),
             reference_pack=refs,
             outfit_catalog=outfits,

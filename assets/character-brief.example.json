@@ -1,0 +1,29 @@
+{
+  "character_id": "nova",
+  "display_name": "Nova",
+  "visual": {
+    "eye_color": "emerald green",
+    "hair": "long silver hair in one thick braid",
+    "facial_geometry": "round adult anime face with high cheekbones",
+    "body_proportions": "tall athletic adult with consistent limb proportions",
+    "silhouette": "long navy coat and compact energy bow",
+    "outfit": "long navy coat, silver armor panels, fitted black trousers and black boots",
+    "base_style": "cinematic science-fantasy anime with restrained cel shading",
+    "immutable_marks": [
+      "one silver braid",
+      "emerald eyes",
+      "one compact energy bow"
+    ],
+    "color_palette": ["navy", "silver", "black", "emerald"],
+    "lighting_preferences": ["cool controlled rim light"],
+    "negative_prompts": ["short hair", "blue eyes", "extra weapon"]
+  },
+  "narrative": {
+    "motivation": "Recover the map that can lead her community home.",
+    "backstory": "A former orbital navigator stranded in a divided floating city.",
+    "voice_traits": ["precise", "dry", "quietly hopeful"],
+    "allowed_abilities": ["Vector Sight"],
+    "forbidden_behaviors": ["abandons her crew"],
+    "forbidden_voice_phrases": ["Nothing matters"]
+  }
+}

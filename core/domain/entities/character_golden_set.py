@@ -188,7 +188,13 @@ class CharacterGoldenSet:
         )
 
 
-def default_akira_golden_cases() -> tuple[GoldenTestCase, ...]:
+def default_character_golden_cases(
+    character_name: str = "character",
+    signature_action: str = "performing their signature action with canonical props only",
+) -> tuple[GoldenTestCase, ...]:
+    name = character_name.strip()
+    if not name:
+        raise GoldenSetValidationError("Golden Set character name must not be empty.")
     descriptions = (
         (
             GoldenScenario.FACE_FRONT,
@@ -217,31 +223,38 @@ def default_akira_golden_cases() -> tuple[GoldenTestCase, ...]:
         ),
         (
             GoldenScenario.TWO_CHARACTER_DIALOGUE,
-            "masterpiece, best quality, anime dialogue scene, medium two-shot, Akira on the left speaking with one adult male doctor on the right, both faces visible, clear eyelines, hospital room background",
+            f"masterpiece, best quality, anime dialogue scene, medium two-shot, {name} on the left speaking with one adult scene partner on the right, both faces visible, clear eyelines, simple interior background",
             ReferenceView.FACE_CLOSEUP,
         ),
         (
             GoldenScenario.RAIN_ROOFTOP,
-            "masterpiece, best quality, cinematic anime frame, medium-wide shot, Akira standing on a rainy night rooftop, complete upper body and hands visible, city skyline, controlled cool rim light, visible rain",
+            f"masterpiece, best quality, cinematic anime frame, medium-wide shot, {name} standing on a rainy night rooftop, complete upper body and hands visible, city skyline, controlled cool rim light, visible rain",
             ReferenceView.THREE_QUARTER_LEFT,
         ),
         (
             GoldenScenario.IMPACT_ACTION,
-            "masterpiece, best quality, dynamic anime action frame, full body Akira delivering a single katana strike, exactly one katana, readable impact pose, strong silhouette, motion lines, ruined street background",
+            f"masterpiece, best quality, dynamic anime action frame, full body {name} {signature_action}, readable impact pose, strong silhouette, motion lines, ruined street background",
             ReferenceView.FRONT,
         ),
         (
             GoldenScenario.WIDE_STREET,
-            "masterpiece, best quality, cinematic anime establishing shot, very wide old market street perspective, full body Akira small in frame walking away from camera, buildings and street dominate the composition, rainy evening",
+            f"masterpiece, best quality, cinematic anime establishing shot, very wide old market street perspective, full body {name} small in frame walking away from camera, buildings and street dominate the composition, rainy evening",
             ReferenceView.BACK,
         ),
         (
             GoldenScenario.DETERMINED_EXPRESSION,
-            "masterpiece, best quality, anime screencap, solo, head-and-shoulders close-up, entire head visible, restrained determined expression, amber eyes focused forward, subtle dramatic shadow",
+            "masterpiece, best quality, anime screencap, solo, head-and-shoulders close-up, entire head visible, restrained determined expression, canonical eyes focused forward, subtle dramatic shadow",
             ReferenceView.FACE_CLOSEUP,
         ),
     )
     return tuple(
         GoldenTestCase(scenario, prompt, 190300 + index, (view,))
         for index, (scenario, prompt, view) in enumerate(descriptions)
+    )
+
+
+def default_akira_golden_cases() -> tuple[GoldenTestCase, ...]:
+    """Backward-compatible Akira fixture for existing manifests and tests."""
+    return default_character_golden_cases(
+        "Akira", "delivering a single katana strike with exactly one katana"
     )

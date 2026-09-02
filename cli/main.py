@@ -23,9 +23,67 @@ def build_parser() -> argparse.ArgumentParser:
     character_commands = character.add_subparsers(
         dest="character_command", required=True
     )
-    character_commands.add_parser(
-        "show", help="Show the canonical Akira Character Bible"
+    character_show = character_commands.add_parser(
+        "show", help="Show a Character Bible (defaults to canonical Akira)"
     )
+    character_show.add_argument("--input", help="Optional Character Bible JSON")
+    character_init = character_commands.add_parser(
+        "init", help="Create a Character Bible from a descriptive brief"
+    )
+    character_init.add_argument("--brief", required=True)
+    character_init.add_argument("--output", required=True)
+    character_plan = character_commands.add_parser(
+        "plan", help="Create a reusable 20+3 character reference recipe"
+    )
+    character_plan.add_argument("--input", required=True, help="Character Bible JSON")
+    character_plan.add_argument("--output", required=True, help="Onboarding plan JSON")
+    character_anchor = character_commands.add_parser(
+        "anchor", help="Generate one unapproved identity anchor"
+    )
+    character_anchor.add_argument("--input", required=True, help="Character Bible JSON")
+    character_anchor.add_argument("--output-prefix", default="character-candidates")
+    character_references = character_commands.add_parser(
+        "references", help="Generate the 20+3 candidate pack from an approved anchor"
+    )
+    character_references.add_argument(
+        "--input", required=True, help="Character Bible JSON"
+    )
+    character_references.add_argument("--approved-anchor-key", required=True)
+    character_references.add_argument("--output-prefix", default="character-candidates")
+    character_references.add_argument("--manifest", required=True)
+    character_approve = character_commands.add_parser(
+        "approve-references",
+        help="Register human-selected reference candidates in a Character Bible",
+    )
+    character_approve.add_argument(
+        "--input", required=True, help="Character Bible JSON"
+    )
+    character_approve.add_argument("--selections", required=True)
+    character_approve.add_argument("--approved-by", required=True)
+    character_approve.add_argument("--output", required=True)
+    character_approve.add_argument(
+        "--lock-narrative",
+        action="store_true",
+        help="Also confirm and lock the narrative profile",
+    )
+    character_dataset = character_commands.add_parser(
+        "dataset", help="Build a LoRA dataset with character-specific captions"
+    )
+    character_dataset.add_argument(
+        "--input", required=True, help="Character Bible JSON"
+    )
+    character_dataset.add_argument("--source", required=True)
+    character_dataset.add_argument("--output", required=True)
+    character_train = character_commands.add_parser(
+        "train", help="Train a validated character LoRA with the 8 GB profile"
+    )
+    character_train.add_argument("--input", required=True, help="Character Bible JSON")
+    character_train.add_argument("--dataset", required=True)
+    character_train.add_argument("--base-model", required=True)
+    character_train.add_argument("--sd-scripts-dir", required=True)
+    character_train.add_argument("--output", required=True)
+    character_train.add_argument("--model-name", required=True)
+    character_train.add_argument("--steps", type=int, default=240)
 
     script = commands.add_parser("script", help="Break a script into executable shots")
     script_commands = script.add_subparsers(dest="script_command", required=True)
@@ -84,12 +142,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     preproduction_commands.add_parser("status", help="Validate active canon locks")
     golden_set = preproduction_commands.add_parser(
-        "golden-set", help="Generate Akira's ten-image consistency set"
+        "golden-set", help="Generate a character's ten-image consistency set"
     )
+    golden_set.add_argument("--character-id", default="akira")
     golden_set.add_argument("--model-id", required=True)
     golden_set.add_argument("--model-revision", required=True)
     golden_set.add_argument(
-        "--output", default="output/preproduction/akira-golden-set.json"
+        "--output", help="Defaults to output/preproduction/<character>-golden-set.json"
     )
     production_plan = preproduction_commands.add_parser(
         "plan", help="Convert an approved EpisodeScript JSON into a shot hierarchy"
@@ -98,13 +157,13 @@ def build_parser() -> argparse.ArgumentParser:
     production_plan.add_argument("--output", required=True)
 
     keyframe = commands.add_parser("keyframe", help="Keyframe generation tools")
-    keyframe_commands = keyframe.add_subparsers(
-        dest="keyframe_command", required=True
-    )
+    keyframe_commands = keyframe.add_subparsers(dest="keyframe_command", required=True)
     pair = keyframe_commands.add_parser(
         "pair", help="Generate unapproved start/end frames with OpenPose"
     )
     pair.add_argument("--shot-id", required=True)
+    pair.add_argument("--character-id", default="akira")
+    pair.add_argument("--outfit-id", default="akira-default")
     pair.add_argument("--prompt-start", required=True)
     pair.add_argument("--prompt-end", required=True)
     pair.add_argument("--start-pose", required=True)
@@ -121,7 +180,24 @@ def main(
     arguments = build_parser().parse_args(argv)
     try:
         if arguments.command == "character":
-            _show_character(CharacterBible.akira())
+            if arguments.character_command == "show":
+                _show_character(
+                    _load_character_bible(arguments.input)
+                    if arguments.input
+                    else CharacterBible.akira()
+                )
+            elif arguments.character_command == "init":
+                _initialize_character(arguments)
+            elif arguments.character_command == "plan":
+                _plan_character(arguments)
+            elif arguments.character_command == "dataset":
+                return _build_character_dataset(arguments)
+            elif arguments.character_command == "train":
+                return asyncio.run(_train_character_lora(arguments))
+            else:
+                return asyncio.run(
+                    _run_character_generation(arguments, container_factory())
+                )
         elif arguments.command == "script":
             _break_down_script(arguments)
         elif arguments.command == "render":
@@ -135,9 +211,7 @@ def main(
                 _run_preproduction_commands(arguments, container_factory())
             )
         elif arguments.command == "keyframe":
-            return asyncio.run(
-                _run_keyframe_commands(arguments, container_factory())
-            )
+            return asyncio.run(_run_keyframe_commands(arguments, container_factory()))
         return 0
     except Exception as error:  # noqa: BLE001 - CLI boundary
         print(f"SELMA command failed: {error}", file=sys.stderr)
@@ -148,6 +222,175 @@ def _show_character(bible: CharacterBible) -> None:
     payload = bible.to_dict()
     payload["prompt_fragments"] = list(bible.prompt_fragments())
     print(json.dumps(payload, ensure_ascii=False, indent=2))
+
+
+def _initialize_character(arguments: argparse.Namespace) -> None:
+    from core.application.services.character_bible_factory_service import (
+        CharacterBibleFactoryService,
+    )
+
+    brief = json.loads(Path(arguments.brief).read_text(encoding="utf-8"))
+    if not isinstance(brief, dict):
+        raise TypeError("Character brief JSON must contain an object.")
+    bible = CharacterBibleFactoryService().create(brief)
+    print(
+        _write_json(
+            arguments.output,
+            {"schema_version": 1, "character_bible": bible.to_dict()},
+        )
+    )
+
+
+def _load_character_bible(path: str | Path) -> CharacterBible:
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise TypeError("Character Bible JSON must contain an object.")
+    bible_payload = payload.get("character_bible", payload)
+    if not isinstance(bible_payload, dict):
+        raise TypeError("character_bible must contain an object.")
+    return CharacterBible.from_dict(bible_payload)
+
+
+def _write_json(path: str | Path, payload: dict[str, Any]) -> Path:
+    target = Path(path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return target.resolve()
+
+
+def _plan_character(arguments: argparse.Namespace) -> None:
+    from core.application.services.character_onboarding_service import (
+        CharacterOnboardingService,
+    )
+
+    character = _load_character_bible(arguments.input)
+    plan = CharacterOnboardingService.plan(character)
+    print(_write_json(arguments.output, plan.to_dict()))
+
+
+def _build_character_dataset(arguments: argparse.Namespace) -> int:
+    from core.application.services.character_lora_dataset_service import (
+        CharacterLoraDatasetService,
+    )
+    from core.application.services.character_onboarding_service import (
+        CharacterOnboardingService,
+    )
+
+    character = _load_character_bible(arguments.input)
+    trigger_token = CharacterOnboardingService.plan(character).trigger_token
+    report = CharacterLoraDatasetService().build(
+        source_dir=arguments.source,
+        output_dir=arguments.output,
+        character_id=character.character_id,
+        trigger_token=trigger_token,
+        character_bible=character,
+    )
+    print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
+    return 0 if report.is_ready else 2
+
+
+async def _train_character_lora(arguments: argparse.Namespace) -> int:
+    from core.domain.value_objects.character_lora_training import (
+        CharacterLoraTrainingRequest,
+    )
+    from infrastructure.providers.training.kohya_character_lora_trainer import (
+        KohyaCharacterLoraTrainer,
+    )
+
+    character = _load_character_bible(arguments.input)
+    request = CharacterLoraTrainingRequest(
+        character_id=character.character_id,
+        dataset_dir=Path(arguments.dataset),
+        base_model_path=Path(arguments.base_model),
+        output_dir=Path(arguments.output),
+        model_name=arguments.model_name,
+        max_train_steps=arguments.steps,
+    )
+    result = await KohyaCharacterLoraTrainer(arguments.sd_scripts_dir).train(request)
+    print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+    return 0
+
+
+async def _run_character_generation(
+    arguments: argparse.Namespace,
+    container: AnimationContainer,
+) -> int:
+    character = _load_character_bible(arguments.input)
+    service = container.character_onboarding_service
+    if arguments.character_command == "anchor":
+        candidate = await service.generate_anchor(
+            character, output_prefix=arguments.output_prefix
+        )
+        print(
+            json.dumps(
+                {
+                    "character_id": character.character_id,
+                    "candidate": candidate.to_dict(),
+                    "human_approved": False,
+                    "next_gate": "HUMAN_ANCHOR_APPROVAL",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+    if arguments.character_command == "references":
+        pack = await service.generate_reference_pack(
+            character,
+            anchor_storage_key=arguments.approved_anchor_key,
+            output_prefix=arguments.output_prefix,
+        )
+        print(_write_json(arguments.manifest, pack.to_dict()))
+        return 0
+    if arguments.character_command == "approve-references":
+        from dataclasses import replace
+
+        from core.domain.services.character_bible_validation_service import (
+            CharacterBibleValidationService,
+        )
+        from core.domain.value_objects.character_identity import ReferenceView
+
+        approval = json.loads(Path(arguments.selections).read_text(encoding="utf-8"))
+        if not isinstance(approval, dict) or not isinstance(
+            approval.get("views"), dict
+        ):
+            raise TypeError("Reference selections must contain a views object.")
+        selected = {
+            ReferenceView(str(view)): str(storage_key)
+            for view, storage_key in approval["views"].items()
+        }
+        character = await service.approve_reference_pack(character, selected)
+        if arguments.lock_narrative:
+            if character.narrative_profile is None:
+                raise ValueError("Character has no narrative profile to lock.")
+            character.narrative_profile = replace(
+                character.narrative_profile, locked=True
+            )
+        report = CharacterBibleValidationService().validate(character)
+        if not report.is_complete:
+            raise ValueError("Approved references unexpectedly became invalid.")
+        print(
+            _write_json(
+                arguments.output,
+                {
+                    "schema_version": 1,
+                    "approval": {
+                        "approved_by": arguments.approved_by,
+                        "reference_pack_approved": True,
+                        "narrative_locked": bool(
+                            character.narrative_profile
+                            and character.narrative_profile.locked
+                        ),
+                    },
+                    "character_bible": character.to_dict(),
+                },
+            )
+        )
+        return 0
+    raise ValueError(f"Unsupported character command: {arguments.character_command}")
 
 
 def _break_down_script(arguments: argparse.Namespace) -> None:
@@ -314,16 +557,24 @@ async def _run_preproduction_commands(
     if arguments.preproduction_command == "golden-set":
         visual = await container.canon_repository.get_visual_style()
         characters = await container.canon_repository.get_character_bibles()
-        matches = [item for item in characters if item.character_id == "akira"]
+        matches = [
+            item for item in characters if item.character_id == arguments.character_id
+        ]
         if len(matches) != 1:
-            raise ValueError("The locked Akira Character Bible was not found exactly once.")
+            raise ValueError(
+                f"The locked Character Bible '{arguments.character_id}' "
+                "was not found exactly once."
+            )
         golden_set = await container.character_golden_set_service.run(
             character=matches[0],
             style=visual,
             model_id=arguments.model_id,
             model_revision=arguments.model_revision,
         )
-        target = Path(arguments.output)
+        target = Path(
+            arguments.output
+            or f"output/preproduction/{arguments.character_id}-golden-set.json"
+        )
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(
             json.dumps(
@@ -379,8 +630,8 @@ async def _run_keyframe_commands(
         prompt_end=arguments.prompt_end,
         duration_seconds=2.0,
         character_state=CharacterState(
-            character_id="akira",
-            active_outfit_id="akira-default",
+            character_id=arguments.character_id,
+            active_outfit_id=arguments.outfit_id,
             injuries=[],
             held_objects=[],
         ),

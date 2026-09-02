@@ -4,9 +4,11 @@ import hashlib
 import json
 import re
 from pathlib import Path
+from typing import ClassVar
 
 from PIL import Image, ImageOps
 
+from core.domain.entities.character_bible import CharacterBible
 from core.domain.value_objects.character_lora_dataset import (
     CharacterLoraDatasetReport,
     CharacterLoraDatasetSample,
@@ -16,14 +18,17 @@ from core.domain.value_objects.character_lora_dataset import (
 class CharacterLoraDatasetService:
     """Build a deterministic, reviewable LoRA dataset without training a model."""
 
-    _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
-    _VIEW_BY_PREFIX = {
+    _IMAGE_SUFFIXES: ClassVar[frozenset[str]] = frozenset(
+        {".jpg", ".jpeg", ".png", ".webp"}
+    )
+    _VIEW_BY_PREFIX: ClassVar[dict[str, str]] = {
         "action-katana-follow-through": "ACTION_KATANA_FOLLOW_THROUGH",
         "action-katana-overhead": "ACTION_KATANA_OVERHEAD",
         "action-katana-ready": "ACTION_KATANA_READY",
         "action-landing": "ACTION_LANDING",
         "action-crouched-guard": "ACTION_CROUCHED_GUARD",
         "action-running": "ACTION_RUNNING",
+        "action-signature": "ACTION_SIGNATURE",
         "action-walking": "ACTION_WALKING",
         "action-wind": "ACTION_WIND",
         "back": "BACK",
@@ -36,13 +41,14 @@ class CharacterLoraDatasetService:
         "three-quarter": "THREE_QUARTER_LEFT",
         "upper-body": "UPPER_BODY",
     }
-    _VIEW_CAPTIONS = {
+    _VIEW_CAPTIONS: ClassVar[dict[str, str]] = {
         "ACTION_KATANA_FOLLOW_THROUGH": "full body, horizontal katana follow-through, two-handed grip, dynamic balanced pose",
         "ACTION_KATANA_OVERHEAD": "full body, overhead katana preparation, two-handed grip, planted stance",
         "ACTION_KATANA_READY": "full body, two-handed katana ready stance, blade angled upward",
         "ACTION_LANDING": "full body, controlled three-point landing, low dynamic pose",
         "ACTION_CROUCHED_GUARD": "full body, low crouched defensive guard, balanced stance",
         "ACTION_RUNNING": "full body, dynamic sprint, clear running silhouette",
+        "ACTION_SIGNATURE": "full body, signature action, canonical props only",
         "ACTION_WALKING": "full body, natural mid-stride walk",
         "ACTION_WIND": "full body, standing in strong wind, hair swept to one side",
         "BACK": "full body, back view, complete outfit and hair silhouette",
@@ -81,13 +87,18 @@ class CharacterLoraDatasetService:
         character_id: str,
         trigger_token: str,
         rights_status: str = "original_character",
+        character_bible: CharacterBible | None = None,
     ) -> CharacterLoraDatasetReport:
         source = Path(source_dir)
         output = Path(output_dir)
         if not source.is_dir():
-            raise FileNotFoundError(f"Character reference directory not found: {source}")
+            raise FileNotFoundError(
+                f"Character reference directory not found: {source}"
+            )
         if not character_id.strip() or not trigger_token.strip():
             raise ValueError("character_id and trigger_token must not be empty.")
+        if character_bible and character_bible.character_id != character_id.strip():
+            raise ValueError("Character Bible does not match the dataset character ID.")
         if rights_status != "original_character":
             raise ValueError("Only original-character assets can enter this dataset.")
 
@@ -119,7 +130,9 @@ class CharacterLoraDatasetService:
                     image.load()
                     width, height = image.size
                     if min(width, height) < self._minimum_dimension:
-                        rejected.append({"file": path.name, "reason": "resolution_too_small"})
+                        rejected.append(
+                            {"file": path.name, "reason": "resolution_too_small"}
+                        )
                         continue
                     normalized = ImageOps.pad(
                         image.convert("RGB"),
@@ -143,7 +156,7 @@ class CharacterLoraDatasetService:
             caption_path = output / relative_caption
             image_path.parent.mkdir(parents=True, exist_ok=True)
             normalized.save(image_path, format="PNG", optimize=True)
-            caption = self._caption(trigger_token, view)
+            caption = self._caption(trigger_token, view, character_bible)
             caption_path.write_text(caption + "\n", encoding="utf-8")
             samples.append(
                 CharacterLoraDatasetSample(
@@ -190,7 +203,11 @@ class CharacterLoraDatasetService:
     def _view_for(cls, path: Path) -> str | None:
         normalized = path.stem.casefold()
         return next(
-            (view for prefix, view in cls._VIEW_BY_PREFIX.items() if normalized.startswith(prefix)),
+            (
+                view
+                for prefix, view in cls._VIEW_BY_PREFIX.items()
+                if normalized.startswith(prefix)
+            ),
             None,
         )
 
@@ -200,19 +217,23 @@ class CharacterLoraDatasetService:
         return "master-sheet" in normalized or "/poses/" in normalized
 
     @classmethod
-    def _caption(cls, trigger_token: str, view: str) -> str:
+    def _caption(
+        cls,
+        trigger_token: str,
+        view: str,
+        character_bible: CharacterBible | None,
+    ) -> str:
+        identity = (
+            character_bible.prompt_fragments()
+            if character_bible
+            else ("original anime character",)
+        )
         return ", ".join(
-            (
-                trigger_token.strip(),
-                "adult woman",
-                "long straight black hair",
-                "single deep-red hair streak on the left-front section",
-                "amber eyes",
-                "angular narrow jaw",
-                "cropped charcoal tactical jacket with deep-red lining",
-                "fitted black high-neck top and muted gray tactical trousers",
-                "fingerless gloves, thigh holsters, knee pads, tall black boots",
-                "polished original 2D anime, restrained cel shading",
-                cls._VIEW_CAPTIONS[view],
+            dict.fromkeys(
+                (
+                    trigger_token.strip(),
+                    *identity,
+                    cls._VIEW_CAPTIONS[view],
+                )
             )
         )
