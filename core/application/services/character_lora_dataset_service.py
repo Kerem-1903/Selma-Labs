@@ -18,20 +18,42 @@ class CharacterLoraDatasetService:
 
     _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
     _VIEW_BY_PREFIX = {
+        "action-katana-follow-through": "ACTION_KATANA_FOLLOW_THROUGH",
+        "action-katana-overhead": "ACTION_KATANA_OVERHEAD",
+        "action-katana-ready": "ACTION_KATANA_READY",
+        "action-landing": "ACTION_LANDING",
+        "action-crouched-guard": "ACTION_CROUCHED_GUARD",
+        "action-running": "ACTION_RUNNING",
+        "action-walking": "ACTION_WALKING",
+        "action-wind": "ACTION_WIND",
+        "back": "BACK",
         "face-closeup": "FACE_CLOSEUP",
         "front": "FRONT",
         "full-body": "FULL_BODY",
         "profile-left": "PROFILE_LEFT",
         "profile-right": "PROFILE_RIGHT",
+        "three-quarter-right": "THREE_QUARTER_RIGHT",
         "three-quarter": "THREE_QUARTER_LEFT",
+        "upper-body": "UPPER_BODY",
     }
     _VIEW_CAPTIONS = {
+        "ACTION_KATANA_FOLLOW_THROUGH": "full body, horizontal katana follow-through, two-handed grip, dynamic balanced pose",
+        "ACTION_KATANA_OVERHEAD": "full body, overhead katana preparation, two-handed grip, planted stance",
+        "ACTION_KATANA_READY": "full body, two-handed katana ready stance, blade angled upward",
+        "ACTION_LANDING": "full body, controlled three-point landing, low dynamic pose",
+        "ACTION_CROUCHED_GUARD": "full body, low crouched defensive guard, balanced stance",
+        "ACTION_RUNNING": "full body, dynamic sprint, clear running silhouette",
+        "ACTION_WALKING": "full body, natural mid-stride walk",
+        "ACTION_WIND": "full body, standing in strong wind, hair swept to one side",
+        "BACK": "full body, back view, complete outfit and hair silhouette",
         "FACE_CLOSEUP": "face close-up, neutral expression, facial identity reference",
         "FRONT": "front view, upper body, neutral standing pose",
-        "FULL_BODY": "full body, front view, neutral standing pose, complete outfit",
+        "FULL_BODY": "full body, neutral standing pose, complete outfit",
         "PROFILE_LEFT": "left profile view, facial silhouette",
         "PROFILE_RIGHT": "right profile view, facial silhouette",
         "THREE_QUARTER_LEFT": "three-quarter view, neutral pose",
+        "THREE_QUARTER_RIGHT": "right three-quarter view, neutral pose",
+        "UPPER_BODY": "upper body, neutral pose, complete jacket construction",
     }
 
     def __init__(
@@ -99,10 +121,12 @@ class CharacterLoraDatasetService:
                     if min(width, height) < self._minimum_dimension:
                         rejected.append({"file": path.name, "reason": "resolution_too_small"})
                         continue
-                    normalized = ImageOps.fit(
+                    normalized = ImageOps.pad(
                         image.convert("RGB"),
                         (self._output_size, self._output_size),
                         method=Image.Resampling.LANCZOS,
+                        color=(245, 245, 245),
+                        centering=(0.5, 0.5),
                     )
             except (OSError, ValueError):
                 rejected.append({"file": path.name, "reason": "unreadable_image"})
@@ -181,12 +205,13 @@ class CharacterLoraDatasetService:
             (
                 trigger_token.strip(),
                 "adult woman",
-                "short asymmetrical black hair",
-                "single muted crimson hair streak above left temple",
-                "warm amber-brown eyes",
-                "small vertical scar through right eyebrow",
-                "charcoal cropped tactical jacket with crimson lining",
-                "black high-neck shirt and dark utility trousers",
+                "long straight black hair",
+                "single deep-red hair streak on the left-front section",
+                "amber eyes",
+                "angular narrow jaw",
+                "cropped charcoal tactical jacket with deep-red lining",
+                "fitted black high-neck top and muted gray tactical trousers",
+                "fingerless gloves, thigh holsters, knee pads, tall black boots",
                 "polished original 2D anime, restrained cel shading",
                 cls._VIEW_CAPTIONS[view],
             )

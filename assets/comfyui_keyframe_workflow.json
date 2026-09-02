@@ -2,9 +2,9 @@
   "3": {
     "inputs": {
       "seed": 0,
-      "steps": 24,
-      "cfg": 7.0,
-      "sampler_name": "euler",
+      "steps": 25,
+      "cfg": 6.0,
+      "sampler_name": "euler_ancestral",
       "scheduler": "normal",
       "denoise": 1.0,
       "model": [
@@ -80,7 +80,7 @@
   },
   "7": {
     "inputs": {
-      "text": "text, watermark",
+      "text": "lowres, bad anatomy, bad hands, text, error, missing finger, extra digits, fewer digits, cropped, worst quality, low quality, low score, bad score, average score, signature, watermark, username, blurry, multiple characters, duplicate body, duplicate limbs, character sheet, reference sheet, turnaround sheet, split panel, headless, cropped head, blue eyes, extra weapon, multiple weapons, malformed sword, staff, pole",
       "clip": [
         "4",
         1

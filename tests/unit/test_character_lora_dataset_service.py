@@ -67,3 +67,55 @@ def test_service_rejects_small_unknown_and_duplicate_images(tmp_path):
         "resolution_too_small",
         "unknown_view",
     }
+
+
+def test_service_captions_canonical_akira_identity_and_action_pose(tmp_path):
+    source = tmp_path / "source"
+    output = tmp_path / "dataset"
+    source.mkdir()
+    _image(source / "action-katana-ready-v1.png")
+    service = CharacterLoraDatasetService(
+        required_training_images=1,
+        required_holdout_images=1,
+    )
+
+    report = service.build(
+        source_dir=source,
+        output_dir=output,
+        character_id="akira",
+        trigger_token="selma_akira_v1",
+    )
+
+    caption = report.samples[0].caption
+    assert report.samples[0].view == "ACTION_KATANA_READY"
+    assert "long straight black hair" in caption
+    assert "single deep-red hair streak on the left-front section" in caption
+    assert "two-handed katana ready stance" in caption
+    assert "scar" not in caption
+
+
+def test_service_pads_portrait_images_without_cropping_character(tmp_path):
+    source = tmp_path / "source"
+    output = tmp_path / "dataset"
+    source.mkdir()
+    portrait = Image.new("RGB", (768, 1536), "white")
+    portrait.putpixel((384, 0), (255, 0, 0))
+    portrait.putpixel((384, 1535), (0, 0, 255))
+    portrait.save(source / "full-body-v1.png")
+    service = CharacterLoraDatasetService(
+        output_size=1024,
+        required_training_images=1,
+        required_holdout_images=1,
+    )
+
+    report = service.build(
+        source_dir=source,
+        output_dir=output,
+        character_id="akira",
+        trigger_token="selma_akira_v1",
+    )
+
+    with Image.open(output / report.samples[0].image_path) as normalized:
+        assert normalized.size == (1024, 1024)
+        assert normalized.getpixel((512, 0))[0] > 200
+        assert normalized.getpixel((512, 1023))[2] > 200
