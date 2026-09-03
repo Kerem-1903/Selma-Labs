@@ -105,5 +105,28 @@
     },
     "class_type": "LoraLoader",
     "_meta": {"title": "SELMA Optional Character LoRA", "selma_role": "character_lora"}
+  },
+  "21": {
+    "inputs": {"control_net_name": "control-lora-openposeXL2-rank256.safetensors"},
+    "class_type": "ControlNetLoader",
+    "_meta": {"title": "Load OpenPose ControlNet"}
+  },
+  "22": {
+    "inputs": {
+      "strength": 0.72,
+      "start_percent": 0.0,
+      "end_percent": 0.82,
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "control_net": ["21", 0],
+      "image": ["23", 0]
+    },
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {"title": "SELMA Pose Control", "selma_role": "pose_control"}
+  },
+  "23": {
+    "inputs": {"image": "selma-pose.png", "upload": "image"},
+    "class_type": "LoadImage",
+    "_meta": {"title": "SELMA Pose Guide", "selma_role": "pose_control_image"}
   }
 }

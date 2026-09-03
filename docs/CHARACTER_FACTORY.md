@@ -104,6 +104,9 @@ palette and immutable marks. It requires the FaceID Plus V2 SDXL IP-Adapter,
 its matching technical LoRA, InsightFace `buffalo_l`, and the ComfyUI
 IPAdapter Plus custom nodes. FaceID is an identity aid, not human approval: a
 pilot with a misplaced hair mark or invented costume detail must still fail.
+The same workflow accepts a reviewed OpenPose image through
+`pose_storage_key`, allowing facial identity and acting pose to be controlled
+in one render.
 
 When an otherwise usable anchor conflicts with one local immutable mark, repair
 only a reviewed mask before running the pilot again:

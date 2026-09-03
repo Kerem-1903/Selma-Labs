@@ -392,6 +392,39 @@ async def test_provider_supports_faceid_loader_and_strength_override():
 
 
 @pytest.mark.asyncio
+async def test_faceid_workflow_can_apply_a_reviewed_pose_guide():
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=FACEID_WORKFLOW_PATH,
+        storage=MemoryStorage(
+            {
+                "characters/akira/face.png": PNG_BYTES,
+                "characters/akira/front.png": PNG_BYTES,
+                "characters/akira/poses/hand.png": PNG_BYTES,
+            }
+        ),
+        session_factory=lambda **kwargs: session,
+    )
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "pose_storage_key": "characters/akira/poses/hand.png",
+            "pose_strength": 0.72,
+        },
+    )
+
+    await provider.generate_keyframe(request)
+
+    workflow = session.queued_workflow
+    assert workflow["23"]["inputs"]["image"] == "selma/reference.png"
+    assert workflow["22"]["inputs"]["strength"] == 0.72
+    assert workflow["3"]["inputs"]["positive"] == ["22", 0]
+    assert workflow["3"]["inputs"]["negative"] == ["22", 1]
+
+
+@pytest.mark.asyncio
 async def test_provider_rejects_unsafe_faceid_strength():
     provider = ComfyUIKeyframeProvider(
         api_url="http://127.0.0.1:8188",
