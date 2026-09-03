@@ -54,8 +54,15 @@ class KohyaCharacterLoraTrainer(CharacterLoraTrainerPort):
             raise ValueError(
                 "LoRA dataset character does not match the training request."
             )
-        if manifest.get("is_ready") is not True:
-            raise ValueError("LoRA dataset has not passed its readiness gate.")
+        if int(manifest.get("schema_version", 0)) < 2:
+            raise ValueError(
+                "Legacy LoRA dataset manifests cannot pass the V2 quality gate."
+            )
+        if (
+            manifest.get("is_ready") is not True
+            or manifest.get("training_approved") is not True
+        ):
+            raise ValueError("LoRA dataset has not passed its V2 quality gate.")
         if not (request.dataset_dir / "train").is_dir():
             raise FileNotFoundError("LoRA dataset train directory was not found.")
         if not request.base_model_path.is_file():

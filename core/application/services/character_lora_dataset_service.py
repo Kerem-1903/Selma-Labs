@@ -12,6 +12,7 @@ from core.domain.entities.character_bible import CharacterBible
 from core.domain.value_objects.character_lora_dataset import (
     CharacterLoraDatasetReport,
     CharacterLoraDatasetSample,
+    CharacterLoraSampleReview,
 )
 
 
@@ -31,6 +32,14 @@ class CharacterLoraDatasetService:
         "action-signature": "ACTION_SIGNATURE",
         "action-walking": "ACTION_WALKING",
         "action-wind": "ACTION_WIND",
+        "upper-body-rear-three-quarter": "UPPER_BODY_REAR_THREE_QUARTER",
+        "upper-body-three-quarter-right": "UPPER_BODY_THREE_QUARTER_RIGHT",
+        "upper-body-three-quarter-left": "UPPER_BODY_THREE_QUARTER_LEFT",
+        "full-body-three-quarter-left": "FULL_BODY_THREE_QUARTER_LEFT",
+        "full-body-profile-left": "FULL_BODY_PROFILE_LEFT",
+        "profile-right-face-closeup": "PROFILE_RIGHT_FACE_CLOSEUP",
+        "profile-right-full-body": "PROFILE_RIGHT_FULL_BODY",
+        "profile-right-upper-body": "PROFILE_RIGHT_UPPER_BODY",
         "back": "BACK",
         "face-closeup": "FACE_CLOSEUP",
         "front": "FRONT",
@@ -60,6 +69,14 @@ class CharacterLoraDatasetService:
         "THREE_QUARTER_LEFT": "three-quarter view, neutral pose",
         "THREE_QUARTER_RIGHT": "right three-quarter view, neutral pose",
         "UPPER_BODY": "upper body, neutral pose, complete jacket construction",
+        "UPPER_BODY_REAR_THREE_QUARTER": "upper body, rear three-quarter view, complete jacket back construction",
+        "UPPER_BODY_THREE_QUARTER_LEFT": "upper body, left three-quarter view, complete jacket construction",
+        "UPPER_BODY_THREE_QUARTER_RIGHT": "upper body, right three-quarter view, complete jacket construction",
+        "FULL_BODY_THREE_QUARTER_LEFT": "full body, left three-quarter view, neutral standing pose, complete outfit",
+        "FULL_BODY_PROFILE_LEFT": "full body, strict left profile view, neutral standing pose, complete outfit",
+        "PROFILE_RIGHT_FACE_CLOSEUP": "face close-up, strict right profile view, facial silhouette",
+        "PROFILE_RIGHT_FULL_BODY": "full body, strict right profile view, neutral standing pose, complete outfit",
+        "PROFILE_RIGHT_UPPER_BODY": "upper body, strict right profile view, complete jacket construction",
     }
 
     def __init__(
@@ -88,6 +105,8 @@ class CharacterLoraDatasetService:
         trigger_token: str,
         rights_status: str = "original_character",
         character_bible: CharacterBible | None = None,
+        review_manifest: str | Path | None = None,
+        canonical_anchor: str | Path | None = None,
     ) -> CharacterLoraDatasetReport:
         source = Path(source_dir)
         output = Path(output_dir)
@@ -102,6 +121,14 @@ class CharacterLoraDatasetService:
         if rights_status != "original_character":
             raise ValueError("Only original-character assets can enter this dataset.")
 
+        reviews, approved_by, reviewed_anchor_hash = self._load_reviews(
+            review_manifest, character_id=character_id.strip()
+        )
+        anchor_hash = self._anchor_hash(canonical_anchor)
+        if reviewed_anchor_hash and reviewed_anchor_hash != anchor_hash:
+            raise ValueError(
+                "Canonical anchor does not match the reviewed anchor hash."
+            )
         output.mkdir(parents=True, exist_ok=True)
         samples: list[CharacterLoraDatasetSample] = []
         rejected: list[dict[str, str]] = []
@@ -145,7 +172,7 @@ class CharacterLoraDatasetService:
                 rejected.append({"file": path.name, "reason": "unreadable_image"})
                 continue
 
-            split = "holdout" if view == "PROFILE_RIGHT" else "train"
+            split = "holdout" if view.startswith("PROFILE_RIGHT") else "train"
             safe_id = re.sub(r"[^a-z0-9_-]+", "-", character_id.casefold()).strip("-")
             if not safe_id:
                 raise ValueError("character_id must contain a filename-safe character.")
@@ -170,11 +197,12 @@ class CharacterLoraDatasetService:
                     content_hash=digest,
                     width=self._output_size,
                     height=self._output_size,
+                    review=self._review_for(reviews, path.name, digest),
                 )
             )
 
         report = CharacterLoraDatasetReport(
-            schema_version=1,
+            schema_version=2,
             character_id=character_id.strip(),
             trigger_token=trigger_token.strip(),
             samples=tuple(samples),
@@ -182,6 +210,8 @@ class CharacterLoraDatasetService:
             duplicate_files=tuple(duplicates),
             required_training_images=self._required_training_images,
             required_holdout_images=self._required_holdout_images,
+            anchor_content_hash=anchor_hash,
+            approved_by=approved_by,
         )
         manifest_path = output / "manifest.json"
         temporary_path = manifest_path.with_suffix(".json.tmp")
@@ -199,13 +229,66 @@ class CharacterLoraDatasetService:
         temporary_path.replace(manifest_path)
         return report
 
+    @staticmethod
+    def _load_reviews(
+        review_manifest: str | Path | None, *, character_id: str
+    ) -> tuple[dict[str, object], str, str]:
+        if review_manifest is None:
+            return {}, "", ""
+        payload = json.loads(Path(review_manifest).read_text(encoding="utf-8"))
+        if int(payload.get("schema_version", 0)) != 1:
+            raise ValueError("Unsupported character dataset review schema version.")
+        if str(payload.get("character_id", "")).strip() != character_id:
+            raise ValueError("Dataset review character does not match the dataset.")
+        reviews = payload.get("reviews")
+        if not isinstance(reviews, dict):
+            raise TypeError("Dataset review manifest requires a reviews object.")
+        return (
+            reviews,
+            str(payload.get("approved_by", "")).strip(),
+            str(payload.get("canonical_anchor_sha256", "")).strip(),
+        )
+
+    @staticmethod
+    def _review_for(
+        reviews: dict[str, object], source_name: str, content_hash: str
+    ) -> CharacterLoraSampleReview | None:
+        raw = reviews.get(source_name)
+        if not isinstance(raw, dict):
+            return None
+        return CharacterLoraSampleReview(
+            identity_score=float(raw.get("identity_score", 0.0)),
+            anatomy_score=float(raw.get("anatomy_score", 0.0)),
+            caption_matches=bool(raw.get("caption_matches", False)),
+            human_approved=bool(raw.get("human_approved", False)),
+            reviewer=str(raw.get("reviewer", "")).strip(),
+            reviewed_content_hash=str(raw.get("content_hash", "")).strip(),
+            content_hash_matches=(
+                str(raw.get("content_hash", "")).strip() == content_hash
+            ),
+            notes=str(raw.get("notes", "")),
+        )
+
+    @staticmethod
+    def _anchor_hash(canonical_anchor: str | Path | None) -> str:
+        if canonical_anchor is None:
+            return ""
+        path = Path(canonical_anchor)
+        if not path.is_file():
+            raise FileNotFoundError(f"Canonical identity anchor not found: {path}")
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
     @classmethod
     def _view_for(cls, path: Path) -> str | None:
         normalized = path.stem.casefold()
         return next(
             (
                 view
-                for prefix, view in cls._VIEW_BY_PREFIX.items()
+                for prefix, view in sorted(
+                    cls._VIEW_BY_PREFIX.items(),
+                    key=lambda item: len(item[0]),
+                    reverse=True,
+                )
                 if normalized.startswith(prefix)
             ),
             None,

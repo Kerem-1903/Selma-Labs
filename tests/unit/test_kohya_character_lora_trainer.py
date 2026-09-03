@@ -21,7 +21,14 @@ def _layout(tmp_path, *, ready=True):
     dataset = tmp_path / "dataset"
     (dataset / "train").mkdir(parents=True)
     (dataset / "manifest.json").write_text(
-        json.dumps({"character_id": "nova", "is_ready": ready}),
+        json.dumps(
+            {
+                "schema_version": 2,
+                "character_id": "nova",
+                "is_ready": ready,
+                "training_approved": ready,
+            }
+        ),
         encoding="utf-8",
     )
     base_model = tmp_path / "base.safetensors"
@@ -71,5 +78,24 @@ def test_trainer_rejects_dataset_that_failed_readiness_gate(tmp_path):
         model_name="selma-nova-v1",
     )
 
-    with pytest.raises(ValueError, match="readiness gate"):
+    with pytest.raises(ValueError, match="V2 quality gate"):
+        asyncio.run(trainer.train(request))
+
+
+def test_trainer_rejects_legacy_count_only_manifest(tmp_path):
+    scripts, dataset, base_model, output = _layout(tmp_path)
+    (dataset / "manifest.json").write_text(
+        json.dumps({"schema_version": 1, "character_id": "nova", "is_ready": True}),
+        encoding="utf-8",
+    )
+    trainer = KohyaCharacterLoraTrainer(scripts)
+    request = CharacterLoraTrainingRequest(
+        character_id="nova",
+        dataset_dir=dataset,
+        base_model_path=base_model,
+        output_dir=output,
+        model_name="selma-nova-v1",
+    )
+
+    with pytest.raises(ValueError, match="Legacy"):
         asyncio.run(trainer.train(request))

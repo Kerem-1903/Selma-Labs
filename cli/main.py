@@ -74,6 +74,27 @@ def build_parser() -> argparse.ArgumentParser:
     )
     character_dataset.add_argument("--source", required=True)
     character_dataset.add_argument("--output", required=True)
+    character_dataset.add_argument(
+        "--trigger-token",
+        help="Defaults to the character-specific schema-v2 trigger token",
+    )
+    character_dataset.add_argument(
+        "--review-manifest", help="Human review JSON for every source image"
+    )
+    character_dataset.add_argument(
+        "--canonical-anchor", help="Approved identity anchor used to verify lineage"
+    )
+    character_audit = character_commands.add_parser(
+        "audit-dataset", help="Audit an existing LoRA dataset without training"
+    )
+    character_audit.add_argument("--manifest", required=True)
+    character_audit.add_argument("--output")
+    character_review_template = character_commands.add_parser(
+        "review-template", help="Create a fail-closed per-image review form"
+    )
+    character_review_template.add_argument("--manifest", required=True)
+    character_review_template.add_argument("--canonical-anchor", required=True)
+    character_review_template.add_argument("--output", required=True)
     character_train = character_commands.add_parser(
         "train", help="Train a validated character LoRA with the 8 GB profile"
     )
@@ -222,6 +243,10 @@ def main(
                 _plan_character(arguments)
             elif arguments.character_command == "dataset":
                 return _build_character_dataset(arguments)
+            elif arguments.character_command == "audit-dataset":
+                return _audit_character_dataset(arguments)
+            elif arguments.character_command == "review-template":
+                return _create_character_review_template(arguments)
             elif arguments.character_command == "train":
                 return asyncio.run(_train_character_lora(arguments))
             else:
@@ -415,16 +440,46 @@ def _build_character_dataset(arguments: argparse.Namespace) -> int:
     )
 
     character = _load_character_bible(arguments.input)
-    trigger_token = CharacterOnboardingService.plan(character).trigger_token
+    planned_token = CharacterOnboardingService.plan(character).trigger_token
+    trigger_token = arguments.trigger_token or f"{planned_token.rsplit('_v', 1)[0]}_v2"
     report = CharacterLoraDatasetService().build(
         source_dir=arguments.source,
         output_dir=arguments.output,
         character_id=character.character_id,
         trigger_token=trigger_token,
         character_bible=character,
+        review_manifest=arguments.review_manifest,
+        canonical_anchor=arguments.canonical_anchor,
     )
     print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
     return 0 if report.is_ready else 2
+
+
+def _audit_character_dataset(arguments: argparse.Namespace) -> int:
+    from core.application.services.character_lora_dataset_audit_service import (
+        CharacterLoraDatasetAuditService,
+    )
+
+    audit = CharacterLoraDatasetAuditService().audit(arguments.manifest)
+    payload = audit.to_dict()
+    if arguments.output:
+        print(_write_json(arguments.output, payload))
+    else:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0 if audit.training_approved else 2
+
+
+def _create_character_review_template(arguments: argparse.Namespace) -> int:
+    from core.application.services.character_lora_dataset_audit_service import (
+        CharacterLoraDatasetAuditService,
+    )
+
+    payload = CharacterLoraDatasetAuditService().create_review_template(
+        manifest_path=arguments.manifest,
+        canonical_anchor=arguments.canonical_anchor,
+    )
+    print(_write_json(arguments.output, payload))
+    return 0
 
 
 async def _train_character_lora(arguments: argparse.Namespace) -> int:
