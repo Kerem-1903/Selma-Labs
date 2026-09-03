@@ -630,10 +630,15 @@ class CharacterOnboardingService:
                 image = source.convert("RGB")
         except (UnidentifiedImageError, OSError) as error:
             raise ValueError("Approved character anchor is not a readable image.") from error
-        crop_size = max(1, min(image.width, round(image.height * 0.24)))
-        left = max(0, (image.width - crop_size) // 2)
-        crop = image.crop((left, 0, left + crop_size, crop_size))
-        crop = crop.resize((1024, 1024), Image.Resampling.LANCZOS)
+        # Large square anchors are already portrait crops. Cropping their top
+        # quarter again removes the face and makes FaceID conditioning fail.
+        if image.width == image.height and image.width >= 512:
+            crop = image.resize((1024, 1024), Image.Resampling.LANCZOS)
+        else:
+            crop_size = max(1, min(image.width, round(image.height * 0.24)))
+            left = max(0, (image.width - crop_size) // 2)
+            crop = image.crop((left, 0, left + crop_size, crop_size))
+            crop = crop.resize((1024, 1024), Image.Resampling.LANCZOS)
         output = io.BytesIO()
         crop.save(output, format="PNG")
         storage_key = f"{run_root}/conditioning/face-closeup-anchor.png"

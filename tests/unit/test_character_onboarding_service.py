@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import io
 
 import pytest
+from PIL import Image
 
 from core.application.services.character_onboarding_service import (
     CharacterOnboardingService,
@@ -194,6 +196,29 @@ def test_generate_reference_pack_uses_anchor_for_all_23_candidates(tmp_path):
     assert first_request.visual_constraints["identity_strength"] == 1.0
     assert first_request.visual_constraints["identity_end_at"] == 0.9
     assert "full body" in first_request.negative_prompts
+
+
+def test_face_conditioning_does_not_recrop_large_square_portrait(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    service = CharacterOnboardingService(provider, storage)
+    image = Image.new("RGB", (512, 512), (20, 40, 60))
+    encoded = io.BytesIO()
+    image.save(encoded, format="PNG")
+
+    key = asyncio.run(
+        service._conditioning_reference_for_view(
+            anchor_bytes=encoded.getvalue(),
+            anchor_key="approved/portrait.png",
+            run_root="runs/test",
+            view="FACE_CLOSEUP",
+        )
+    )
+
+    stored = asyncio.run(storage.load(key))
+    with Image.open(io.BytesIO(stored)) as result:
+        assert result.size == (1024, 1024)
+        assert result.getpixel((512, 512)) == (20, 40, 60)
 
 
 class _RetryOnceEvaluator:

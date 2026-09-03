@@ -96,6 +96,31 @@ provider remains available for offline pipeline tests. Candidate manifests keep
 `human_approved: false`; selecting and approving an anchor or Golden Set remains
 an explicit human decision.
 
+For portrait pilots whose reference face is detectable by InsightFace, select
+`assets/comfyui_keyframe_faceid_workflow.json` with
+`COMFYUI_KEYFRAME_WORKFLOW_PATH`. This workflow uses FaceID Plus V2 to lock
+facial geometry while the Character Bible continues to control hair, outfit,
+palette and immutable marks. It requires the FaceID Plus V2 SDXL IP-Adapter,
+its matching technical LoRA, InsightFace `buffalo_l`, and the ComfyUI
+IPAdapter Plus custom nodes. FaceID is an identity aid, not human approval: a
+pilot with a misplaced hair mark or invented costume detail must still fail.
+
+When an otherwise usable anchor conflicts with one local immutable mark, repair
+only a reviewed mask before running the pilot again:
+
+```powershell
+python scripts/comfyui_region_repair.py `
+  --input path/to/anchor.png `
+  --mask path/to/reviewed-white-mask.png `
+  --output output/training/repaired-anchor.png `
+  --checkpoint animagine-xl-4.0-opt.safetensors `
+  --prompt "continuous black hair matching the surrounding strands"
+```
+
+White mask pixels are regenerated; black pixels are preserved. The repaired
+anchor is a new candidate and requires human approval—it never silently
+replaces an approved source.
+
 ## What is character-specific?
 
 Only the Character Bible and the final human approvals. Dataset view coverage,

@@ -27,6 +27,9 @@ PNG_BYTES = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
 WORKFLOW_PATH = Path(__file__).parents[2] / "assets" / "comfyui_keyframe_workflow.json"
+FACEID_WORKFLOW_PATH = (
+    Path(__file__).parents[2] / "assets" / "comfyui_keyframe_faceid_workflow.json"
+)
 
 
 class MemoryStorage(StoragePort):
@@ -352,6 +355,65 @@ async def test_provider_identity_only_mode_reduces_composition_transfer():
     assert adapter["combine_embeds"] == "average"
     assert adapter["end_at"] == 0.65
     assert adapter["embeds_scaling"] == "K+V w/ C penalty"
+
+
+@pytest.mark.asyncio
+async def test_provider_supports_faceid_loader_and_strength_override():
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=FACEID_WORKFLOW_PATH,
+        storage=MemoryStorage(
+            {
+                "characters/akira/face.png": PNG_BYTES,
+                "characters/akira/front.png": PNG_BYTES,
+            }
+        ),
+        session_factory=lambda **kwargs: session,
+    )
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "identity_strength": 0.85,
+            "identity_faceidv2_strength": 1.15,
+        },
+    )
+
+    await provider.generate_keyframe(request)
+
+    workflow = session.queued_workflow
+    assert workflow["18"]["class_type"] == "IPAdapterUnifiedLoaderFaceID"
+    assert workflow["18"]["inputs"]["model"] == ["4", 0]
+    assert workflow["20"]["class_type"] == "IPAdapterFaceID"
+    assert workflow["20"]["inputs"]["weight"] == 0.85
+    assert workflow["20"]["inputs"]["weight_faceidv2"] == 1.15
+    assert workflow["3"]["inputs"]["model"] == ["20", 0]
+
+
+@pytest.mark.asyncio
+async def test_provider_rejects_unsafe_faceid_strength():
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=FACEID_WORKFLOW_PATH,
+        storage=MemoryStorage(
+            {
+                "characters/akira/face.png": PNG_BYTES,
+                "characters/akira/front.png": PNG_BYTES,
+            }
+        ),
+        session_factory=lambda **kwargs: FakeSession(),
+    )
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "identity_faceidv2_strength": 5.1,
+        },
+    )
+
+    with pytest.raises(ProviderError, match="FaceID v2"):
+        await provider.generate_keyframe(request)
 
 
 @pytest.mark.asyncio

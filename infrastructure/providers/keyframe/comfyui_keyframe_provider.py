@@ -561,9 +561,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         ).strip()
         if not name:
             self._rewire_clip_inputs(workflow, checkpoint_clip)
-            identity_loader = self._node_for_role_by_class(
-                workflow, "IPAdapterUnifiedLoader"
-            )
+            identity_loader = self._identity_loader(workflow)
             if identity_loader is not None:
                 identity_loader[1]["inputs"]["model"] = checkpoint_model
             return None, checkpoint_model
@@ -612,9 +610,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         prompt = str(positive[1]["inputs"].get("text", "")).strip()
         if trigger_token.casefold() not in prompt.casefold():
             positive[1]["inputs"]["text"] = f"{trigger_token}, {prompt}"
-        identity_loader = self._node_for_role_by_class(
-            workflow, "IPAdapterUnifiedLoader"
-        )
+        identity_loader = self._identity_loader(workflow)
         if identity_loader is not None:
             identity_loader[1]["inputs"]["model"] = lora_model
         return (
@@ -647,6 +643,26 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             None,
         )
 
+    def _identity_loader(
+        self, workflow: dict[str, Any]
+    ) -> tuple[str, dict[str, Any]] | None:
+        """Return either the visual or FaceID IP-Adapter loader.
+
+        Workflows should mark the loader explicitly. Class fallbacks keep older
+        exported ComfyUI API workflows compatible.
+        """
+        loader = self._node_for_role(workflow, "identity_loader")
+        if loader is not None:
+            return loader
+        for class_type in (
+            "IPAdapterUnifiedLoaderFaceID",
+            "IPAdapterUnifiedLoader",
+        ):
+            loader = self._node_for_role_by_class(workflow, class_type)
+            if loader is not None:
+                return loader
+        return None
+
     @staticmethod
     def _inject_identity_mode(
         identity_adapter: dict[str, Any], request: KeyframeGenerationRequest
@@ -676,6 +692,18 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         for source_key, input_key in overrides.items():
             if source_key in request.visual_constraints:
                 inputs[input_key] = request.visual_constraints[source_key]
+        if (
+            "weight_faceidv2" in inputs
+            and "identity_faceidv2_strength" in request.visual_constraints
+        ):
+            faceidv2_strength = float(
+                request.visual_constraints["identity_faceidv2_strength"]
+            )
+            if not -1.0 <= faceidv2_strength <= 5.0:
+                raise ProviderError(
+                    "FaceID v2 identity strength must be between -1 and 5."
+                )
+            inputs["weight_faceidv2"] = faceidv2_strength
         try:
             start_at = float(inputs["start_at"])
             end_at = float(inputs["end_at"])
