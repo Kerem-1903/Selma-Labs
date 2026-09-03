@@ -318,6 +318,40 @@ def test_reference_pack_can_run_one_pending_pilot_without_automatic_review(tmp_p
     assert evaluator.calls == 0
 
 
+def test_reference_pilot_supports_reproducible_seed_variations(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    service = CharacterOnboardingService(provider, storage)
+    anchor_key = "approved/nova-anchor.png"
+    asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
+
+    asyncio.run(
+        service.generate_reference_pack(
+            _nova(),
+            anchor_storage_key=anchor_key,
+            recipe_limit=1,
+            automatic_review=False,
+            seed_offset=20_000,
+        )
+    )
+
+    expected = CharacterOnboardingService.plan(_nova()).recipes[0].seed + 20_000
+    assert provider.requests[0].seed == expected
+
+
+def test_reference_pilot_rejects_unstructured_seed_offset(tmp_path):
+    service = CharacterOnboardingService(
+        FakeKeyframeGenerationProvider(), LocalFsStorage(str(tmp_path))
+    )
+
+    with pytest.raises(ValueError, match="multiple of 10000"):
+        asyncio.run(
+            service.generate_reference_pack(
+                _nova(), anchor_storage_key="missing.png", seed_offset=1
+            )
+        )
+
+
 def test_approve_reference_pack_registers_selected_required_views(tmp_path):
     provider = FakeKeyframeGenerationProvider()
     storage = LocalFsStorage(str(tmp_path))

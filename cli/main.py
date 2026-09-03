@@ -70,6 +70,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--pilot-approval",
         help="Human pilot-approval receipt required for more than one recipe",
     )
+    character_references.add_argument(
+        "--seed-offset",
+        type=int,
+        default=0,
+        help="Deterministic pilot variation; use 0, 10000, 20000, ...",
+    )
     character_pilot_approve = character_commands.add_parser(
         "approve-pilot", help="Approve the identity/framing pilot after visual review"
     )
@@ -591,11 +597,13 @@ async def _run_character_generation(
             recipe_limit=arguments.limit,
             automatic_review=not arguments.defer_visual_review,
             pilot_approval=pilot_approval,
+            seed_offset=arguments.seed_offset,
         )
         payload = {
             **pack.to_dict(),
             "automatic_review_deferred": arguments.defer_visual_review,
             "pack_complete": len(pack.candidates) == 23,
+            "seed_offset": arguments.seed_offset,
         }
         print(_write_json(arguments.manifest, payload))
         return 0

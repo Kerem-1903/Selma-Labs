@@ -313,7 +313,12 @@ class CharacterOnboardingService:
         recipe_limit: int | None = None,
         automatic_review: bool = True,
         pilot_approval: CharacterPilotApproval | None = None,
+        seed_offset: int = 0,
     ) -> CharacterCandidatePack:
+        if seed_offset < 0 or seed_offset % 10_000 != 0:
+            raise ValueError(
+                "Character reference seed offset must be a non-negative multiple of 10000."
+            )
         anchor_key = self._portable_key(anchor_storage_key)
         if not await self._storage.exists(anchor_key):
             raise StorageError(f"Approved anchor '{anchor_key}' was not found.")
@@ -360,7 +365,7 @@ class CharacterOnboardingService:
                     self._request(
                         character=character,
                         prompt=recipe.prompt,
-                        seed=recipe.seed + (attempt - 1) * 10_000,
+                        seed=recipe.seed + seed_offset + (attempt - 1) * 10_000,
                         negatives=self._negatives_for_view(
                             plan.negative_prompts, recipe.view
                         ),

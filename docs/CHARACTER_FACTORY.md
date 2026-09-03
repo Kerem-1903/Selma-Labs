@@ -87,6 +87,10 @@ python -m cli.main preproduction golden-set `
   --model-revision v1
 ```
 
+Use `--seed-offset 10000` and `--seed-offset 20000` with separate pilot
+manifests to create reproducible alternatives without changing the identity
+contract.
+
 Use `KEYFRAME_GENERATION_PROVIDER=comfyui` for real local generation. The fake
 provider remains available for offline pipeline tests. Candidate manifests keep
 `human_approved: false`; selecting and approving an anchor or Golden Set remains
