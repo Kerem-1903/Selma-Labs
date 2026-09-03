@@ -13,6 +13,18 @@ from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 
 from config.settings import get_settings
+from config.container import create_container
+from core.domain.entities.character_state import CharacterState
+from core.domain.entities.shot_contract import ShotContract
+from core.domain.value_objects.shot_constraints import (
+    ActionConstraints,
+    CameraConstraints,
+    VisualConstraints,
+)
+from infrastructure.repositories.local_json_character_bible_repository import (
+    LocalJsonCharacterBibleRepository,
+)
+from infrastructure.storage.local_fs_storage import LocalFsStorage
 from scripts.run_factory import build_orchestrator
 from core.domain.entities.pipeline_run import PipelineRun
 from infrastructure.repositories.local_json_run_repository import LocalJsonRunRepository
@@ -61,6 +73,31 @@ def parse_user_prompt(prompt: str) -> tuple[str, int, str]:
     return topic, duration_s * 1000, language
 
 
+@app.get("/api/characters")
+async def list_characters():
+    """List Character Bibles available to the web generator."""
+    settings = get_settings()
+    root = Path(settings.character_bible_repository_dir)
+    if not root.is_absolute():
+        root = PROJECT_ROOT / root
+    repository = LocalJsonCharacterBibleRepository(root)
+    characters = []
+    for path in sorted(root.glob("*.json")):
+        try:
+            bible = await repository.load(path.stem)
+        except Exception:
+            continue
+        characters.append(
+            {
+                "id": bible.character_id,
+                "reference_count": len(bible.reference_pack),
+                "views": sorted(view.value for view in bible.reference_pack),
+                "lora_enabled": bool(settings.comfyui_character_lora_name),
+            }
+        )
+    return JSONResponse({"characters": characters})
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse(
@@ -69,13 +106,77 @@ async def index(request: Request):
         context={},
     )
 
-async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Optional[str] = None, script_provider: Optional[str] = None, voice_provider: Optional[str] = None, voice_file_path: Optional[str] = None, style: str = "cinematic", subtitle_style: str = "hormozi", storyboard: bool = False):
+async def _generate_character_keyframe(
+    *,
+    job_id: str,
+    character_id: str,
+    prompt: str,
+    style: str,
+    seed: Optional[int] = None,
+) -> str:
+    """Create a new image from the selected Character Bible references."""
+    settings = get_settings().model_copy(
+        update={"keyframe_generation_provider": "comfyui"}
+    )
+    bible_repository = LocalJsonCharacterBibleRepository(
+        settings.character_bible_repository_dir
+    )
+    bible = await bible_repository.load(character_id)
+    outfit_id = bible.outfit_catalog[0].id if bible.outfit_catalog else "default"
+    shot = ShotContract(
+        id=f"web-{job_id}",
+        camera_constraints=CameraConstraints(
+            angle="three-quarter view", lens="50mm portrait lens", movement="static"
+        ),
+        action_constraints=ActionConstraints(
+            primary_action=prompt.strip() or "standing naturally"
+        ),
+        visual_constraints=VisualConstraints(
+            lighting="cinematic soft lighting",
+            environment_style=style,
+            weather="clear",
+        ),
+        required_character_states=[
+            CharacterState(
+                character_id=character_id,
+                active_outfit_id=outfit_id,
+                injuries=[],
+                held_objects=[],
+            )
+        ],
+    )
+    container = create_container(settings=settings)
+    storyboard = await container.keyframe_generation_service.generate(
+        shot_contract=shot, width=1024, height=1024, seed=seed
+    )
+    frame = storyboard.frames[-1]
+    keyframe_storage = LocalFsStorage(settings.keyframe_storage_root_dir)
+    image_bytes = await keyframe_storage.load(frame.storage_key)
+    output_path = PROJECT_ROOT / "output" / "user_uploads" / "generated_keyframes" / f"{job_id}.png"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    await asyncio.to_thread(output_path.write_bytes, image_bytes)
+    return str(output_path)
+
+
+async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Optional[str] = None, script_provider: Optional[str] = None, voice_provider: Optional[str] = None, voice_file_path: Optional[str] = None, style: str = "cinematic", subtitle_style: str = "hormozi", storyboard: bool = False, character_id: Optional[str] = None, character_seed: Optional[int] = None):
     try:
         JOB_STATUS[job_id] = {"status": "generating", "message": "Senaryo ve görsel planlama başlatılıyor...", "video_url": None, "timestamp": time.time()}
         request_settings = get_settings().model_copy()
 
         topic, duration_ms, lang = parse_user_prompt(prompt)
         duration_ms = duration * 1000 # Override with explicit UI duration if available
+
+        if character_id and not image_path:
+            JOB_STATUS[job_id]["message"] = (
+                "Karakter referanslarından yeni başlangıç karesi üretiliyor..."
+            )
+            image_path = await _generate_character_keyframe(
+                job_id=job_id,
+                character_id=character_id,
+                prompt=prompt,
+                style=style,
+                seed=character_seed,
+            )
 
         if script_provider:
             request_settings.script_provider = script_provider
@@ -292,6 +393,8 @@ async def generate(
     style: str = Form("cinematic"),
     subtitle_style: str = Form("hormozi"),
     storyboard: bool = Form(False),
+    character_id: Optional[str] = Form(None),
+    character_seed: Optional[int] = Form(None),
     image: Optional[UploadFile] = File(None),
     script_provider: Optional[str] = Form(None),
     voice_provider: Optional[str] = Form(None),
@@ -327,7 +430,21 @@ async def generate(
 
     # Arka planda Luma (ComfyUI) motorunu tetikle
     JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None, "timestamp": time.time()}
-    background_tasks.add_task(run_pipeline, job_id, prompt, duration, image_path, script_provider, voice_provider, voice_file_path, style, subtitle_style, storyboard)
+    background_tasks.add_task(
+        run_pipeline,
+        job_id,
+        prompt,
+        duration,
+        image_path,
+        script_provider,
+        voice_provider,
+        voice_file_path,
+        style,
+        subtitle_style,
+        storyboard,
+        character_id,
+        character_seed,
+    )
 
     return JSONResponse({"job_id": job_id})
 
