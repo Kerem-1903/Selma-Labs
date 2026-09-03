@@ -1,0 +1,21 @@
+{
+  "location_id": "rain-station",
+  "name": "Rain Station",
+  "description": "An elevated abandoned railway platform above a dense night city",
+  "immutable_geometry": [
+    "two parallel tracks running east to west",
+    "central clock tower visible from every wide angle",
+    "single stair entrance on the south platform"
+  ],
+  "architecture": [
+    "weathered concrete platforms",
+    "dark steel canopy",
+    "old ceramic station signs without readable text"
+  ],
+  "palette": ["storm blue", "charcoal", "restrained amber"],
+  "lighting_sources": ["amber platform lamps", "cool city glow"],
+  "interaction_points": ["wooden bench", "stair entrance", "clock tower base"],
+  "weather_options": ["rain", "clear night"],
+  "forbidden_elements": ["modern advertisements", "cars", "legible text"],
+  "style": "cinematic hand-painted anime background, precise perspective"
+}

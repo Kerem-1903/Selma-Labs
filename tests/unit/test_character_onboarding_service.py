@@ -12,6 +12,9 @@ from core.domain.value_objects.character_identity import (
     ReferenceView,
 )
 from core.domain.value_objects.outfit import Outfit
+from core.domain.value_objects.preproduction_image_quality import (
+    PreproductionImageQuality,
+)
 from core.domain.value_objects.style_profile import StyleProfile
 from infrastructure.providers.keyframe.fake_keyframe_generation_provider import (
     FakeKeyframeGenerationProvider,
@@ -113,6 +116,48 @@ def test_generate_reference_pack_uses_anchor_for_all_23_candidates(tmp_path):
     assert all(
         (tmp_path / candidate.storage_key).is_file() for candidate in pack.candidates
     )
+
+
+class _RetryOnceEvaluator:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def evaluate(self, **_kwargs):
+        self.calls += 1
+        passed = self.calls != 1
+        issues = () if passed else ("identity_drift",)
+        return PreproductionImageQuality(
+            score=0.9 if passed else 0.4,
+            threshold=0.72,
+            passed=passed,
+            identity_or_geometry_score=0.9 if passed else 0.3,
+            composition_score=0.9,
+            subject_policy_score=1.0,
+            confidence=0.9,
+            issues=issues,
+            provider="fake:vision",
+        )
+
+
+def test_generate_reference_pack_retries_and_quarantines_failed_candidate(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    service = CharacterOnboardingService(
+        provider, storage, _RetryOnceEvaluator(), max_attempts=3
+    )
+    anchor_key = "approved/nova-anchor.png"
+    asyncio.run(storage.save(anchor_key, b"approved-anchor", "image/png"))
+
+    pack = asyncio.run(
+        service.generate_reference_pack(_nova(), anchor_storage_key=anchor_key)
+    )
+
+    assert len(pack.candidates) == 23
+    assert len(pack.quarantined) == 1
+    assert len(provider.requests) == 24
+    assert "/quarantine/attempt-1-" in pack.quarantined[0].storage_key
+    assert pack.candidates[0].attempt == 2
+    assert provider.requests[1].seed == provider.requests[0].seed + 10_000
 
 
 def test_approve_reference_pack_registers_selected_required_views(tmp_path):

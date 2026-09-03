@@ -14,45 +14,46 @@ To add a new voice provider (e.g. OpenAI TTS):
   3. Add "openai" to Settings.voice_provider's allowed values in config/settings.py
 No other file needs to change.
 """
+
 from __future__ import annotations
 
 from config.settings import Settings, get_settings
-from core.application.services.search_cache_service import SearchCacheService
-from core.application.services.search_orchestrator_service import SearchOrchestratorService
-from core.application.services.asset_selection_service import AssetSelectionService
-from core.application.services.vision_asset_scoring_service import VisionAssetScoringService
 from core.application.selection.rules.asset_reuse_rule import AssetReuseRule
 from core.application.selection.rules.keyword_fatigue_rule import KeywordFatigueRule
 from core.application.selection.rules.provider_fatigue_rule import ProviderFatigueRule
+from core.application.services.asset_selection_service import AssetSelectionService
+from core.application.services.search_cache_service import SearchCacheService
+from core.application.services.search_orchestrator_service import (
+    SearchOrchestratorService,
+)
+from core.application.services.vision_asset_scoring_service import (
+    VisionAssetScoringService,
+)
 from core.application.utils.resilient_provider_decorator import (
     ResilientSearchProviderDecorator,
 )
 from core.domain.exceptions import ProviderConnectionError, ProviderTimeoutError
-from core.domain.ports.render_port import RenderPort
 from core.domain.ports.audio_mix_port import AudioMixPort
 from core.domain.ports.background_music_port import BackgroundMusicPort
 from core.domain.ports.fact_check_port import FactCheckPort
 from core.domain.ports.fact_source_port import FactSourcePort
+from core.domain.ports.image_to_video_generation_port import ImageToVideoGenerationPort
+from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
 from core.domain.ports.media_inspection_port import MediaInspectionPort
+from core.domain.ports.render_port import RenderPort
 from core.domain.ports.scene_planning_port import ScenePlanningPort
 from core.domain.ports.script_generator_port import ScriptGeneratorPort
 from core.domain.ports.script_rewriter_port import ScriptRewriterPort
-from core.domain.ports.translation_port import TranslationPort
+from core.domain.ports.storage_port import StoragePort
 from core.domain.ports.topic_selection_port import TopicSelectionPort
+from core.domain.ports.translation_port import TranslationPort
 from core.domain.ports.trend_source_port import TrendSourcePort
 from core.domain.ports.video_source_port import VideoSourcePort
-from core.domain.ports.video_generation_port import VideoGenerationPort
+from core.domain.ports.vision_analysis_port import VisionAnalysisPort
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
-from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
-from core.domain.ports.image_to_video_generation_port import ImageToVideoGenerationPort
-from core.domain.ports.storage_port import StoragePort
-from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
-from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
+from core.infrastructure.cache.in_memory_cache import InMemoryCache
 from infrastructure.providers.audio_mix.ffmpeg_audio_mix_provider import (
     FfmpegAudioMixProvider,
-)
-from infrastructure.providers.music.local_licensed_music_provider import (
-    LocalLicensedMusicProvider,
 )
 from infrastructure.providers.fact_check.nvidia_fact_check_provider import (
     NvidiaFactCheckProvider,
@@ -60,14 +61,19 @@ from infrastructure.providers.fact_check.nvidia_fact_check_provider import (
 from infrastructure.providers.fact_source.wikipedia_fact_source_provider import (
     WikipediaFactSourceProvider,
 )
+from infrastructure.providers.frame_extraction.ffmpeg_frame_extractor import (
+    FfmpegFrameExtractor,
+)
+from infrastructure.providers.music.local_licensed_music_provider import (
+    LocalLicensedMusicProvider,
+)
+from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
 from infrastructure.providers.render.ffprobe_media_inspection_provider import (
     FfprobeMediaInspectionProvider,
 )
-from infrastructure.providers.frame_extraction.ffmpeg_frame_extractor import FfmpegFrameExtractor
-from infrastructure.providers.vision.anthropic_vision_provider import AnthropicVisionProvider
-from infrastructure.providers.vision.nvidia_vision_provider import NvidiaVisionProvider
-from infrastructure.providers.vision.openai_vision_provider import OpenAIVisionProvider
-from infrastructure.providers.vision.caching_vision_provider import CachingVisionProvider
+from infrastructure.providers.render.remotion_render_provider import (
+    RemotionRenderProvider,
+)
 from infrastructure.providers.scene_planning.claude_scene_planning_provider import (
     ClaudeScenePlanningProvider,
 )
@@ -75,11 +81,14 @@ from infrastructure.providers.scene_planning.nvidia_scene_planning_provider impo
     NvidiaScenePlanningProvider,
 )
 from infrastructure.providers.script.claude_script_provider import ClaudeScriptProvider
+from infrastructure.providers.script.nvidia_fact_grounded_rewriter import (
+    NvidiaFactGroundedRewriter,
+)
 from infrastructure.providers.script.nvidia_script_provider import NvidiaScriptProvider
 from infrastructure.providers.script.ollama_script_provider import OllamaScriptProvider
 from infrastructure.providers.script.selmagpt_provider import SelmaGPTProvider
-from infrastructure.providers.script.nvidia_fact_grounded_rewriter import (
-    NvidiaFactGroundedRewriter,
+from infrastructure.providers.topic_selection.nvidia_topic_selection_provider import (
+    NvidiaTopicSelectionProvider,
 )
 from infrastructure.providers.translation.caching_translation_provider import (
     CachingTranslationProvider,
@@ -90,20 +99,22 @@ from infrastructure.providers.translation.claude_translation_provider import (
 from infrastructure.providers.translation.nvidia_translation_provider import (
     NvidiaTranslationProvider,
 )
-from infrastructure.providers.topic_selection.nvidia_topic_selection_provider import (
-    NvidiaTopicSelectionProvider,
-)
 from infrastructure.providers.trend.youtube_most_popular_provider import (
     YoutubeMostPopularProvider,
 )
-from infrastructure.providers.video.user_uploaded_asset_provider import UserUploadedAssetProvider
-from infrastructure.providers.video.pexels_provider import PexelsProvider
 from infrastructure.providers.video.orchestrated_video_source_provider import (
     OrchestratedVideoSourceProvider,
 )
+from infrastructure.providers.vision.anthropic_vision_provider import (
+    AnthropicVisionProvider,
+)
+from infrastructure.providers.vision.caching_vision_provider import (
+    CachingVisionProvider,
+)
+from infrastructure.providers.vision.nvidia_vision_provider import NvidiaVisionProvider
+from infrastructure.providers.vision.openai_vision_provider import OpenAIVisionProvider
 from infrastructure.providers.voice.caching_voice_provider import CachingVoiceProvider
 from infrastructure.providers.voice.elevenlabs_provider import ElevenLabsVoiceProvider
-from core.infrastructure.cache.in_memory_cache import InMemoryCache
 
 
 def get_trend_source_provider(settings: Settings) -> TrendSourcePort:
@@ -144,19 +155,23 @@ def get_fact_source_provider(
     language: str | None = None,
 ) -> FactSourcePort:
     if settings.fact_source_provider == "wikipedia":
-        primary_language = (language or settings.fact_check_source_language).strip().lower()
+        primary_language = (
+            (language or settings.fact_check_source_language).strip().lower()
+        )
         fallback_candidates = (
             settings.fact_check_source_language,
             *settings.fact_check_fallback_languages.split(","),
         )
         return WikipediaFactSourceProvider(
             language=primary_language,
-            fallback_languages=tuple(dict.fromkeys(
-                candidate.strip().lower()
-                for candidate in fallback_candidates
-                if candidate.strip()
-                and candidate.strip().lower() != primary_language
-            )),
+            fallback_languages=tuple(
+                dict.fromkeys(
+                    candidate.strip().lower()
+                    for candidate in fallback_candidates
+                    if candidate.strip()
+                    and candidate.strip().lower() != primary_language
+                )
+            ),
             timeout_seconds=settings.provider_timeout_seconds,
             max_extract_chars=settings.fact_check_max_extract_chars,
         )
@@ -167,7 +182,10 @@ def get_fact_source_provider(
 
 
 def get_fact_check_provider(settings: Settings) -> FactCheckPort:
-    from infrastructure.providers.fact_check.selmagpt_fact_check_provider import SelmaGPTFactCheckProvider
+    from infrastructure.providers.fact_check.selmagpt_fact_check_provider import (
+        SelmaGPTFactCheckProvider,
+    )
+
     if settings.fact_check_provider == "selmagpt":
         primary = SelmaGPTFactCheckProvider(
             api_url=settings.selmagpt_api_url,
@@ -228,13 +246,11 @@ def get_script_provider(settings: Settings) -> ScriptGeneratorPort:
         )
     if settings.script_provider == "selmagpt":
         return SelmaGPTProvider(
-            api_url=settings.selmagpt_api_url,
-            model_name=settings.selmagpt_model_name
+            api_url=settings.selmagpt_api_url, model_name=settings.selmagpt_model_name
         )
     if settings.script_provider == "ollama":
         return OllamaScriptProvider(
-            api_url=settings.ollama_api_url,
-            model=settings.ollama_script_model
+            api_url=settings.ollama_api_url, model=settings.ollama_script_model
         )
     if settings.script_provider == "nvidia":
         return NvidiaScriptProvider(
@@ -251,8 +267,13 @@ def get_script_provider(settings: Settings) -> ScriptGeneratorPort:
 
 def get_voice_provider(settings: Settings) -> VoiceGeneratorPort:
     if settings.voice_provider == "local_xtts":
-        from infrastructure.providers.voice.local_voice_clone_provider import LocalVoiceCloneProvider
-        base_provider: VoiceGeneratorPort = LocalVoiceCloneProvider(reference_audio_path=settings.local_voice_reference_path)
+        from infrastructure.providers.voice.local_voice_clone_provider import (
+            LocalVoiceCloneProvider,
+        )
+
+        base_provider: VoiceGeneratorPort = LocalVoiceCloneProvider(
+            reference_audio_path=settings.local_voice_reference_path
+        )
     elif settings.voice_provider == "elevenlabs":
         base_provider: VoiceGeneratorPort = ElevenLabsVoiceProvider(
             api_key=settings.elevenlabs_api_key,
@@ -288,13 +309,20 @@ def get_voice_provider(settings: Settings) -> VoiceGeneratorPort:
 
 def get_video_source_provider(settings: Settings) -> VideoSourcePort:
     if settings.video_provider == "user_uploads":
-        from infrastructure.providers.video.user_uploaded_asset_provider import UserUploadedAssetProvider
+        from infrastructure.providers.video.user_uploaded_asset_provider import (
+            UserUploadedAssetProvider,
+        )
+
         return UserUploadedAssetProvider()
     if settings.video_provider == "pexels":
         from infrastructure.providers.video.pexels_provider import PexelsProvider
+
         return PexelsProvider(api_key=settings.pexels_api_key)
     if settings.video_provider == "hybrid":
-        from infrastructure.providers.video.hybrid_broll_provider import HybridBRollProvider
+        from infrastructure.providers.video.hybrid_broll_provider import (
+            HybridBRollProvider,
+        )
+
         return HybridBRollProvider(pexels_key=settings.pexels_api_key)
     raise ValueError(
         f"Unknown video_provider configured: {settings.video_provider!r}. "
@@ -345,7 +373,7 @@ def get_asset_selection_service(settings: Settings) -> AssetSelectionService:
     )
 
 
-def get_vision_asset_scoring_service(settings: Settings) -> VisionAssetScoringService:
+def get_vision_provider(settings: Settings) -> VisionAnalysisPort:
     if settings.vision_provider == "anthropic":
         base_provider = AnthropicVisionProvider(
             api_key=settings.anthropic_api_key,
@@ -365,7 +393,10 @@ def get_vision_asset_scoring_service(settings: Settings) -> VisionAssetScoringSe
             timeout_seconds=settings.nvidia_timeout_seconds,
         )
     elif settings.vision_provider == "selmagpt":
-        from infrastructure.providers.vision.selmagpt_vision_provider import SelmaGPTVisionProvider
+        from infrastructure.providers.vision.selmagpt_vision_provider import (
+            SelmaGPTVisionProvider,
+        )
+
         base_provider = SelmaGPTVisionProvider(
             api_url=settings.selmagpt_vision_url,
             model=settings.selmagpt_vision_model,
@@ -407,7 +438,11 @@ def get_vision_asset_scoring_service(settings: Settings) -> VisionAssetScoringSe
             base_provider,
             fallback_provider,
         )
-    vision_provider = CachingVisionProvider(base_provider, prompt_version="v1")
+    return CachingVisionProvider(base_provider, prompt_version="v1")
+
+
+def get_vision_asset_scoring_service(settings: Settings) -> VisionAssetScoringService:
+    vision_provider = get_vision_provider(settings)
     return VisionAssetScoringService(
         frame_extractor=FfmpegFrameExtractor(
             ffmpeg_binary=settings.ffmpeg_binary_path,
@@ -467,11 +502,20 @@ def get_keyframe_generation_provider(
 
 def get_video_generation_port(settings: Settings):
     if settings.video_generation_provider == "luma":
-        from infrastructure.providers.video.luma_video_generation_provider import LumaVideoGenerationProvider
+        from infrastructure.providers.video.luma_video_generation_provider import (
+            LumaVideoGenerationProvider,
+        )
+
         return LumaVideoGenerationProvider(api_key=settings.luma_api_key)
     if settings.video_generation_provider == "comfyui":
-        from infrastructure.providers.video.comfyui_video_provider import ComfyUIVideoProvider
-        return ComfyUIVideoProvider(api_url=settings.comfyui_api_url, workflow_path=settings.comfyui_workflow_path)
+        from infrastructure.providers.video.comfyui_video_provider import (
+            ComfyUIVideoProvider,
+        )
+
+        return ComfyUIVideoProvider(
+            api_url=settings.comfyui_api_url,
+            workflow_path=settings.comfyui_workflow_path,
+        )
     return None
 
 
@@ -488,7 +532,9 @@ def get_image_to_video_generation_provider(
         return FakeImageToVideoProvider()
     if settings.image_to_video_provider == "comfyui":
         if storage is None:
-            raise ValueError("ComfyUI image-to-video requires the application's StoragePort.")
+            raise ValueError(
+                "ComfyUI image-to-video requires the application's StoragePort."
+            )
         from infrastructure.providers.video.comfyui_image_to_video_provider import (
             ComfyUIImageToVideoProvider,
         )
@@ -504,11 +550,16 @@ def get_image_to_video_generation_provider(
         f"Unknown image_to_video_provider: {settings.image_to_video_provider!r}."
     )
 
+
 def get_youtube_upload_port(settings: Settings):
     if settings.youtube_upload_enabled:
-        from infrastructure.providers.publish.google_api_youtube_upload_provider import GoogleApiYoutubeUploadProvider
+        from infrastructure.providers.publish.google_api_youtube_upload_provider import (
+            GoogleApiYoutubeUploadProvider,
+        )
+
         return GoogleApiYoutubeUploadProvider()
     return None
+
 
 def get_scene_planning_provider(settings: Settings) -> ScenePlanningPort:
     """Return the configured ScenePlanningPort implementation.
@@ -520,7 +571,10 @@ def get_scene_planning_provider(settings: Settings) -> ScenePlanningPort:
             api_key=settings.anthropic_api_key, model=settings.scene_planner_model
         )
     if settings.scene_planning_provider == "selmagpt":
-        from infrastructure.providers.scene_planning.selmagpt_scene_planning_provider import SelmaGPTScenePlanningProvider
+        from infrastructure.providers.scene_planning.selmagpt_scene_planning_provider import (
+            SelmaGPTScenePlanningProvider,
+        )
+
         return SelmaGPTScenePlanningProvider(
             api_url=settings.selmagpt_api_url,
             model=settings.selmagpt_model_name,
@@ -547,11 +601,14 @@ def get_render_provider(settings: Settings) -> RenderPort:
     nvenc allows fast hardware accelerated rendering with ducking.
     """
     if settings.render_provider == "nvenc":
-        from infrastructure.providers.render.nvenc_fast_render_adapter import NVENCFastRenderAdapter
+        from infrastructure.providers.render.nvenc_fast_render_adapter import (
+            NVENCFastRenderAdapter,
+        )
+
         return NVENCFastRenderAdapter(
             ffmpeg_path=settings.ffmpeg_binary_path,
             use_gpu=True,
-            timeout_seconds=settings.remotion_subprocess_timeout_seconds
+            timeout_seconds=settings.remotion_subprocess_timeout_seconds,
         )
     if settings.render_provider == "ffmpeg":
         return FfmpegRenderProvider(
@@ -613,7 +670,10 @@ def get_translation_provider(settings: Settings | None = None) -> TranslationPor
         base_provider = ClaudeTranslationProvider(api_key=settings.anthropic_api_key)
         return CachingTranslationProvider(base_provider)
     if settings.translation_provider == "selmagpt":
-        from infrastructure.providers.translation.selmagpt_translation_provider import SelmaGPTTranslationProvider
+        from infrastructure.providers.translation.selmagpt_translation_provider import (
+            SelmaGPTTranslationProvider,
+        )
+
         base_provider = SelmaGPTTranslationProvider(
             api_url=settings.selmagpt_api_url,
             model=settings.selmagpt_model_name,

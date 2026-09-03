@@ -7,6 +7,10 @@ from dataclasses import dataclass
 from pathlib import PurePosixPath
 from typing import Any
 
+from core.domain.value_objects.preproduction_image_quality import (
+    PreproductionImageQuality,
+)
+
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
@@ -96,6 +100,8 @@ class CharacterCandidateAsset:
     provider_asset_id: str
     width: int
     height: int
+    attempt: int = 1
+    quality: PreproductionImageQuality | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -104,6 +110,8 @@ class CharacterCandidateAsset:
             "provider_asset_id": self.provider_asset_id,
             "width": self.width,
             "height": self.height,
+            "attempt": self.attempt,
+            "quality": self.quality.to_dict() if self.quality else None,
         }
 
 
@@ -113,6 +121,7 @@ class CharacterCandidatePack:
     character_id: str
     anchor_storage_key: str
     candidates: tuple[CharacterCandidateAsset, ...]
+    quarantined: tuple[CharacterCandidateAsset, ...] = ()
     human_approved: bool = False
 
     @property
@@ -128,6 +137,8 @@ class CharacterCandidatePack:
             "anchor_storage_key": self.anchor_storage_key,
             "human_approved": self.human_approved,
             "candidate_count": len(self.candidates),
+            "quarantined_count": len(self.quarantined),
             "source_prefix": self.source_prefix,
             "candidates": [candidate.to_dict() for candidate in self.candidates],
+            "quarantined": [candidate.to_dict() for candidate in self.quarantined],
         }

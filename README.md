@@ -174,6 +174,11 @@ views, 3 holdouts, LoRA dataset and generic Golden Set. See the
 
 Akira remains the calibration pack for the same generic flow.
 
+Location creation follows the same model: a short brief becomes a strict
+Location Bible and a 12-shot, character-free coverage plan. Automatic vision
+review retries weak candidates and quarantines failures without bypassing human
+art-direction approval. See the [Background Factory guide](docs/BACKGROUND_FACTORY.md).
+
 The approved model sheet is split deterministically into five storage-backed
 assets. Character Bible metadata contains portable storage keys rather than
 machine-specific absolute paths.
@@ -238,6 +243,8 @@ remain explicit.
   animation-ready package contracts.
 - [Character Factory](docs/CHARACTER_FACTORY.md) — brief-to-Bible, reference-pack,
   dataset, LoRA training and Golden Set automation.
+- [Background Factory](docs/BACKGROUND_FACTORY.md) — Location Bible, clean plates,
+  multi-angle coverage, automatic quarantine and 2.5D readiness contracts.
 
 Start with the [documentation index](docs/README.md). Key references:
 

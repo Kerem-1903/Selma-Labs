@@ -3,6 +3,12 @@
 SELMA treats Akira as a calibration character, not as a special case. Every new
 character follows the same gated pipeline:
 
+Generated reference candidates are checked by the configured vision model.
+Identity/framing or subject-policy failures are written to the run's
+`quarantine` directory and regenerated with a deterministic alternate seed, up
+to three attempts. Passing the automatic gate does not approve the character:
+the reference pack still requires explicit human selection.
+
 1. Write a `CharacterBible` JSON with natural-language identity, silhouette,
    outfit and visual-style fields.
 2. Create the deterministic onboarding plan. SELMA expands the Bible into one

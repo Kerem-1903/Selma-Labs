@@ -4,7 +4,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from config.provider_registry import get_keyframe_generation_provider
+from config.provider_registry import (
+    get_keyframe_generation_provider,
+    get_vision_provider,
+)
 from config.settings import Settings, get_settings
 from core.application.services.animatic_planning_service import AnimaticPlanningService
 from core.application.services.animation_orchestrator_service import (
@@ -12,6 +15,9 @@ from core.application.services.animation_orchestrator_service import (
 )
 from core.application.services.animation_ready_packaging_service import (
     AnimationReadyPackagingService,
+)
+from core.application.services.background_factory_service import (
+    BackgroundFactoryService,
 )
 from core.application.services.candidate.candidate_evaluation_service import (
     CandidateEvaluationService,
@@ -47,6 +53,9 @@ from infrastructure.providers.script.ollama_story_development_provider import (
 from infrastructure.providers.vision.local_golden_review_evaluator import (
     LocalGoldenReviewEvaluator,
 )
+from infrastructure.providers.vision.vision_preproduction_image_evaluator import (
+    VisionPreproductionImageEvaluator,
+)
 from infrastructure.repositories.candidate.sqlite_keyframe_candidate_repository import (
     SqliteKeyframeCandidateRepository,
 )
@@ -74,6 +83,7 @@ class AnimationContainer:
     story_engine_service: StoryEngineService
     character_golden_set_service: CharacterGoldenSetService
     character_onboarding_service: CharacterOnboardingService
+    background_factory_service: BackgroundFactoryService
     hierarchical_shot_planning_service: HierarchicalShotPlanningService
     animatic_planning_service: AnimaticPlanningService
     animation_ready_packaging_service: AnimationReadyPackagingService
@@ -175,6 +185,9 @@ def create_container(
     keyframe_generator = get_keyframe_generation_provider(
         resolved, storage=keyframe_storage
     )
+    preproduction_evaluator = VisionPreproductionImageEvaluator(
+        get_vision_provider(resolved)
+    )
     keyframe_service = KeyframeGenerationService(
         generator=keyframe_generator,
         storage=keyframe_storage,
@@ -195,7 +208,10 @@ def create_container(
         story_engine_service=story_engine,
         character_golden_set_service=golden_set,
         character_onboarding_service=CharacterOnboardingService(
-            keyframe_generator, keyframe_storage
+            keyframe_generator, keyframe_storage, preproduction_evaluator
+        ),
+        background_factory_service=BackgroundFactoryService(
+            keyframe_generator, keyframe_storage, preproduction_evaluator
         ),
         hierarchical_shot_planning_service=hierarchical,
         animatic_planning_service=AnimaticPlanningService(asset_storage),

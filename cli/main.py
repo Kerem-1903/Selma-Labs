@@ -85,6 +85,36 @@ def build_parser() -> argparse.ArgumentParser:
     character_train.add_argument("--model-name", required=True)
     character_train.add_argument("--steps", type=int, default=240)
 
+    background = commands.add_parser(
+        "background", help="Create consistent, character-free anime locations"
+    )
+    background_commands = background.add_subparsers(
+        dest="background_command", required=True
+    )
+    background_init = background_commands.add_parser(
+        "init", help="Create a Location Bible from a descriptive brief"
+    )
+    background_init.add_argument("--brief", required=True)
+    background_init.add_argument("--output", required=True)
+    background_plan = background_commands.add_parser(
+        "plan", help="Create the reusable 12-shot coverage plan"
+    )
+    background_plan.add_argument("--input", required=True)
+    background_plan.add_argument("--output", required=True)
+    background_generate = background_commands.add_parser(
+        "generate", help="Generate automatically reviewed clean background plates"
+    )
+    background_generate.add_argument("--input", required=True)
+    background_generate.add_argument("--output-prefix", default="background-candidates")
+    background_generate.add_argument("--manifest", required=True)
+    background_approve = background_commands.add_parser(
+        "approve", help="Human-approve a complete background pack and lock the location"
+    )
+    background_approve.add_argument("--input", required=True)
+    background_approve.add_argument("--manifest", required=True)
+    background_approve.add_argument("--approved-by", required=True)
+    background_approve.add_argument("--output", required=True)
+
     script = commands.add_parser("script", help="Break a script into executable shots")
     script_commands = script.add_subparsers(dest="script_command", required=True)
     breakdown = script_commands.add_parser("breakdown")
@@ -198,6 +228,17 @@ def main(
                 return asyncio.run(
                     _run_character_generation(arguments, container_factory())
                 )
+        elif arguments.command == "background":
+            if arguments.background_command == "init":
+                _initialize_background(arguments)
+            elif arguments.background_command == "plan":
+                _plan_background(arguments)
+            elif arguments.background_command == "approve":
+                _approve_backgrounds(arguments)
+            else:
+                return asyncio.run(
+                    _generate_backgrounds(arguments, container_factory())
+                )
         elif arguments.command == "script":
             _break_down_script(arguments)
         elif arguments.command == "render":
@@ -259,6 +300,100 @@ def _write_json(path: str | Path, payload: dict[str, Any]) -> Path:
         encoding="utf-8",
     )
     return target.resolve()
+
+
+def _initialize_background(arguments: argparse.Namespace) -> None:
+    from core.application.services.location_bible_factory_service import (
+        LocationBibleFactoryService,
+    )
+
+    brief = json.loads(Path(arguments.brief).read_text(encoding="utf-8"))
+    if not isinstance(brief, dict):
+        raise TypeError("Location brief JSON must contain an object.")
+    location = LocationBibleFactoryService().create(brief)
+    print(
+        _write_json(
+            arguments.output,
+            {"schema_version": 1, "location_bible": location.to_dict()},
+        )
+    )
+
+
+def _load_location_bible(path: str | Path):
+    from core.domain.entities.location_bible import LocationBible
+
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise TypeError("Location Bible JSON must contain an object.")
+    data = payload.get("location_bible", payload)
+    if not isinstance(data, dict):
+        raise TypeError("location_bible must contain an object.")
+    return LocationBible.from_dict(data)
+
+
+def _plan_background(arguments: argparse.Namespace) -> None:
+    from core.application.services.background_factory_service import (
+        BackgroundFactoryService,
+    )
+
+    plan = BackgroundFactoryService.plan(_load_location_bible(arguments.input))
+    print(_write_json(arguments.output, plan.to_dict()))
+
+
+async def _generate_backgrounds(
+    arguments: argparse.Namespace,
+    container: AnimationContainer,
+) -> int:
+    pack = await container.background_factory_service.generate(
+        _load_location_bible(arguments.input),
+        output_prefix=arguments.output_prefix,
+    )
+    print(_write_json(arguments.manifest, pack.to_dict()))
+    return 0
+
+
+def _approve_backgrounds(arguments: argparse.Namespace) -> None:
+    from dataclasses import replace
+
+    location = _load_location_bible(arguments.input)
+    manifest = json.loads(Path(arguments.manifest).read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        raise TypeError("Background manifest must contain an object.")
+    if str(manifest.get("location_id")) != location.location_id:
+        raise ValueError("Background manifest does not belong to this Location Bible.")
+    candidates = manifest.get("candidates")
+    if not isinstance(candidates, list) or len(candidates) != 12:
+        raise ValueError("Background approval requires all 12 coverage candidates.")
+    keys: list[str] = []
+    for raw in candidates:
+        if not isinstance(raw, dict):
+            raise TypeError("Every background candidate must contain an object.")
+        key = str(raw.get("storage_key", ""))
+        quality = raw.get("quality")
+        if "/source/" not in key or not key.endswith(".png"):
+            raise ValueError("Only accepted source PNGs may be approved.")
+        if quality is not None and (
+            not isinstance(quality, dict) or not bool(quality.get("passed"))
+        ):
+            raise ValueError("A failed automatic quality result cannot be approved.")
+        keys.append(key)
+    if len(keys) != len(set(keys)):
+        raise ValueError("Background approval contains duplicate candidates.")
+    locked = replace(location, locked=True)
+    print(
+        _write_json(
+            arguments.output,
+            {
+                "schema_version": 1,
+                "approval": {
+                    "approved_by": arguments.approved_by,
+                    "background_pack_approved": True,
+                    "approved_storage_keys": keys,
+                },
+                "location_bible": locked.to_dict(),
+            },
+        )
+    )
 
 
 def _plan_character(arguments: argparse.Namespace) -> None:

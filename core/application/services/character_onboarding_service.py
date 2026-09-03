@@ -8,6 +8,9 @@ from pathlib import PurePosixPath
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.exceptions import KeyframeGenerationError, StorageError
 from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
+from core.domain.ports.preproduction_image_evaluator_port import (
+    PreproductionImageEvaluatorPort,
+)
 from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.character_identity import ReferenceView
 from core.domain.value_objects.character_onboarding import (
@@ -179,9 +182,20 @@ class CharacterOnboardingService:
         ),
     )
 
-    def __init__(self, generator: KeyframeGenerationPort, storage: StoragePort) -> None:
+    def __init__(
+        self,
+        generator: KeyframeGenerationPort,
+        storage: StoragePort,
+        evaluator: PreproductionImageEvaluatorPort | None = None,
+        *,
+        max_attempts: int = 3,
+    ) -> None:
+        if max_attempts <= 0:
+            raise ValueError("Character generation attempts must be greater than zero.")
         self._generator = generator
         self._storage = storage
+        self._evaluator = evaluator
+        self._max_attempts = max_attempts
 
     @classmethod
     def plan(cls, character: CharacterBible) -> CharacterOnboardingPlan:
@@ -259,34 +273,66 @@ class CharacterOnboardingService:
         anchor_digest = hashlib.sha256(
             await self._storage.load(anchor_key)
         ).hexdigest()[:12]
-        run_prefix = (
+        run_root = (
             f"{self._portable_key(output_prefix)}/{character.character_id}/"
-            f"runs/{anchor_digest}/source"
+            f"runs/{anchor_digest}"
         )
         plan = self.plan(character)
         candidates = []
+        quarantined = []
+        anchor_bytes = await self._storage.load(anchor_key)
         for recipe in plan.recipes:
-            generated = await self._generator.generate_keyframe(
-                self._request(
-                    character=character,
-                    prompt=recipe.prompt,
-                    seed=recipe.seed,
-                    negatives=plan.negative_prompts,
-                    anchor_storage_key=anchor_key,
+            accepted = None
+            for attempt in range(1, self._max_attempts + 1):
+                generated = await self._generator.generate_keyframe(
+                    self._request(
+                        character=character,
+                        prompt=recipe.prompt,
+                        seed=recipe.seed + (attempt - 1) * 10_000,
+                        negatives=plan.negative_prompts,
+                        anchor_storage_key=anchor_key,
+                    )
                 )
-            )
-            candidates.append(
-                await self._save_candidate(
-                    storage_prefix=run_prefix,
-                    filename=recipe.filename,
+                quality = None
+                if self._evaluator is not None:
+                    quality = await self._evaluator.evaluate(
+                        image_bytes=generated.image_bytes,
+                        reference_bytes=anchor_bytes,
+                        context=(
+                            f"Character: {character.character_id}. Required recipe: "
+                            f"{recipe.prompt}. Preserve face, hair, outfit, marks, "
+                            "anatomy and requested framing."
+                        ),
+                        subject_policy="character_required",
+                    )
+                passed = quality is None or quality.passed
+                candidate = await self._save_candidate(
+                    storage_prefix=f"{run_root}/{'source' if passed else 'quarantine'}",
+                    filename=(
+                        recipe.filename
+                        if passed
+                        else f"attempt-{attempt}-{recipe.filename}"
+                    ),
                     generated=generated,
+                    attempt=attempt,
+                    quality=quality,
                 )
-            )
+                if passed:
+                    accepted = candidate
+                    break
+                quarantined.append(candidate)
+            if accepted is None:
+                raise KeyframeGenerationError(
+                    f"Character candidate '{recipe.filename}' failed automatic "
+                    f"quality review after {self._max_attempts} attempts."
+                )
+            candidates.append(accepted)
         return CharacterCandidatePack(
             schema_version=1,
             character_id=character.character_id,
             anchor_storage_key=anchor_key,
             candidates=tuple(candidates),
+            quarantined=tuple(quarantined),
         )
 
     async def approve_reference_pack(
@@ -378,6 +424,8 @@ class CharacterOnboardingService:
         storage_prefix: str,
         filename: str,
         generated: object,
+        attempt: int = 1,
+        quality=None,
     ) -> CharacterCandidateAsset:
         image_bytes = getattr(generated, "image_bytes", b"")
         content_type = str(getattr(generated, "content_type", ""))
@@ -405,6 +453,8 @@ class CharacterOnboardingService:
             provider_asset_id=str(getattr(generated, "provider_asset_id", "")),
             width=width,
             height=height,
+            attempt=attempt,
+            quality=quality,
         )
 
     @staticmethod
