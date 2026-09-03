@@ -94,6 +94,35 @@ def test_generate_anchor_creates_unconditioned_review_candidate(tmp_path):
     )
 
 
+def test_generate_anchor_supports_deterministic_candidate_variations(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    service = CharacterOnboardingService(provider, LocalFsStorage(str(tmp_path)))
+
+    asyncio.run(service.generate_anchor(_nova(), seed_offset=20_000))
+
+    plan = CharacterOnboardingService.plan(_nova())
+    assert provider.requests[0].seed == plan.anchor_seed + 20_000
+    assert "immutable identity marks exactly once" in plan.anchor_prompt
+    assert "duplicated signature marks" in plan.negative_prompts
+
+
+def test_generate_anchor_can_bootstrap_from_source_reference(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    source_key = "bootstrap/nova.png"
+    asyncio.run(storage.save(source_key, b"source", "image/png"))
+    service = CharacterOnboardingService(provider, storage)
+
+    asyncio.run(
+        service.generate_anchor(_nova(), source_reference_storage_key=source_key)
+    )
+
+    request = provider.requests[0]
+    assert request.reference_storage_keys == (source_key,)
+    assert request.visual_constraints["identity_strength"] == 0.95
+    assert request.visual_constraints["identity_end_at"] == 0.90
+
+
 def test_generate_reference_pack_uses_anchor_for_all_23_candidates(tmp_path):
     provider = FakeKeyframeGenerationProvider()
     storage = LocalFsStorage(str(tmp_path))

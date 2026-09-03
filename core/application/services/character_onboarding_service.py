@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+from dataclasses import replace
 from pathlib import PurePosixPath
 
 from core.domain.entities.character_bible import CharacterBible
@@ -200,6 +201,7 @@ class CharacterOnboardingService:
     @classmethod
     def plan(cls, character: CharacterBible) -> CharacterOnboardingPlan:
         identity = ", ".join(character.prompt_fragments())
+        immutable_marks = "; ".join(character.identity_constraints.immutable_marks)
         if not identity:
             raise ValueError("Character Bible contains no usable prompt fragments.")
         seed_base = int(
@@ -207,7 +209,8 @@ class CharacterOnboardingService:
         )
         anchor_prompt = (
             f"{cls._QUALITY}, solo, {identity}, full body front view, neutral standing "
-            "pose, plain light background, entire head and both feet visible"
+            "pose, plain light background, entire head and both feet visible, "
+            f"immutable identity marks exactly once with no duplicates: {immutable_marks}"
         )
         recipes = tuple(
             CharacterReferenceRecipe(
@@ -231,6 +234,11 @@ class CharacterOnboardingService:
             negative_prompts=tuple(
                 dict.fromkeys(
                     (*character.style_profile.negative_prompts, *cls._BASE_NEGATIVES)
+                    + (
+                        "duplicated signature marks",
+                        "mirrored signature marks",
+                        "extra colored hair streak",
+                    )
                 )
             ),
             recipes=recipes,
@@ -241,16 +249,37 @@ class CharacterOnboardingService:
         character: CharacterBible,
         *,
         output_prefix: str = "character-candidates",
+        seed_offset: int = 0,
+        source_reference_storage_key: str | None = None,
     ) -> CharacterCandidateAsset:
+        if seed_offset < 0:
+            raise ValueError("Anchor seed offset must not be negative.")
         plan = self.plan(character)
-        generated = await self._generator.generate_keyframe(
-            self._request(
-                character=character,
-                prompt=plan.anchor_prompt,
-                seed=plan.anchor_seed,
-                negatives=plan.negative_prompts,
-            )
+        source_key = (
+            self._portable_key(source_reference_storage_key)
+            if source_reference_storage_key
+            else None
         )
+        if source_key and not await self._storage.exists(source_key):
+            raise StorageError(f"Anchor source reference '{source_key}' was not found.")
+        request = self._request(
+            character=character,
+            prompt=plan.anchor_prompt,
+            seed=plan.anchor_seed + seed_offset,
+            negatives=plan.negative_prompts,
+            anchor_storage_key=source_key,
+        )
+        if source_key:
+            request = replace(
+                request,
+                visual_constraints={
+                    **request.visual_constraints,
+                    "identity_strength": 0.95,
+                    "identity_weight_type": "linear",
+                    "identity_end_at": 0.90,
+                },
+            )
+        generated = await self._generator.generate_keyframe(request)
         digest = hashlib.sha256(generated.image_bytes).hexdigest()[:12]
         return await self._save_candidate(
             storage_prefix=(

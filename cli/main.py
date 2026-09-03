@@ -42,6 +42,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     character_anchor.add_argument("--input", required=True, help="Character Bible JSON")
     character_anchor.add_argument("--output-prefix", default="character-candidates")
+    character_anchor.add_argument(
+        "--count", type=int, default=3, help="Number of unapproved anchor candidates"
+    )
+    character_anchor.add_argument(
+        "--source-reference-key",
+        help="Optional storage key used to bootstrap a reference-locked anchor",
+    )
     character_references = character_commands.add_parser(
         "references", help="Generate the 20+3 candidate pack from an approved anchor"
     )
@@ -511,14 +518,22 @@ async def _run_character_generation(
     character = _load_character_bible(arguments.input)
     service = container.character_onboarding_service
     if arguments.character_command == "anchor":
-        candidate = await service.generate_anchor(
-            character, output_prefix=arguments.output_prefix
-        )
+        if not 1 <= arguments.count <= 8:
+            raise ValueError("Anchor candidate count must be between 1 and 8.")
+        candidates = [
+            await service.generate_anchor(
+                character,
+                output_prefix=arguments.output_prefix,
+                seed_offset=index * 10_000,
+                source_reference_storage_key=arguments.source_reference_key,
+            )
+            for index in range(arguments.count)
+        ]
         print(
             json.dumps(
                 {
                     "character_id": character.character_id,
-                    "candidate": candidate.to_dict(),
+                    "candidates": [candidate.to_dict() for candidate in candidates],
                     "human_approved": False,
                     "next_gate": "HUMAN_ANCHOR_APPROVAL",
                 },
