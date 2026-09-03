@@ -45,6 +45,23 @@ def test_container_wires_canonical_character_and_services(tmp_path):
         container["animation_orchestrator_service"]
         is container.animation_orchestrator_service
     )
+    assert container.keyframe_generation_service._human_review_required is True
+
+
+def test_container_allows_explicit_legacy_keyframe_flow(tmp_path):
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path),
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+    )
+
+    container = create_container(
+        settings=settings,
+        comfyui_client=FakeComfyClient(),
+        human_review_required=False,
+    )
+
+    assert container.keyframe_generation_service._human_review_required is False
 
 
 def test_cli_shows_character_without_constructing_provider_container(capsys):

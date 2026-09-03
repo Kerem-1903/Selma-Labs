@@ -1,36 +1,49 @@
-import asyncio
 import os
 import re
+import time
 import uuid
-import shutil
 from pathlib import Path
-from typing import Optional
 
-from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi.requests import Request
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi.requests import Request
 
 from config.settings import get_settings
-from scripts.run_factory import build_orchestrator
 from core.domain.entities.pipeline_run import PipelineRun
 from infrastructure.repositories.local_json_run_repository import LocalJsonRunRepository
+from scripts.run_factory import build_orchestrator
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 app = FastAPI(title="SELMA Labs - Luma Edition")
 
-# Serve static files (CSS, JS, Images, Videos)
+# Serve only application-owned static assets. Generated output is deliberately
+# not mounted as a directory because it can also contain manifests and uploads.
 os.makedirs(PROJECT_ROOT / "output", exist_ok=True)
 os.makedirs(PROJECT_ROOT / "web" / "static", exist_ok=True)
 app.mount("/static", StaticFiles(directory=PROJECT_ROOT / "web" / "static"), name="static")
-app.mount("/output", StaticFiles(directory=PROJECT_ROOT / "output"), name="output")
 
 templates = Jinja2Templates(directory=PROJECT_ROOT / "web" / "templates")
-
-import time
 # In-memory status tracker for the UI to poll
 JOB_STATUS = {}
+VIDEO_ARTIFACTS: dict[str, Path] = {}
+
+
+def resolve_server_host() -> str:
+    """Use loopback unless network exposure was explicitly acknowledged."""
+    host = os.getenv("SELMA_SERVER_HOST", "127.0.0.1").strip() or "127.0.0.1"
+    network_allowed = os.getenv("SELMA_ALLOW_NETWORK", "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+    }
+    if host not in {"127.0.0.1", "localhost", "::1"} and not network_allowed:
+        raise RuntimeError(
+            "Network binding requires SELMA_ALLOW_NETWORK=true. "
+            "SELMA Labs has no built-in authentication boundary."
+        )
+    return host
 
 
 def parse_user_prompt(prompt: str) -> tuple[str, int, str]:
@@ -69,7 +82,7 @@ async def index(request: Request):
         context={},
     )
 
-async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Optional[str] = None, script_provider: Optional[str] = None, voice_provider: Optional[str] = None, voice_file_path: Optional[str] = None, style: str = "cinematic", subtitle_style: str = "hormozi", storyboard: bool = False):
+async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: str | None = None, script_provider: str | None = None, voice_provider: str | None = None, voice_file_path: str | None = None, style: str = "cinematic", subtitle_style: str = "hormozi", storyboard: bool = False):
     try:
         JOB_STATUS[job_id] = {"status": "generating", "message": "Senaryo ve görsel planlama başlatılıyor...", "video_url": None, "timestamp": time.time()}
         request_settings = get_settings().model_copy()
@@ -152,9 +165,10 @@ async def run_pipeline(job_id: str, prompt: str, duration: int, image_path: Opti
         # Orchestrator saves to output_dir
         expected_mp4 = None
         if output_dir.exists():
-            for f in os.listdir(output_dir):
-                if f.endswith(".mp4"):
-                    expected_mp4 = f"/output/{run_id}/{f}"
+            for artifact in output_dir.iterdir():
+                if artifact.is_file() and artifact.suffix.lower() == ".mp4":
+                    VIDEO_ARTIFACTS[job_id] = artifact.resolve()
+                    expected_mp4 = f"/api/artifacts/{job_id}/video"
                     break
 
         JOB_STATUS[job_id] = {
@@ -292,10 +306,10 @@ async def generate(
     style: str = Form("cinematic"),
     subtitle_style: str = Form("hormozi"),
     storyboard: bool = Form(False),
-    image: Optional[UploadFile] = File(None),
-    script_provider: Optional[str] = Form(None),
-    voice_provider: Optional[str] = Form(None),
-    voice_file: Optional[UploadFile] = File(None)
+    image: UploadFile | None = File(None),
+    script_provider: str | None = Form(None),
+    voice_provider: str | None = Form(None),
+    voice_file: UploadFile | None = File(None)
 ):
     job_id = str(uuid.uuid4())
     image_path = None
@@ -363,9 +377,27 @@ async def get_status(job_id: str):
     ]
     for jid in stale_jobs:
         del JOB_STATUS[jid]
+        VIDEO_ARTIFACTS.pop(jid, None)
 
     return JSONResponse(JOB_STATUS.get(job_id, {"status": "not_found", "message": "Bulunamadı"}))
 
+
+@app.get("/api/artifacts/{job_id}/video", response_class=FileResponse)
+async def get_video_artifact(job_id: str):
+    """Serve only the MP4 registered for a completed generation job."""
+    try:
+        normalized_job_id = str(uuid.UUID(job_id))
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail="Video bulunamadı.") from error
+
+    status = JOB_STATUS.get(normalized_job_id, {})
+    artifact = VIDEO_ARTIFACTS.get(normalized_job_id)
+    if status.get("status") != "completed" or artifact is None:
+        raise HTTPException(status_code=404, detail="Video bulunamadı.")
+    if artifact.suffix.lower() != ".mp4" or not artifact.is_file():
+        raise HTTPException(status_code=404, detail="Video bulunamadı.")
+    return FileResponse(artifact, media_type="video/mp4", filename=artifact.name)
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    uvicorn.run(app, host=resolve_server_host(), port=7860)

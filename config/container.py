@@ -103,6 +103,7 @@ def create_container(
     settings: Settings | None = None,
     storage: StoragePort | None = None,
     comfyui_client: ComfyUIWsClient | None = None,
+    human_review_required: bool = True,
 ) -> AnimationContainer:
     resolved = settings or get_settings()
     asset_storage = storage or LocalFsStorage(resolved.storage_root_dir)
@@ -198,7 +199,7 @@ def create_container(
             resolved.storyboard_repository_dir
         ),
         candidate_evaluation=candidate_evaluation,
-        human_review_required=False,
+        human_review_required=human_review_required,
     )
     return AnimationContainer(
         character_bible=character_bible,
