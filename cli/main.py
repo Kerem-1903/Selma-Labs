@@ -66,6 +66,27 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Keep candidates pending when no trustworthy vision model is available",
     )
+    character_references.add_argument(
+        "--pilot-approval",
+        help="Human pilot-approval receipt required for more than one recipe",
+    )
+    character_pilot_approve = character_commands.add_parser(
+        "approve-pilot", help="Approve the identity/framing pilot after visual review"
+    )
+    character_pilot_approve.add_argument("--input", required=True)
+    character_pilot_approve.add_argument("--approved-anchor-key", required=True)
+    character_pilot_approve.add_argument("--pilot-key", required=True)
+    character_pilot_approve.add_argument("--approved-by", required=True)
+    character_pilot_approve.add_argument("--output", required=True)
+    for check in (
+        "face-match",
+        "hair-match",
+        "immutable-marks-match",
+        "outfit-match",
+        "framing-match",
+        "anatomy-pass",
+    ):
+        character_pilot_approve.add_argument(f"--{check}", action="store_true")
     character_approve = character_commands.add_parser(
         "approve-references",
         help="Register human-selected reference candidates in a Character Bible",
@@ -551,12 +572,25 @@ async def _run_character_generation(
         )
         return 0
     if arguments.character_command == "references":
+        from core.domain.value_objects.character_onboarding import (
+            CharacterPilotApproval,
+        )
+
+        pilot_approval = None
+        if arguments.pilot_approval:
+            raw_approval = json.loads(
+                Path(arguments.pilot_approval).read_text(encoding="utf-8")
+            )
+            if not isinstance(raw_approval, dict):
+                raise TypeError("Pilot approval receipt must contain an object.")
+            pilot_approval = CharacterPilotApproval.from_dict(raw_approval)
         pack = await service.generate_reference_pack(
             character,
             anchor_storage_key=arguments.approved_anchor_key,
             output_prefix=arguments.output_prefix,
             recipe_limit=arguments.limit,
             automatic_review=not arguments.defer_visual_review,
+            pilot_approval=pilot_approval,
         )
         payload = {
             **pack.to_dict(),
@@ -564,6 +598,27 @@ async def _run_character_generation(
             "pack_complete": len(pack.candidates) == 23,
         }
         print(_write_json(arguments.manifest, payload))
+        return 0
+    if arguments.character_command == "approve-pilot":
+        checks = {
+            name: bool(getattr(arguments, name))
+            for name in (
+                "face_match",
+                "hair_match",
+                "immutable_marks_match",
+                "outfit_match",
+                "framing_match",
+                "anatomy_pass",
+            )
+        }
+        approval = await service.approve_pilot(
+            character,
+            anchor_storage_key=arguments.approved_anchor_key,
+            pilot_storage_key=arguments.pilot_key,
+            approved_by=arguments.approved_by,
+            checks=checks,
+        )
+        print(_write_json(arguments.output, approval.to_dict()))
         return 0
     if arguments.character_command == "approve-references":
         from dataclasses import replace

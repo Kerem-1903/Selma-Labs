@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import PurePosixPath
-from typing import Any
+from typing import Any, ClassVar
 
 from core.domain.value_objects.preproduction_image_quality import (
     PreproductionImageQuality,
@@ -44,6 +44,74 @@ class CharacterReferenceRecipe:
             "prompt": self.prompt,
             "seed": self.seed,
         }
+
+
+@dataclass(frozen=True)
+class CharacterPilotApproval:
+    """Auditable human approval for the identity/framing pilot gate."""
+
+    REQUIRED_CHECKS: ClassVar[tuple[str, ...]] = (
+        "face_match",
+        "hair_match",
+        "immutable_marks_match",
+        "outfit_match",
+        "framing_match",
+        "anatomy_pass",
+    )
+
+    schema_version: int
+    character_id: str
+    anchor_storage_key: str
+    anchor_sha256: str
+    pilot_storage_key: str
+    pilot_sha256: str
+    approved_by: str
+    approved_at: str
+    checks: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if self.schema_version != 1:
+            raise ValueError("Unsupported character-pilot approval schema version.")
+        if not _SAFE_ID.fullmatch(self.character_id):
+            raise ValueError("Pilot approval requires a portable character ID.")
+        if not self.approved_by.strip() or not self.approved_at.strip():
+            raise ValueError("Pilot approval requires an approver and timestamp.")
+        if set(self.checks) != set(self.REQUIRED_CHECKS):
+            raise ValueError("Pilot approval is missing required visual checks.")
+        for digest in (self.anchor_sha256, self.pilot_sha256):
+            if not re.fullmatch(r"[0-9a-f]{64}", digest):
+                raise ValueError("Pilot approval requires complete SHA-256 digests.")
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "character_id": self.character_id,
+            "anchor_storage_key": self.anchor_storage_key,
+            "anchor_sha256": self.anchor_sha256,
+            "pilot_storage_key": self.pilot_storage_key,
+            "pilot_sha256": self.pilot_sha256,
+            "approved_by": self.approved_by,
+            "approved_at": self.approved_at,
+            "checks": {name: True for name in self.checks},
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> CharacterPilotApproval:
+        checks = data.get("checks", {})
+        if not isinstance(checks, dict):
+            raise TypeError("Pilot approval checks must be an object.")
+        enabled = tuple(str(name) for name, passed in checks.items() if passed is True)
+        return cls(
+            schema_version=int(data.get("schema_version", 0)),
+            character_id=str(data.get("character_id", "")),
+            anchor_storage_key=str(data.get("anchor_storage_key", "")),
+            anchor_sha256=str(data.get("anchor_sha256", "")),
+            pilot_storage_key=str(data.get("pilot_storage_key", "")),
+            pilot_sha256=str(data.get("pilot_sha256", "")),
+            approved_by=str(data.get("approved_by", "")),
+            approved_at=str(data.get("approved_at", "")),
+            checks=enabled,
+        )
 
 
 @dataclass(frozen=True)

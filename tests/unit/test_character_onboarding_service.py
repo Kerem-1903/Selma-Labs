@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 
+import pytest
+
 from core.application.services.character_onboarding_service import (
     CharacterOnboardingService,
 )
@@ -48,6 +50,37 @@ def _nova() -> CharacterBible:
                 reference_image_keys=[],
             )
         ],
+    )
+
+
+def _all_pilot_checks() -> dict[str, bool]:
+    return {
+        "face_match": True,
+        "hair_match": True,
+        "immutable_marks_match": True,
+        "outfit_match": True,
+        "framing_match": True,
+        "anatomy_pass": True,
+    }
+
+
+def _generate_and_approve_pilot(service, character, anchor_key):
+    pilot_pack = asyncio.run(
+        service.generate_reference_pack(
+            character,
+            anchor_storage_key=anchor_key,
+            recipe_limit=1,
+            automatic_review=False,
+        )
+    )
+    return asyncio.run(
+        service.approve_pilot(
+            character,
+            anchor_storage_key=anchor_key,
+            pilot_storage_key=pilot_pack.candidates[0].storage_key,
+            approved_by="Kerem",
+            checks=_all_pilot_checks(),
+        )
     )
 
 
@@ -128,10 +161,13 @@ def test_generate_reference_pack_uses_anchor_for_all_23_candidates(tmp_path):
     storage = LocalFsStorage(str(tmp_path))
     service = CharacterOnboardingService(provider, storage)
     anchor_key = "approved/nova-anchor.png"
-    asyncio.run(storage.save(anchor_key, b"approved-anchor", "image/png"))
+    asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
+    approval = _generate_and_approve_pilot(service, _nova(), anchor_key)
 
     pack = asyncio.run(
-        service.generate_reference_pack(_nova(), anchor_storage_key=anchor_key)
+        service.generate_reference_pack(
+            _nova(), anchor_storage_key=anchor_key, pilot_approval=approval
+        )
     )
 
     assert pack.human_approved is False
@@ -139,12 +175,25 @@ def test_generate_reference_pack_uses_anchor_for_all_23_candidates(tmp_path):
     assert pack.source_prefix.startswith("character-candidates/nova/runs/")
     assert pack.source_prefix.endswith("/source")
     assert len(provider.requests) == 23
+    assert provider.requests[0].reference_storage_keys[0].endswith(
+        "/conditioning/face-closeup-anchor.png"
+    )
+    assert provider.requests[1].reference_storage_keys[0].endswith(
+        "/conditioning/face-closeup-anchor.png"
+    )
     assert all(
-        request.reference_storage_keys == (anchor_key,) for request in provider.requests
+        request.reference_storage_keys == (anchor_key,)
+        for request in provider.requests[2:]
     )
     assert all(
         (tmp_path / candidate.storage_key).is_file() for candidate in pack.candidates
     )
+    first_request = provider.requests[0]
+    assert "tight face close-up" in first_request.camera_constraints["angle"]
+    assert first_request.camera_constraints["lens"] == "85mm portrait lens"
+    assert first_request.visual_constraints["identity_strength"] == 1.0
+    assert first_request.visual_constraints["identity_end_at"] == 0.9
+    assert "full body" in first_request.negative_prompts
 
 
 class _RetryOnceEvaluator:
@@ -175,18 +224,76 @@ def test_generate_reference_pack_retries_and_quarantines_failed_candidate(tmp_pa
         provider, storage, _RetryOnceEvaluator(), max_attempts=3
     )
     anchor_key = "approved/nova-anchor.png"
-    asyncio.run(storage.save(anchor_key, b"approved-anchor", "image/png"))
+    asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
 
     pack = asyncio.run(
-        service.generate_reference_pack(_nova(), anchor_storage_key=anchor_key)
+        service.generate_reference_pack(
+            _nova(), anchor_storage_key=anchor_key, recipe_limit=1
+        )
     )
 
-    assert len(pack.candidates) == 23
+    assert len(pack.candidates) == 1
     assert len(pack.quarantined) == 1
-    assert len(provider.requests) == 24
+    assert len(provider.requests) == 2
     assert "/quarantine/attempt-1-" in pack.quarantined[0].storage_key
     assert pack.candidates[0].attempt == 2
     assert provider.requests[1].seed == provider.requests[0].seed + 10_000
+
+
+def test_bulk_reference_generation_requires_approved_pilot(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    service = CharacterOnboardingService(provider, storage)
+    anchor_key = "approved/nova-anchor.png"
+    asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
+
+    with pytest.raises(ValueError, match="approved face-closeup pilot"):
+        asyncio.run(
+            service.generate_reference_pack(_nova(), anchor_storage_key=anchor_key)
+        )
+
+    assert provider.requests == []
+
+
+def test_bulk_gate_detects_pilot_tampering(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    service = CharacterOnboardingService(provider, storage)
+    anchor_key = "approved/nova-anchor.png"
+    asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
+    approval = _generate_and_approve_pilot(service, _nova(), anchor_key)
+    asyncio.run(storage.save(approval.pilot_storage_key, b"changed", "image/png"))
+
+    with pytest.raises(ValueError, match="changed after human review"):
+        asyncio.run(
+            service.generate_reference_pack(
+                _nova(), anchor_storage_key=anchor_key, pilot_approval=approval
+            )
+        )
+
+
+def test_pilot_approval_requires_every_visual_check(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    service = CharacterOnboardingService(provider, storage)
+    anchor_key = "approved/nova-anchor.png"
+    asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
+    pilot = asyncio.run(
+        service.generate_reference_pack(
+            _nova(), anchor_storage_key=anchor_key, recipe_limit=1
+        )
+    ).candidates[0]
+
+    with pytest.raises(ValueError, match="framing_match"):
+        asyncio.run(
+            service.approve_pilot(
+                _nova(),
+                anchor_storage_key=anchor_key,
+                pilot_storage_key=pilot.storage_key,
+                approved_by="Kerem",
+                checks={**_all_pilot_checks(), "framing_match": False},
+            )
+        )
 
 
 def test_reference_pack_can_run_one_pending_pilot_without_automatic_review(tmp_path):
@@ -195,7 +302,7 @@ def test_reference_pack_can_run_one_pending_pilot_without_automatic_review(tmp_p
     evaluator = _RetryOnceEvaluator()
     service = CharacterOnboardingService(provider, storage, evaluator)
     anchor_key = "approved/nova-anchor.png"
-    asyncio.run(storage.save(anchor_key, b"approved-anchor", "image/png"))
+    asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
 
     pack = asyncio.run(
         service.generate_reference_pack(
@@ -216,9 +323,12 @@ def test_approve_reference_pack_registers_selected_required_views(tmp_path):
     storage = LocalFsStorage(str(tmp_path))
     service = CharacterOnboardingService(provider, storage)
     anchor_key = "approved/nova-anchor.png"
-    asyncio.run(storage.save(anchor_key, b"approved-anchor", "image/png"))
+    asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
+    approval = _generate_and_approve_pilot(service, _nova(), anchor_key)
     pack = asyncio.run(
-        service.generate_reference_pack(_nova(), anchor_storage_key=anchor_key)
+        service.generate_reference_pack(
+            _nova(), anchor_storage_key=anchor_key, pilot_approval=approval
+        )
     )
     by_name = {
         candidate.filename: candidate.storage_key for candidate in pack.candidates

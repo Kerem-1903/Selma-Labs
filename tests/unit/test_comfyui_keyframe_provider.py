@@ -12,7 +12,9 @@ from config.provider_registry import get_keyframe_generation_provider
 from config.settings import Settings
 from core.domain.exceptions import ProviderError, StorageError
 from core.domain.ports.storage_port import StoragePort
-from core.domain.value_objects.keyframe_generation_request import KeyframeGenerationRequest
+from core.domain.value_objects.keyframe_generation_request import (
+    KeyframeGenerationRequest,
+)
 from core.domain.value_objects.storage_reference import StorageReference
 from infrastructure.providers.keyframe.comfyui_keyframe_provider import (
     ComfyUIKeyframeProvider,
@@ -20,7 +22,6 @@ from infrastructure.providers.keyframe.comfyui_keyframe_provider import (
 from infrastructure.providers.keyframe.fake_keyframe_generation_provider import (
     FakeKeyframeGenerationProvider,
 )
-
 
 PNG_BYTES = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
@@ -198,6 +199,27 @@ def test_positive_prompt_keeps_explicit_selma_visual_contract():
 
     assert "locked Akira visual identity" in prompt
     assert "draw katana" in prompt
+
+
+def test_positive_prompt_flattens_identity_and_composition_contracts():
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "composition_contract": "face occupies 55-70% of frame",
+            "identity_contract": {
+                "hair": "long black hair",
+                "immutable_marks": ("one red streak", "amber eyes"),
+            },
+        },
+    )
+
+    prompt = ComfyUIKeyframeProvider._build_positive_prompt(request)
+
+    assert "face occupies 55-70% of frame" in prompt
+    assert "locked hair: (long black hair:1.25)" in prompt
+    assert "locked immutable_marks: (one red streak:1.25)" in prompt
+    assert "locked immutable_marks: (amber eyes:1.25)" in prompt
 
 
 @pytest.mark.asyncio

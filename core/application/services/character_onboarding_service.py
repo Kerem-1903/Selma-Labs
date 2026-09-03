@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import io
 from dataclasses import replace
+from datetime import datetime, timezone
 from pathlib import PurePosixPath
+
+from PIL import Image, UnidentifiedImageError
 
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.exceptions import KeyframeGenerationError, StorageError
@@ -18,6 +22,7 @@ from core.domain.value_objects.character_onboarding import (
     CharacterCandidateAsset,
     CharacterCandidatePack,
     CharacterOnboardingPlan,
+    CharacterPilotApproval,
     CharacterReferenceRecipe,
 )
 from core.domain.value_objects.keyframe_generation_request import (
@@ -42,18 +47,28 @@ class CharacterOnboardingService:
         "text",
         "watermark",
     )
+    _FACE_CLOSEUP_NEGATIVES = (
+        "full body",
+        "long shot",
+        "wide shot",
+        "distant subject",
+        "tiny face",
+        "feet visible",
+        "upper body",
+        "medium shot",
+    )
     _RECIPES = (
         (
             "face-closeup-neutral-01.png",
             "FACE_CLOSEUP",
             "train",
-            "face close-up, neutral expression",
+            "portrait, close-up, headshot, face focus, neutral expression",
         ),
         (
             "face-closeup-determined-02.png",
             "FACE_CLOSEUP",
             "train",
-            "face close-up, determined expression",
+            "portrait, close-up, headshot, face focus, determined expression",
         ),
         (
             "front-neutral-01.png",
@@ -297,6 +312,7 @@ class CharacterOnboardingService:
         output_prefix: str = "character-candidates",
         recipe_limit: int | None = None,
         automatic_review: bool = True,
+        pilot_approval: CharacterPilotApproval | None = None,
     ) -> CharacterCandidatePack:
         anchor_key = self._portable_key(anchor_storage_key)
         if not await self._storage.exists(anchor_key):
@@ -317,16 +333,39 @@ class CharacterOnboardingService:
         candidates = []
         quarantined = []
         anchor_bytes = await self._storage.load(anchor_key)
+        if len(recipes) > 1:
+            if pilot_approval is None:
+                raise ValueError(
+                    "Bulk character generation requires an approved face-closeup pilot."
+                )
+            pilot = await self._verified_pilot_candidate(
+                character=character,
+                anchor_key=anchor_key,
+                anchor_bytes=anchor_bytes,
+                approval=pilot_approval,
+                expected_filename=plan.recipes[0].filename,
+            )
+            candidates.append(pilot)
+            recipes = recipes[1:]
         for recipe in recipes:
             accepted = None
+            conditioning_key = await self._conditioning_reference_for_view(
+                anchor_bytes=anchor_bytes,
+                anchor_key=anchor_key,
+                run_root=run_root,
+                view=recipe.view,
+            )
             for attempt in range(1, self._max_attempts + 1):
                 generated = await self._generator.generate_keyframe(
                     self._request(
                         character=character,
                         prompt=recipe.prompt,
                         seed=recipe.seed + (attempt - 1) * 10_000,
-                        negatives=plan.negative_prompts,
-                        anchor_storage_key=anchor_key,
+                        negatives=self._negatives_for_view(
+                            plan.negative_prompts, recipe.view
+                        ),
+                        anchor_storage_key=conditioning_key,
+                        view=recipe.view,
                     )
                 )
                 quality = None
@@ -371,6 +410,57 @@ class CharacterOnboardingService:
             quarantined=tuple(quarantined),
         )
 
+    async def approve_pilot(
+        self,
+        character: CharacterBible,
+        *,
+        anchor_storage_key: str,
+        pilot_storage_key: str,
+        approved_by: str,
+        checks: dict[str, bool],
+    ) -> CharacterPilotApproval:
+        """Record explicit human evidence before expensive pack generation."""
+        anchor_key = self._portable_key(anchor_storage_key)
+        pilot_key = self._portable_key(pilot_storage_key)
+        if not approved_by.strip():
+            raise ValueError("Pilot approval requires a named approver.")
+        failed = [
+            name
+            for name in CharacterPilotApproval.REQUIRED_CHECKS
+            if checks.get(name) is not True
+        ]
+        if failed:
+            raise ValueError(
+                "Pilot approval failed required checks: " + ", ".join(failed)
+            )
+        if not await self._storage.exists(anchor_key):
+            raise StorageError(f"Approved anchor '{anchor_key}' was not found.")
+        if not await self._storage.exists(pilot_key):
+            raise StorageError(f"Pilot candidate '{pilot_key}' was not found.")
+        anchor_bytes = await self._storage.load(anchor_key)
+        anchor_digest = hashlib.sha256(anchor_bytes).hexdigest()
+        expected_suffix = (
+            f"/runs/{anchor_digest[:12]}/source/"
+            f"{self.plan(character).recipes[0].filename}"
+        )
+        if not pilot_key.endswith(expected_suffix):
+            raise ValueError(
+                "Pilot candidate does not belong to this anchor's reference run."
+            )
+        pilot_bytes = await self._storage.load(pilot_key)
+        self._validate_png_bytes(pilot_bytes)
+        return CharacterPilotApproval(
+            schema_version=1,
+            character_id=character.character_id,
+            anchor_storage_key=anchor_key,
+            anchor_sha256=anchor_digest,
+            pilot_storage_key=pilot_key,
+            pilot_sha256=hashlib.sha256(pilot_bytes).hexdigest(),
+            approved_by=approved_by.strip(),
+            approved_at=datetime.now(timezone.utc).isoformat(),
+            checks=CharacterPilotApproval.REQUIRED_CHECKS,
+        )
+
     async def approve_reference_pack(
         self,
         character: CharacterBible,
@@ -409,6 +499,7 @@ class CharacterOnboardingService:
         seed: int,
         negatives: tuple[str, ...],
         anchor_storage_key: str | None = None,
+        view: str = "FULL_BODY",
     ) -> KeyframeGenerationRequest:
         references = []
         asset_ids: tuple[str, ...] = ()
@@ -423,20 +514,39 @@ class CharacterOnboardingService:
             ]
             asset_ids = ("approved-anchor",)
             storage_keys = (anchor_storage_key,)
+        camera, composition, identity_strength = CharacterOnboardingService._view_contract(
+            view
+        )
+        identity = character.identity_constraints
         return KeyframeGenerationRequest(
             shot_contract_id=f"character-onboarding-{character.character_id}-{seed}",
-            camera_constraints={
-                "angle": "full body",
-                "lens": "50mm",
-                "movement": "locked",
-            },
+            camera_constraints=camera,
             action_constraints={"primary_action": prompt, "secondary_actions": []},
             visual_constraints={
+                "prompt": prompt,
                 "lighting": "neutral controlled studio light",
                 "environment_style": "plain reference background",
                 "weather": "clear",
-                "identity_strength": 0.85,
+                "composition_contract": composition,
+                "identity_contract": {
+                    "face": identity.facial_geometry,
+                    "hair": identity.hair,
+                    "eyes": identity.eye_color,
+                    "silhouette": identity.silhouette,
+                    "immutable_marks": tuple(identity.immutable_marks),
+                    "outfit": (
+                        character.outfit_catalog[0].description
+                        if character.outfit_catalog
+                        else ""
+                    ),
+                },
+                "identity_strength": identity_strength,
                 "identity_mode": "identity_only",
+                "identity_weight_type": "linear",
+                "identity_combine_embeds": "concat",
+                "identity_start_at": 0.0,
+                "identity_end_at": 0.9,
+                "identity_embeds_scaling": "V only",
             },
             character_conditioning=(
                 {
@@ -453,6 +563,124 @@ class CharacterOnboardingService:
             height=1024,
             seed=seed,
         )
+
+    @staticmethod
+    def _view_contract(view: str) -> tuple[dict[str, str], str, float]:
+        if view == "FACE_CLOSEUP":
+            return (
+                {
+                    "angle": "tight face close-up, head and shoulders only",
+                    "lens": "85mm portrait lens",
+                    "movement": "locked",
+                },
+                (
+                    "single centered headshot; face occupies 70-85% of frame; complete "
+                    "hair silhouette and top of shoulders visible; torso and arms excluded"
+                ),
+                1.0,
+            )
+        if view.startswith("PROFILE"):
+            return (
+                {"angle": "strict profile portrait", "lens": "70mm", "movement": "locked"},
+                "single character profile; head and torso readable; no front-facing pose",
+                0.95,
+            )
+        if view.startswith("ACTION"):
+            return (
+                {"angle": "full body action", "lens": "50mm", "movement": "locked"},
+                "single complete body; head, hands and feet visible; action silhouette clear",
+                0.82,
+            )
+        if view in {"FULL_BODY", "BACK"}:
+            return (
+                {"angle": "full body", "lens": "50mm", "movement": "locked"},
+                "single complete body; entire head and both feet visible",
+                0.9,
+            )
+        return (
+            {"angle": "upper-body portrait", "lens": "65mm", "movement": "locked"},
+            "single character upper-body portrait; face, hair and outfit construction readable",
+            0.95,
+        )
+
+    @classmethod
+    def _negatives_for_view(
+        cls, negatives: tuple[str, ...], view: str
+    ) -> tuple[str, ...]:
+        extra = cls._FACE_CLOSEUP_NEGATIVES if view == "FACE_CLOSEUP" else ()
+        return tuple(dict.fromkeys((*negatives, *extra)))
+
+    async def _conditioning_reference_for_view(
+        self,
+        *,
+        anchor_bytes: bytes,
+        anchor_key: str,
+        run_root: str,
+        view: str,
+    ) -> str:
+        if view != "FACE_CLOSEUP":
+            return anchor_key
+        try:
+            with Image.open(io.BytesIO(anchor_bytes)) as source:
+                image = source.convert("RGB")
+        except (UnidentifiedImageError, OSError) as error:
+            raise ValueError("Approved character anchor is not a readable image.") from error
+        crop_size = max(1, min(image.width, round(image.height * 0.24)))
+        left = max(0, (image.width - crop_size) // 2)
+        crop = image.crop((left, 0, left + crop_size, crop_size))
+        crop = crop.resize((1024, 1024), Image.Resampling.LANCZOS)
+        output = io.BytesIO()
+        crop.save(output, format="PNG")
+        storage_key = f"{run_root}/conditioning/face-closeup-anchor.png"
+        stored = await self._storage.save(storage_key, output.getvalue(), "image/png")
+        if stored.key != storage_key:
+            raise StorageError(
+                "Storage adapter returned a different face-conditioning key."
+            )
+        return storage_key
+
+    async def _verified_pilot_candidate(
+        self,
+        *,
+        character: CharacterBible,
+        anchor_key: str,
+        anchor_bytes: bytes,
+        approval: CharacterPilotApproval,
+        expected_filename: str,
+    ) -> CharacterCandidateAsset:
+        if approval.character_id != character.character_id:
+            raise ValueError("Pilot approval belongs to another character.")
+        if approval.anchor_storage_key != anchor_key:
+            raise ValueError("Pilot approval belongs to another anchor.")
+        if hashlib.sha256(anchor_bytes).hexdigest() != approval.anchor_sha256:
+            raise ValueError("Approved anchor changed after pilot review.")
+        pilot_key = self._portable_key(approval.pilot_storage_key)
+        if not await self._storage.exists(pilot_key):
+            raise StorageError(f"Approved pilot '{pilot_key}' was not found.")
+        pilot_bytes = await self._storage.load(pilot_key)
+        if hashlib.sha256(pilot_bytes).hexdigest() != approval.pilot_sha256:
+            raise ValueError("Approved pilot changed after human review.")
+        if PurePosixPath(pilot_key).name != expected_filename:
+            raise ValueError("Pilot approval does not reference the required first recipe.")
+        width, height = self._validate_png_bytes(pilot_bytes)
+        return CharacterCandidateAsset(
+            filename=expected_filename,
+            storage_key=pilot_key,
+            provider_asset_id="human-approved-pilot",
+            width=width,
+            height=height,
+            quality=None,
+        )
+
+    @staticmethod
+    def _validate_png_bytes(data: bytes) -> tuple[int, int]:
+        if not data.startswith(b"\x89PNG\r\n\x1a\n") or len(data) < 24:
+            raise ValueError("Character pilot must be a valid PNG image.")
+        width = int.from_bytes(data[16:20], "big")
+        height = int.from_bytes(data[20:24], "big")
+        if width <= 0 or height <= 0:
+            raise ValueError("Character pilot has invalid image dimensions.")
+        return width, height
 
     async def _save_candidate(
         self,

@@ -50,7 +50,10 @@ class CharacterBible:
             character_id="akira",
             identity_constraints=IdentityConstraints(
                 eye_color="amber",
-                hair="long straight black hair with one controlled deep-red front streak",
+                hair=(
+                    "long straight black hair, otherwise entirely black, with exactly "
+                    "one narrow deep-red front streak on character left (viewer right)"
+                ),
                 facial_geometry="angular anime face, defined jaw, straight nose",
                 body_proportions="athletic adult woman, consistent limb proportions",
                 silhouette="cropped combat jacket, tapered combat trousers, single katana",
@@ -76,6 +79,11 @@ class CharacterBible:
                     "extra sword",
                     "red ribbon",
                     "red energy trail",
+                    "red hair on both sides",
+                    "red hair on character right (viewer left)",
+                    "multiple red hair streaks",
+                    "red hair tips",
+                    "red hair clip",
                 ],
             ),
             outfit_catalog=[

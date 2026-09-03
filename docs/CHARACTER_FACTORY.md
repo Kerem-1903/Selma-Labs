@@ -15,10 +15,14 @@ the reference pack still requires explicit human selection.
    anchor prompt, 20 training recipes and 3 isolated holdout recipes.
 3. Generate one anchor candidate and approve it manually. No unapproved anchor
    can be presented to the reference-pack command.
-4. Generate all 23 reference candidates through the configured keyframe
-   provider. The approved anchor is supplied to IP-Adapter for identity
-   conditioning; filenames, prompts and seeds come from the plan.
-5. Review the pack, build the LoRA dataset, train the LoRA, and run the generic
+4. Generate only the first face-closeup pilot. SELMA sends a portrait-specific
+   camera/lens contract and separate face, hair, immutable-mark, outfit and
+   framing locks to the image provider.
+5. Review the pilot against all six checks and create a signed approval receipt.
+   Full generation is rejected if the receipt, anchor or pilot hash has changed.
+6. Generate the remaining 22 reference candidates through the configured
+   keyframe provider. The approved pilot is reused as candidate one.
+7. Review the pack, build the LoRA dataset, train the LoRA, and run the generic
    ten-shot Golden Set. Only a passing, human-approved Golden Set may be locked.
 
 ## Commands
@@ -38,6 +42,23 @@ python -m cli.main character anchor `
 python -m cli.main character references `
   --input assets/character_bibles/akira.json `
   --approved-anchor-key '<key printed by the anchor command>' `
+  --limit 1 `
+  --defer-visual-review `
+  --manifest output/characters/akira/pilot.json
+
+python -m cli.main character approve-pilot `
+  --input assets/character_bibles/akira.json `
+  --approved-anchor-key '<approved anchor key>' `
+  --pilot-key '<pilot storage key>' `
+  --approved-by Kerem `
+  --face-match --hair-match --immutable-marks-match `
+  --outfit-match --framing-match --anatomy-pass `
+  --output output/characters/akira/pilot-approval.json
+
+python -m cli.main character references `
+  --input assets/character_bibles/akira.json `
+  --approved-anchor-key '<approved anchor key>' `
+  --pilot-approval output/characters/akira/pilot-approval.json `
   --manifest output/characters/akira/candidate-pack.json
 
 python -m cli.main character approve-references `
