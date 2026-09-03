@@ -58,6 +58,14 @@ def build_parser() -> argparse.ArgumentParser:
     character_references.add_argument("--approved-anchor-key", required=True)
     character_references.add_argument("--output-prefix", default="character-candidates")
     character_references.add_argument("--manifest", required=True)
+    character_references.add_argument(
+        "--limit", type=int, help="Generate only the first N recipes for a pilot run"
+    )
+    character_references.add_argument(
+        "--defer-visual-review",
+        action="store_true",
+        help="Keep candidates pending when no trustworthy vision model is available",
+    )
     character_approve = character_commands.add_parser(
         "approve-references",
         help="Register human-selected reference candidates in a Character Bible",
@@ -547,8 +555,15 @@ async def _run_character_generation(
             character,
             anchor_storage_key=arguments.approved_anchor_key,
             output_prefix=arguments.output_prefix,
+            recipe_limit=arguments.limit,
+            automatic_review=not arguments.defer_visual_review,
         )
-        print(_write_json(arguments.manifest, pack.to_dict()))
+        payload = {
+            **pack.to_dict(),
+            "automatic_review_deferred": arguments.defer_visual_review,
+            "pack_complete": len(pack.candidates) == 23,
+        }
+        print(_write_json(arguments.manifest, payload))
         return 0
     if arguments.character_command == "approve-references":
         from dataclasses import replace

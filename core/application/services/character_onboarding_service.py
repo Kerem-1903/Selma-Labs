@@ -295,6 +295,8 @@ class CharacterOnboardingService:
         *,
         anchor_storage_key: str,
         output_prefix: str = "character-candidates",
+        recipe_limit: int | None = None,
+        automatic_review: bool = True,
     ) -> CharacterCandidatePack:
         anchor_key = self._portable_key(anchor_storage_key)
         if not await self._storage.exists(anchor_key):
@@ -307,10 +309,15 @@ class CharacterOnboardingService:
             f"runs/{anchor_digest}"
         )
         plan = self.plan(character)
+        if recipe_limit is not None and not 1 <= recipe_limit <= len(plan.recipes):
+            raise ValueError(
+                f"Character recipe limit must be between 1 and {len(plan.recipes)}."
+            )
+        recipes = plan.recipes[:recipe_limit]
         candidates = []
         quarantined = []
         anchor_bytes = await self._storage.load(anchor_key)
-        for recipe in plan.recipes:
+        for recipe in recipes:
             accepted = None
             for attempt in range(1, self._max_attempts + 1):
                 generated = await self._generator.generate_keyframe(
@@ -323,7 +330,7 @@ class CharacterOnboardingService:
                     )
                 )
                 quality = None
-                if self._evaluator is not None:
+                if automatic_review and self._evaluator is not None:
                     quality = await self._evaluator.evaluate(
                         image_bytes=generated.image_bytes,
                         reference_bytes=anchor_bytes,

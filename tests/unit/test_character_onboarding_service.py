@@ -189,6 +189,28 @@ def test_generate_reference_pack_retries_and_quarantines_failed_candidate(tmp_pa
     assert provider.requests[1].seed == provider.requests[0].seed + 10_000
 
 
+def test_reference_pack_can_run_one_pending_pilot_without_automatic_review(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    evaluator = _RetryOnceEvaluator()
+    service = CharacterOnboardingService(provider, storage, evaluator)
+    anchor_key = "approved/nova-anchor.png"
+    asyncio.run(storage.save(anchor_key, b"approved-anchor", "image/png"))
+
+    pack = asyncio.run(
+        service.generate_reference_pack(
+            _nova(),
+            anchor_storage_key=anchor_key,
+            recipe_limit=1,
+            automatic_review=False,
+        )
+    )
+
+    assert len(pack.candidates) == 1
+    assert pack.candidates[0].quality is None
+    assert evaluator.calls == 0
+
+
 def test_approve_reference_pack_registers_selected_required_views(tmp_path):
     provider = FakeKeyframeGenerationProvider()
     storage = LocalFsStorage(str(tmp_path))
