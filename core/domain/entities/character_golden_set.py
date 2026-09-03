@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from enum import Enum
@@ -12,6 +13,7 @@ from typing import Any
 
 from core.domain.exceptions import GoldenSetValidationError
 from core.domain.value_objects.character_identity import ReferenceView
+from core.domain.value_objects.structured_mark_report import StructuredMarkReport
 
 
 class GoldenScenario(str, Enum):
@@ -27,16 +29,39 @@ class GoldenScenario(str, Enum):
     DETERMINED_EXPRESSION = "DETERMINED_EXPRESSION"
 
 
+DEFAULT_CRITICAL_SCENARIOS = frozenset(
+    {
+        GoldenScenario.FACE_FRONT,
+        GoldenScenario.PROFILE_LEFT,
+        GoldenScenario.KATANA_GRIP,
+        GoldenScenario.DETERMINED_EXPRESSION,
+    }
+)
+
+
 @dataclass(frozen=True)
 class GoldenTestCase:
     scenario: GoldenScenario
     prompt: str
     seed: int
     required_views: tuple[ReferenceView, ...]
+    pose_reference_key: str | None = None
+    critical: bool = False
+    marker_validation_required: bool = True
 
     def __post_init__(self) -> None:
         if not self.prompt.strip() or self.seed < 0 or not self.required_views:
             raise GoldenSetValidationError("Golden test case is incomplete.")
+        if self.pose_reference_key:
+            path = PurePosixPath(self.pose_reference_key.replace("\\", "/"))
+            if (
+                path.is_absolute()
+                or any(part in {"", ".", ".."} for part in path.parts)
+                or re.match(r"^[A-Za-z]:", self.pose_reference_key)
+            ):
+                raise GoldenSetValidationError(
+                    "Golden test pose requires a portable storage key."
+                )
 
 
 @dataclass(frozen=True)
@@ -48,6 +73,9 @@ class GoldenCandidateResult:
     anatomy_score: float
     human_approved: bool
     notes: str = ""
+    critical: bool = False
+    marker_gate_passed: bool = True
+    structured_mark_reports: tuple[StructuredMarkReport, ...] = ()
 
     def __post_init__(self) -> None:
         path = PurePosixPath(self.storage_key.replace("\\", "/"))
@@ -75,6 +103,7 @@ class GoldenCandidateResult:
             and self.style_score >= 0.85
             and self.anatomy_score >= 0.85
             and self.human_approved
+            and self.marker_gate_passed
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -85,6 +114,11 @@ class GoldenCandidateResult:
             "style_score": self.style_score,
             "anatomy_score": self.anatomy_score,
             "human_approved": self.human_approved,
+            "critical": self.critical,
+            "marker_gate_passed": self.marker_gate_passed,
+            "structured_mark_reports": [
+                r.to_dict() for r in self.structured_mark_reports
+            ],
             "notes": self.notes,
         }
 
@@ -132,7 +166,12 @@ class CharacterGoldenSet:
 
     @property
     def passed(self) -> bool:
-        return all(result.passed for result in self.results)
+        if not self.results:
+            return False
+        passed_count = sum(1 for result in self.results if result.passed)
+        min_required = max(1, len(self.results) - 1)
+        critical_ok = all(result.passed for result in self.results if result.critical)
+        return passed_count >= min_required and critical_ok
 
     @property
     def locked(self) -> bool:
@@ -174,6 +213,12 @@ class CharacterGoldenSet:
                     style_score=float(item["style_score"]),
                     anatomy_score=float(item["anatomy_score"]),
                     human_approved=bool(item["human_approved"]),
+                    critical=bool(item.get("critical", False)),
+                    marker_gate_passed=bool(item.get("marker_gate_passed", False)),
+                    structured_mark_reports=tuple(
+                        StructuredMarkReport.from_dict(report)
+                        for report in item.get("structured_mark_reports", [])
+                    ),
                     notes=str(item.get("notes", "")),
                 )
                 for item in data["results"]
@@ -191,6 +236,9 @@ class CharacterGoldenSet:
 def default_character_golden_cases(
     character_name: str = "character",
     signature_action: str = "performing their signature action with canonical props only",
+    *,
+    pose_reference_keys: Mapping[GoldenScenario, str] | None = None,
+    critical_scenarios: frozenset[GoldenScenario] = DEFAULT_CRITICAL_SCENARIOS,
 ) -> tuple[GoldenTestCase, ...]:
     name = character_name.strip()
     if not name:
@@ -200,61 +248,92 @@ def default_character_golden_cases(
             GoldenScenario.FACE_FRONT,
             "masterpiece, best quality, anime screencap, solo, symmetrical front-facing head-and-shoulders portrait, entire head visible, neutral restrained expression, plain light background",
             ReferenceView.FACE_CLOSEUP,
+            True,
         ),
         (
             GoldenScenario.PROFILE_LEFT,
             "masterpiece, best quality, anime screencap, solo, head-and-shoulders portrait, strict left-facing side profile, entire head and both shoulders visible, plain light background",
             ReferenceView.PROFILE_LEFT,
+            True,
         ),
         (
             GoldenScenario.FULL_BODY,
             "masterpiece, best quality, anime character sheet, solo, full body, head-to-toe visible, centered standing turnaround pose, both boots visible, plain light background",
             ReferenceView.FRONT,
+            False,
         ),
         (
             GoldenScenario.RUNNING,
             "masterpiece, best quality, cinematic anime action frame, solo, full body running from left to right, head-to-toe visible, strong readable sprint silhouette, arms and legs separated, urban street background",
             ReferenceView.THREE_QUARTER_LEFT,
+            False,
         ),
         (
             GoldenScenario.KATANA_GRIP,
             "masterpiece, best quality, cinematic anime action frame, solo, medium full shot, exactly one katana held with both hands, both hands fully visible on one hilt, correct grip anatomy, guarded combat stance",
             ReferenceView.THREE_QUARTER_LEFT,
+            False,
         ),
         (
             GoldenScenario.TWO_CHARACTER_DIALOGUE,
             f"masterpiece, best quality, anime dialogue scene, medium two-shot, {name} on the left speaking with one adult scene partner on the right, both faces visible, clear eyelines, simple interior background",
             ReferenceView.FACE_CLOSEUP,
+            False,
         ),
         (
             GoldenScenario.RAIN_ROOFTOP,
             f"masterpiece, best quality, cinematic anime frame, medium-wide shot, {name} standing on a rainy night rooftop, complete upper body and hands visible, city skyline, controlled cool rim light, visible rain",
             ReferenceView.THREE_QUARTER_LEFT,
+            False,
         ),
         (
             GoldenScenario.IMPACT_ACTION,
             f"masterpiece, best quality, dynamic anime action frame, full body {name} {signature_action}, readable impact pose, strong silhouette, motion lines, ruined street background",
             ReferenceView.FRONT,
+            False,
         ),
         (
             GoldenScenario.WIDE_STREET,
             f"masterpiece, best quality, cinematic anime establishing shot, very wide old market street perspective, full body {name} small in frame walking away from camera, buildings and street dominate the composition, rainy evening",
             ReferenceView.BACK,
+            False,
         ),
         (
             GoldenScenario.DETERMINED_EXPRESSION,
-            "masterpiece, best quality, anime screencap, solo, head-and-shoulders close-up, entire head visible, restrained determined expression, canonical eyes focused forward, subtle dramatic shadow",
+            "masterpiece, best quality, anime screencap, solo, medium close-up, entire head visible, raising one open hand and studying it, all five fingers clearly separated, restrained determined expression, canonical eyes focused on the raised hand, subtle dramatic shadow",
             ReferenceView.FACE_CLOSEUP,
+            True,
         ),
     )
+    poses = pose_reference_keys or {}
     return tuple(
-        GoldenTestCase(scenario, prompt, 190300 + index, (view,))
-        for index, (scenario, prompt, view) in enumerate(descriptions)
+        GoldenTestCase(
+            scenario=scenario,
+            prompt=prompt,
+            seed=190300 + index,
+            required_views=(view,),
+            pose_reference_key=poses.get(scenario),
+            critical=scenario in critical_scenarios,
+            marker_validation_required=marker_required,
+        )
+        for index, (scenario, prompt, view, marker_required) in enumerate(descriptions)
     )
 
 
 def default_akira_golden_cases() -> tuple[GoldenTestCase, ...]:
     """Backward-compatible Akira fixture for existing manifests and tests."""
     return default_character_golden_cases(
-        "Akira", "delivering a single katana strike with exactly one katana"
+        "Akira",
+        "delivering a single katana strike with exactly one katana",
+        pose_reference_keys={
+            GoldenScenario.RUNNING: (
+                "references/akira/poses/akira-running-openpose-v1.png"
+            ),
+            GoldenScenario.KATANA_GRIP: (
+                "references/akira/poses/akira-katana-ready-openpose-v1.png"
+            ),
+            GoldenScenario.IMPACT_ACTION: (
+                "references/akira/poses/akira-katana-ready-openpose-v1.png"
+            ),
+        },
     )

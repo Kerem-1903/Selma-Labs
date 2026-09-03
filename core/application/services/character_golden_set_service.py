@@ -3,6 +3,7 @@ from __future__ import annotations
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.character_golden_set import (
     CharacterGoldenSet,
+    default_akira_golden_cases,
     default_character_golden_cases,
 )
 from core.domain.entities.direction_bible import BibleStatus, VisualStyleBible
@@ -49,9 +50,12 @@ class CharacterGoldenSetService:
             "performing their signature action while preserving "
             f"this canonical silhouette: {character.identity_constraints.silhouette}"
         )
-        for test_case in default_character_golden_cases(
-            character_name, signature_action
-        ):
+        test_cases = (
+            default_akira_golden_cases()
+            if character.character_id == "akira"
+            else default_character_golden_cases(character_name, signature_action)
+        )
+        for test_case in test_cases:
             storage_key = await self._generator.generate(
                 character=character, style=style, test_case=test_case
             )

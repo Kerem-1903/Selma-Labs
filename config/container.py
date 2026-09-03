@@ -36,6 +36,9 @@ from core.application.services.keyframe_generation_service import (
 )
 from core.application.services.script_breakdown_service import ScriptBreakdownService
 from core.application.services.story_engine_service import StoryEngineService
+from core.application.services.structured_mark_validation_service import (
+    StructuredMarkValidationService,
+)
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.ports.canon_repository_port import CanonRepositoryPort
 from core.domain.ports.storage_port import StoragePort
@@ -49,6 +52,12 @@ from infrastructure.providers.motion.comfyui_motion_adapter import ComfyUIMotion
 from infrastructure.providers.motion.comfyui_ws_client import ComfyUIWsClient
 from infrastructure.providers.script.ollama_story_development_provider import (
     OllamaStoryDevelopmentProvider,
+)
+from infrastructure.providers.vision.guarded_golden_set_evaluator import (
+    GuardedGoldenSetEvaluator,
+)
+from infrastructure.providers.vision.insightface_head_region_provider import (
+    InsightFaceHeadRegionProvider,
 )
 from infrastructure.providers.vision.local_golden_review_evaluator import (
     LocalGoldenReviewEvaluator,
@@ -174,13 +183,37 @@ def create_container(
             resolved.preproduction_approval_dir
         ),
     )
+    golden_evaluator = LocalGoldenReviewEvaluator(resolved.golden_review_manifest)
+    if resolved.golden_marker_gate_enabled:
+        configured_providers = tuple(
+            provider.strip()
+            for provider in resolved.insightface_providers.split(",")
+            if provider.strip()
+        )
+        golden_evaluator = GuardedGoldenSetEvaluator(
+            human_evaluator=golden_evaluator,
+            storage=preproduction_storage,
+            head_region_provider=InsightFaceHeadRegionProvider(
+                model_name=resolved.insightface_model_name,
+                model_root=resolved.insightface_model_root,
+                det_size=(
+                    resolved.insightface_detection_size,
+                    resolved.insightface_detection_size,
+                ),
+                ctx_id=resolved.insightface_ctx_id,
+                providers=configured_providers or None,
+                hair_pad_top=resolved.insightface_hair_pad_top,
+                hair_pad_side=resolved.insightface_hair_pad_side,
+            ),
+            mark_validator=StructuredMarkValidationService(),
+        )
     golden_set = CharacterGoldenSetService(
         GoldenSetKeyframeAdapter(
             get_keyframe_generation_provider(resolved, storage=preproduction_storage),
             preproduction_storage,
             output_prefix=resolved.golden_set_output_prefix,
         ),
-        LocalGoldenReviewEvaluator(resolved.golden_review_manifest),
+        golden_evaluator,
     )
     hierarchical = HierarchicalShotPlanningService(breakdown)
     keyframe_generator = get_keyframe_generation_provider(

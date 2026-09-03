@@ -22,6 +22,7 @@ from core.domain.entities.animation_ready_package import (
 from core.domain.entities.character_golden_set import (
     CharacterGoldenSet,
     GoldenCandidateResult,
+    GoldenScenario,
     default_akira_golden_cases,
 )
 from core.domain.entities.direction_bible import BibleStatus
@@ -37,7 +38,12 @@ from core.domain.entities.shot_storyboard import ShotStoryboard
 from core.domain.exceptions import AnimationPackageError
 from core.domain.ports.golden_image_generator_port import GoldenImageGeneratorPort
 from core.domain.ports.golden_set_evaluator_port import GoldenSetEvaluatorPort
+from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
+from core.domain.value_objects.generated_keyframe import GeneratedKeyframe
 from core.domain.value_objects.storyboard_frame import StoryboardFrame
+from infrastructure.providers.keyframe.golden_set_keyframe_adapter import (
+    GoldenSetKeyframeAdapter,
+)
 from infrastructure.providers.render.remotion_animatic_exporter import (
     RemotionAnimaticExporter,
 )
@@ -57,6 +63,19 @@ class _GoldenEvaluator(GoldenSetEvaluatorPort):
         return GoldenCandidateResult(
             test_case.scenario, storage_key, 0.96, 0.93, 0.92, True
         )
+
+
+class _CapturingKeyframeGenerator(KeyframeGenerationPort):
+    def __init__(self) -> None:
+        self.requests = []
+
+    @property
+    def name(self) -> str:
+        return "capture"
+
+    async def generate_keyframe(self, request):
+        self.requests.append(request)
+        return GeneratedKeyframe(b"image", "image/png", 1024, 1024)
 
 
 def _episode() -> EpisodeScript:
@@ -106,6 +125,32 @@ async def test_locked_canon_and_ten_case_golden_set_are_production_ready():
     locked = golden.lock("Kerem")
     assert locked.locked
     assert CharacterGoldenSet.from_dict(locked.to_dict()) == locked
+
+
+@pytest.mark.asyncio
+async def test_golden_adapter_threads_openpose_into_generation_request(tmp_path):
+    repository = LocalJsonCanonRepository(
+        "assets/preproduction", "assets/character_bibles"
+    )
+    style = await repository.get_visual_style()
+    (akira,) = await repository.get_character_bibles()
+    running = next(
+        case
+        for case in default_akira_golden_cases()
+        if case.scenario is GoldenScenario.RUNNING
+    )
+    generator = _CapturingKeyframeGenerator()
+    adapter = GoldenSetKeyframeAdapter(
+        generator, LocalFsStorage(str(tmp_path / "storage"))
+    )
+
+    await adapter.generate(character=akira, style=style, test_case=running)
+
+    request = generator.requests[0]
+    assert request.visual_constraints["pose_storage_key"] == (
+        "references/akira/poses/akira-running-openpose-v1.png"
+    )
+    assert request.visual_constraints["controlnet_type"] == "openpose"
 
 
 @pytest.mark.asyncio

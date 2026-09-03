@@ -10,6 +10,7 @@ from core.domain.value_objects.character_narrative_profile import (
 )
 from core.domain.value_objects.character_reference import CharacterReference
 from core.domain.value_objects.outfit import Outfit
+from core.domain.value_objects.structured_mark import MarkAnchor, StructuredMark
 from core.domain.value_objects.style_profile import StyleProfile
 
 
@@ -62,6 +63,26 @@ class CharacterBible:
                     "single deep-red hair streak on the left-front section",
                     "amber eyes",
                     "one katana only",
+                ],
+                structured_marks=[
+                    StructuredMark(
+                        id="akira-red-streak",
+                        label="single deep-red front hair streak",
+                        color_hex="#B0171F",
+                        viewer_side="viewer_right",
+                        count=1,
+                        color_tolerance_delta_e=6.0,
+                        anchor=MarkAnchor(
+                            region="front-hairline",
+                            x_center=0.58,
+                            y_root=0.06,
+                            extent=0.12,
+                            sweep_deg=-18.0,
+                        ),
+                        mirror_side="viewer_left",
+                        shape_grammar="single narrow lock, full length, matte, no gradient",
+                        enforcement="both",
+                    ),
                 ],
             ),
             style_profile=StyleProfile(

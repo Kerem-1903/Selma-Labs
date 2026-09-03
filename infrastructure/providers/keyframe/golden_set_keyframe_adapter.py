@@ -52,6 +52,22 @@ class GoldenSetKeyframeAdapter(GoldenImageGeneratorPort):
                 style.camera_language,
             )
         )
+        visual_constraints: dict[str, object] = {
+            "prompt": prompt,
+            "identity_strength": 0.65,
+            "identity_mode": "identity_only",
+            "sampling_steps": 28,
+            "guidance_scale": 5.0,
+            "sampler_name": "euler_ancestral",
+            "scheduler": "normal",
+        }
+        if test_case.pose_reference_key:
+            visual_constraints.update(
+                {
+                    "pose_storage_key": test_case.pose_reference_key,
+                    "controlnet_type": "openpose",
+                }
+            )
         request = KeyframeGenerationRequest(
             shot_contract_id=f"golden-{character.character_id}-{test_case.scenario.value.lower()}",
             camera_constraints={
@@ -59,15 +75,7 @@ class GoldenSetKeyframeAdapter(GoldenImageGeneratorPort):
                 "angle": test_case.prompt,
             },
             action_constraints={"primary_action": test_case.prompt},
-            visual_constraints={
-                "prompt": prompt,
-                "identity_strength": 0.65,
-                "identity_mode": "identity_only",
-                "sampling_steps": 28,
-                "guidance_scale": 5.0,
-                "sampler_name": "euler_ancestral",
-                "scheduler": "normal",
-            },
+            visual_constraints=visual_constraints,
             reference_asset_ids=tuple(reference.asset_id for reference in references),
             reference_storage_keys=tuple(
                 reference.storage_key for reference in references

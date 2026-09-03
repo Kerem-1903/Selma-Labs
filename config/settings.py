@@ -7,6 +7,7 @@ module load would make every test that imports this module fail without a
 result — call sites that need config call get_settings(), they never
 construct Settings() themselves.
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -16,7 +17,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
     # Optional (default "") rather than required, as of Sprint 2: Settings
     # now covers multiple providers, and a voice-only test run shouldn't be
@@ -36,6 +39,14 @@ class Settings(BaseSettings):
     preproduction_asset_root: str = "assets"
     golden_review_manifest: str = "assets/preproduction/golden-set-review.example.json"
     golden_set_output_prefix: str = "preproduction/golden-set/generated"
+    golden_marker_gate_enabled: bool = True
+    insightface_model_name: str = "buffalo_l"
+    insightface_model_root: str = "~/.insightface"
+    insightface_ctx_id: int = 0
+    insightface_providers: str = ""
+    insightface_detection_size: int = 640
+    insightface_hair_pad_top: float = 0.35
+    insightface_hair_pad_side: float = 0.15
 
     selmagpt_api_url: str = "http://localhost:11434/v1/chat/completions"
     selmagpt_model_name: str = "llama3.1:8b"
@@ -43,7 +54,9 @@ class Settings(BaseSettings):
     # Check https://docs.claude.com for the current recommended model string
     # before running — model identifiers change over time.
     script_model: str = "claude-sonnet-4-5"
-    script_provider: Literal["claude", "nvidia", "ollama", "selmagpt", "swarm"] = "swarm"
+    script_provider: Literal["claude", "nvidia", "ollama", "selmagpt", "swarm"] = (
+        "swarm"
+    )
     nvidia_api_key: str = ""
     nvidia_base_url: str = "https://integrate.api.nvidia.com/v1"
     nvidia_text_model: str = "meta/llama-3.3-70b-instruct"
@@ -112,7 +125,7 @@ class Settings(BaseSettings):
     # Visual asset discovery (Sprint 3). video_provider is the single
     # switch that selects an adapter via config/provider_registry.py, same
     # pattern as voice_provider above.
-    video_generation_provider: str = "none" # options: "none", "luma", "comfyui"
+    video_generation_provider: str = "none"  # options: "none", "luma", "comfyui"
     luma_api_key: str = ""
     comfyui_api_url: str = "http://127.0.0.1:8188"
     comfyui_workflow_path: str = "assets/comfyui_workflow.json"
