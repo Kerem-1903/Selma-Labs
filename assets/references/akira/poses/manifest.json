@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "character_id": "akira",
+  "rights_status": "original_character",
+  "pose_extractor": {
+    "name": "Comfy-Org SDPose whole-body",
+    "checkpoint": "sdpose_wholebody_fp16.safetensors"
+  },
+  "poses": [
+    {
+      "id": "akira-katana-ready-v1",
+      "purpose": "two-handed overhead katana guard",
+      "reference": "akira-katana-ready-reference-v1.png",
+      "reference_sha256": "99212f993f6e003e3885ca54d0e7ac64851c6249ae5f624169519da6f5fbf26a",
+      "openpose": "akira-katana-ready-openpose-v1.png",
+      "openpose_sha256": "f7a8c40e33ef8e78375899c8fb1d99ee41801b783c816ce83ce44a4dbfa64993"
+    },
+    {
+      "id": "akira-running-v1",
+      "purpose": "forward sprint",
+      "reference": "akira-running-reference-v1.png",
+      "reference_sha256": "6624ed9bad931e81513dda92f94f626ffa3d2464f07ce0d8065781039aa732e7",
+      "openpose": "akira-running-openpose-v1.png",
+      "openpose_sha256": "c14582d001907c084c978b6d6e786a03732a8cc0923dec4b0b520a6456a98a8a"
+    }
+  ]
+}

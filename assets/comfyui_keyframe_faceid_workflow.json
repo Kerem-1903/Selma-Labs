@@ -1,0 +1,132 @@
+{
+  "3": {
+    "inputs": {
+      "seed": 0,
+      "steps": 28,
+      "cfg": 5.0,
+      "sampler_name": "euler_ancestral",
+      "scheduler": "normal",
+      "denoise": 1.0,
+      "model": ["20", 0],
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "latent_image": ["13", 0]
+    },
+    "class_type": "KSampler",
+    "_meta": {"title": "SELMA FaceID Sampler", "selma_role": "sampler"}
+  },
+  "4": {
+    "inputs": {"ckpt_name": "sd_xl_base_1.0.safetensors"},
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {"title": "Load Checkpoint", "selma_role": "checkpoint"}
+  },
+  "5": {
+    "inputs": {"width": 1024, "height": 1024, "batch_size": 1},
+    "class_type": "EmptyLatentImage",
+    "_meta": {"title": "SELMA Empty Latent", "selma_role": "empty_latent"}
+  },
+  "13": {
+    "inputs": {"width": 1024, "height": 1024, "batch_size": 1},
+    "class_type": "EmptyLatentImage",
+    "_meta": {"title": "SELMA Reference Latent", "selma_role": "reference_latent"}
+  },
+  "6": {
+    "inputs": {"text": "", "clip": ["4", 1]},
+    "class_type": "CLIPTextEncode",
+    "_meta": {"title": "SELMA Positive Prompt", "selma_role": "positive_prompt"}
+  },
+  "7": {
+    "inputs": {
+      "text": "lowres, bad anatomy, bad hands, text, logo, emblem, patch, badge, signature, watermark, blurry, multiple characters, duplicate body, duplicate limbs, character sheet, cropped head, blue eyes, extra weapon, multiple weapons, red hair on viewer left, multiple red hair streaks, red hair tips",
+      "clip": ["4", 1]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {"title": "SELMA Negative Prompt", "selma_role": "negative_prompt"}
+  },
+  "8": {
+    "inputs": {"samples": ["3", 0], "vae": ["4", 2]},
+    "class_type": "VAEDecode",
+    "_meta": {"title": "VAE Decode"}
+  },
+  "9": {
+    "inputs": {"filename_prefix": "SELMA-FaceID-Keyframe", "images": ["8", 0]},
+    "class_type": "SaveImage",
+    "_meta": {"title": "SELMA FaceID Output", "selma_role": "output"}
+  },
+  "10": {
+    "inputs": {"image": "selma-reference.png", "upload": "image"},
+    "class_type": "LoadImage",
+    "_meta": {"title": "SELMA Face Reference", "selma_role": "reference_image"}
+  },
+  "12": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": 1024,
+      "height": 1024,
+      "crop": "center",
+      "image": ["10", 0]
+    },
+    "class_type": "ImageScale",
+    "_meta": {"title": "SELMA Reference Size", "selma_role": "target_size"}
+  },
+  "18": {
+    "inputs": {
+      "model": ["4", 0],
+      "preset": "FACEID PLUS V2",
+      "lora_strength": 0.6,
+      "provider": "CPU"
+    },
+    "class_type": "IPAdapterUnifiedLoaderFaceID",
+    "_meta": {"title": "SELMA FaceID Loader", "selma_role": "identity_loader"}
+  },
+  "20": {
+    "inputs": {
+      "weight": 0.8,
+      "weight_faceidv2": 1.0,
+      "weight_type": "linear",
+      "combine_embeds": "average",
+      "start_at": 0.0,
+      "end_at": 0.85,
+      "embeds_scaling": "K+V w/ C penalty",
+      "model": ["18", 0],
+      "ipadapter": ["18", 1],
+      "image": ["12", 0]
+    },
+    "class_type": "IPAdapterFaceID",
+    "_meta": {"title": "SELMA FaceID Identity Lock", "selma_role": "identity_adapter"}
+  },
+  "24": {
+    "inputs": {
+      "lora_name": "selma-character.safetensors",
+      "strength_model": 0.8,
+      "strength_clip": 0.8,
+      "model": ["4", 0],
+      "clip": ["4", 1]
+    },
+    "class_type": "LoraLoader",
+    "_meta": {"title": "SELMA Optional Character LoRA", "selma_role": "character_lora"}
+  },
+  "21": {
+    "inputs": {"control_net_name": "control-lora-openposeXL2-rank256.safetensors"},
+    "class_type": "ControlNetLoader",
+    "_meta": {"title": "Load OpenPose ControlNet"}
+  },
+  "22": {
+    "inputs": {
+      "strength": 0.72,
+      "start_percent": 0.0,
+      "end_percent": 0.82,
+      "positive": ["6", 0],
+      "negative": ["7", 0],
+      "control_net": ["21", 0],
+      "image": ["23", 0]
+    },
+    "class_type": "ControlNetApplyAdvanced",
+    "_meta": {"title": "SELMA Pose Control", "selma_role": "pose_control"}
+  },
+  "23": {
+    "inputs": {"image": "selma-pose.png", "upload": "image"},
+    "class_type": "LoadImage",
+    "_meta": {"title": "SELMA Pose Guide", "selma_role": "pose_control_image"}
+  }
+}

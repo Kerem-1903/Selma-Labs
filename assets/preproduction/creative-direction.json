@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "creative_direction": {
+    "id": "selma-crimson-silence",
+    "title": "Crimson Silence",
+    "version": 1,
+    "genre": "original cinematic shonen mystery",
+    "target_audience": "16+ global anime audience",
+    "narrative_tone": ["restrained", "tense", "melancholic", "explosive in short bursts"],
+    "visual_identity": "Rain-darkened city spaces, controlled silence, hard cel shadows, amber eyes and sparse deep-red accents.",
+    "originality_guardrails": ["Bleach", "Jujutsu Kaisen", "Demon Slayer", "Studio Ghibli", "MAPPA"],
+    "status": "LOCKED"
+  }
+}

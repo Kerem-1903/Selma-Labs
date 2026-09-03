@@ -1,12 +1,21 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 from cli.main import main
 from config.container import AnimationContainer, create_container
 from config.settings import Settings
+from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.character_rig import RigSpecification
+from core.domain.entities.episode_script import (
+    DialogueLine,
+    EpisodeScene,
+    EpisodeScript,
+    EpisodeScriptStatus,
+    EpisodeSequence,
+)
 from core.domain.ports.character_rig_port import RigValidationReport
 from infrastructure.storage.local_fs_storage import LocalFsStorage
 
@@ -36,6 +45,23 @@ def test_container_wires_canonical_character_and_services(tmp_path):
         container["animation_orchestrator_service"]
         is container.animation_orchestrator_service
     )
+    assert container.keyframe_generation_service._human_review_required is True
+
+
+def test_container_allows_explicit_legacy_keyframe_flow(tmp_path):
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path),
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+    )
+
+    container = create_container(
+        settings=settings,
+        comfyui_client=FakeComfyClient(),
+        human_review_required=False,
+    )
+
+    assert container.keyframe_generation_service._human_review_required is False
 
 
 def test_cli_shows_character_without_constructing_provider_container(capsys):
@@ -51,6 +77,27 @@ def test_cli_shows_character_without_constructing_provider_container(capsys):
     assert exit_code == 0
     assert payload["character_id"] == "akira"
     assert "akira_girl" in payload["prompt_fragments"]
+
+
+def test_cli_creates_generic_character_onboarding_plan(tmp_path, capsys):
+    source = tmp_path / "character.json"
+    output = tmp_path / "onboarding.json"
+    source.write_text(
+        json.dumps({"character_bible": CharacterBible.akira().to_dict()}),
+        encoding="utf-8",
+    )
+
+    assert (
+        main(["character", "plan", "--input", str(source), "--output", str(output)])
+        == 0
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["training_count"] == 20
+    assert payload["holdout_count"] == 3
+    assert payload["trigger_token"] == "selma_akira_v1"
+    assert len(payload["recipes"]) == 23
+    assert Path(capsys.readouterr().out.strip()) == output.resolve()
 
 
 def test_cli_breakdown_writes_unapproved_shot_plan(tmp_path):
@@ -77,6 +124,101 @@ def test_cli_breakdown_writes_unapproved_shot_plan(tmp_path):
     assert exit_code == 0
     assert len(payload["shots"]) == 2
     assert all(shot["keyframe_approved"] is False for shot in payload["shots"])
+
+
+def test_preproduction_status_and_locked_episode_plan_commands(tmp_path, capsys):
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path / "storage"),
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+    )
+
+    def factory():
+        return create_container(
+            settings=settings,
+            storage=LocalFsStorage(str(tmp_path / "storage")),
+            comfyui_client=FakeComfyClient(),
+        )
+
+    assert main(["preproduction", "status"], container_factory=factory) == 0
+    status = json.loads(capsys.readouterr().out)
+    assert status["story_canon_locked"] is True
+    assert status["visual_style_locked"] is True
+    assert status["next_gate"] == "GOLDEN_SET"
+
+    scene = EpisodeScene(
+        "scene-1",
+        "Signal",
+        "Rain Rooftop",
+        "Akira follows the signal.",
+        ("Akira",),
+        (DialogueLine("Akira", "Stay behind me."),),
+    )
+    script = (
+        EpisodeScript.create(
+            title="Signal",
+            logline="Akira hears a stolen memory.",
+            episode_number=1,
+            provider_used="test",
+            sequences=(EpisodeSequence("seq-1", "Opening", (scene,)),),
+        )
+        .with_status(EpisodeScriptStatus.READY_FOR_APPROVAL)
+        .lock("Kerem")
+    )
+    source = tmp_path / "episode.json"
+    output = tmp_path / "plan.json"
+    source.write_text(json.dumps(script.to_dict()), encoding="utf-8")
+
+    assert (
+        main(
+            ["preproduction", "plan", "--input", str(source), "--output", str(output)],
+            container_factory=factory,
+        )
+        == 0
+    )
+    plan = json.loads(output.read_text(encoding="utf-8"))
+    assert (
+        len(plan["episode_production_plan"]["sequences"][0]["scenes"][0]["shots"]) == 2
+    )
+
+
+def test_preproduction_golden_set_runs_through_selma_pipeline(tmp_path, capsys):
+    output = tmp_path / "akira-golden-set.json"
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path / "runtime"),
+        preproduction_asset_root=str(tmp_path / "assets"),
+        keyframe_generation_provider="fake",
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+    )
+
+    def factory():
+        return create_container(settings=settings)
+
+    assert (
+        main(
+            [
+                "preproduction",
+                "golden-set",
+                "--model-id",
+                "offline-smoke",
+                "--model-revision",
+                "v1",
+                "--output",
+                str(output),
+            ],
+            container_factory=factory,
+        )
+        == 0
+    )
+
+    assert Path(capsys.readouterr().out.strip()) == output.resolve()
+    payload = json.loads(output.read_text(encoding="utf-8"))["golden_set"]
+    assert len(payload["results"]) == 10
+    assert payload["model_id"] == "offline-smoke"
+    assert payload["locked_at"] is None
+    assert all(result["human_approved"] is False for result in payload["results"])
+    assert len(list((tmp_path / "assets").rglob("*.png"))) == 10
 
 
 def test_rig_validate_returns_nonzero_for_invalid_rig(capsys):

@@ -27,9 +27,31 @@ import {PhantomVibrationShort} from "./phantom-vibration/PhantomVibrationShort";
 import {VlahovicTomatoShort} from "./vlahovic-tomato/VlahovicTomatoShort";
 import {AirplaneLavatoryShort} from "./airplane-lavatory/AirplaneLavatoryShort";
 import {ChipBagShort} from "./chip-bag/ChipBagShort";
+import {AnimeAnimatic} from "./anime-animatic/AnimeAnimatic";
+import type {AnimeAnimaticProps} from "./anime-animatic/types";
+
+const animeAnimaticDefaults: AnimeAnimaticProps = {
+  title: "SELMA Anime Animatic",
+  fps: 24,
+  durationInFrames: 240,
+  clips: [],
+};
 
 export const RemotionRoot: React.FC = () => (
   <>
+    <Composition
+      id="AnimeAnimatic"
+      component={AnimeAnimatic}
+      width={1920}
+      height={1080}
+      fps={24}
+      durationInFrames={240}
+      defaultProps={animeAnimaticDefaults}
+      calculateMetadata={({props}) => ({
+        durationInFrames: Math.max(1, props.durationInFrames),
+        fps: 24,
+      })}
+    />
     <Composition
       id="ChipBagShort"
       component={ChipBagShort}

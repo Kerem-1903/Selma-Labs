@@ -2,17 +2,36 @@
   "character_bible": {
     "character_id": "akira",
     "identity_constraints": {
-      "body_proportions": "athletic adult woman",
-      "eye_color": "amber-brown",
-      "facial_geometry": "angular anime face with narrow jaw and straight nose",
-      "hair": "long black hair with one controlled red front streak",
+      "body_proportions": "athletic adult woman, consistent limb proportions",
+      "eye_color": "amber",
+      "facial_geometry": "angular anime face, defined jaw, straight nose",
+      "hair": "long straight black hair, otherwise entirely black, with exactly one narrow deep-red front streak on character left (viewer right)",
       "immutable_marks": [
-        "single red hair streak on the left-front section",
-        "amber eyes"
+        "single deep-red hair streak on the left-front section",
+        "amber eyes",
+        "one katana only"
       ],
-      "silhouette": "lean swordswoman in a cropped field jacket and tall boots"
+      "silhouette": "cropped combat jacket, tapered combat trousers, single katana",
+      "trigger_prompt": "akira_girl"
     },
-    "outfit_catalog": [],
+    "outfit_catalog": [
+      {
+        "id": "akira-default",
+        "character_id": "akira",
+        "description": "cropped charcoal combat jacket with deep-red inner lining, black combat trousers, knee pads, and black combat boots",
+        "reference_image_keys": []
+      }
+    ],
+    "narrative_profile": {
+      "allowed_abilities": ["Crimson Arc"],
+      "backstory": "A disciplined swordswoman hunting the source of altered memories inside a rain-soaked controlled city.",
+      "canonical_names": ["Akira"],
+      "forbidden_behaviors": ["abandons civilians"],
+      "forbidden_voice_phrases": ["I give up"],
+      "locked": true,
+      "motivation": "Protect civilians without becoming a weapon of the memory regime.",
+      "voice_traits": ["concise", "restrained", "observant"]
+    },
     "reference_pack": {
       "BACK": {
         "asset_id": "f24c06f1-5c8d-46d8-85a5-6cb71ab8638c",
@@ -80,6 +99,11 @@
         "different outfit",
         "red ribbon",
         "red energy trail",
+        "red hair on both sides",
+        "red hair on character right (viewer left)",
+        "multiple red hair streaks",
+        "red hair tips",
+        "red hair clip",
         "extra weapon"
       ]
     }

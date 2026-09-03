@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "visual_style": {
+    "id": "crimson-silence-visual-v1",
+    "name": "Crimson Silence Visual System",
+    "version": 1,
+    "palette": ["#111217", "#211A20", "#60202D", "#B23A48", "#D89A43", "#D8D5CF"],
+    "line_language": "Consistent controlled ink line with slightly heavier exterior contours.",
+    "shading_language": "Two-step hard cel shading with restrained rim light and no airbrushed skin.",
+    "camera_language": "Still anticipatory frames, deliberate close-ups, then short readable motion bursts with strong silhouettes.",
+    "prohibited_traits": ["photorealistic skin", "generic 3D render", "neon overload", "identity drift", "extra weapon", "illegible action"],
+    "status": "LOCKED"
+  }
+}

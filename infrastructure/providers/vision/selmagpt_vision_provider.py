@@ -1,6 +1,6 @@
 import base64
 import json
-from typing import List, Any
+
 import aiohttp
 
 from core.domain.exceptions import ProviderError
@@ -33,18 +33,26 @@ class SelmaGPTVisionProvider(VisionAnalysisPort):
 
     async def analyze(
         self,
-        frame_bytes: List[bytes],
+        frame_bytes: list[bytes],
         scene_context: str,
     ) -> VisionAnalysisResult:
         """Return structured visual evidence for sequential JPEG frames."""
         if not frame_bytes:
             raise ProviderError("No frames provided for vision analysis.")
 
-        images_b64 = [base64.b64encode(frame).decode('ascii') for frame in frame_bytes]
+        images_b64 = [base64.b64encode(frame).decode("ascii") for frame in frame_bytes]
 
         prompt = (
-            "Analyze these sequential video frames for a Shorts background. "
-            f"Target visual intent: '{scene_context}'. "
+            "Analyze the supplied still image or sequential frames against the "
+            "target visual contract. When two images are supplied, the first is "
+            "the approved reference and the second is the candidate; score visual "
+            "identity and requested composition preservation in relevance_score. "
+            "For anime characters, compare face shape, hair length and markings, "
+            "eye color, outfit construction, body anatomy, crop and requested pose. "
+            "Set text_present or logo_present true only for clearly legible text or "
+            "a recognizable logo; clothing seams, abstract patches, highlights and "
+            "decorative shapes are not text or logos. "
+            f"Target visual contract: '{scene_context}'. "
             "Return ONLY a valid JSON object with the following exact keys: "
             "relevance_score (float 0.0-1.0), scene_type (str), lighting (str), "
             "dominant_colors (list of str), indoors (bool), outdoors (bool), "
@@ -62,22 +70,24 @@ class SelmaGPTVisionProvider(VisionAnalysisPort):
             "images": images_b64,
             "stream": False,
             "format": "json",
-            "options": {
-                "temperature": 0.1
-            }
+            "options": {"temperature": 0.1},
         }
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
+            async with (
+                aiohttp.ClientSession() as session,
+                session.post(
                     self._api_url,
                     json=payload,
-                    timeout=aiohttp.ClientTimeout(total=self._timeout_seconds)
-                ) as response:
-                    if response.status != 200:
-                        err_text = await response.text()
-                        raise ProviderError(f"SelmaGPT returned status {response.status}: {err_text}")
-                    result_data = await response.json()
+                    timeout=aiohttp.ClientTimeout(total=self._timeout_seconds),
+                ) as response,
+            ):
+                if response.status != 200:
+                    err_text = await response.text()
+                    raise ProviderError(
+                        f"SelmaGPT returned status {response.status}: {err_text}"
+                    )
+                result_data = await response.json()
 
             output_text = result_data.get("response", "")
             return self._to_result(output_text)
@@ -91,21 +101,19 @@ class SelmaGPTVisionProvider(VisionAnalysisPort):
     def _to_result(output_text: str) -> VisionAnalysisResult:
         try:
             payload = output_text.strip()
-            if payload.startswith("```json"):
-                payload = payload[7:]
-            if payload.startswith("```"):
-                payload = payload[3:]
-            if payload.endswith("```"):
-                payload = payload[:-3]
+            payload = payload.removeprefix("```json").removeprefix("```")
+            payload = payload.removesuffix("```")
             data = json.loads(payload.strip())
             if not isinstance(data, dict):
-                raise ValueError("SelmaGPT response must be a JSON object.")
+                raise TypeError("SelmaGPT response must be a JSON object.")
 
             return VisionAnalysisResult(
                 relevance_score=float(data.get("relevance_score", 0.0)),
                 scene_type=str(data.get("scene_type", "unknown")),
                 lighting=str(data.get("lighting", "unknown")),
-                dominant_colors=[str(value) for value in data.get("dominant_colors", [])],
+                dominant_colors=[
+                    str(value) for value in data.get("dominant_colors", [])
+                ],
                 indoors=bool(data.get("indoors", False)),
                 outdoors=bool(data.get("outdoors", False)),
                 camera_motion=str(data.get("camera_motion", "unknown")),
@@ -115,9 +123,15 @@ class SelmaGPTVisionProvider(VisionAnalysisPort):
                 text_present=bool(data.get("text_present", False)),
                 logo_present=bool(data.get("logo_present", False)),
                 dominant_subject=str(data.get("dominant_subject", "")),
-                observed_subjects=[str(value) for value in data.get("observed_subjects", [])],
-                observed_actions=[str(value) for value in data.get("observed_actions", [])],
-                observed_relations=[str(value) for value in data.get("observed_relations", [])],
+                observed_subjects=[
+                    str(value) for value in data.get("observed_subjects", [])
+                ],
+                observed_actions=[
+                    str(value) for value in data.get("observed_actions", [])
+                ],
+                observed_relations=[
+                    str(value) for value in data.get("observed_relations", [])
+                ],
                 subject_pose=str(data.get("subject_pose", "")),
                 camera_angle=str(data.get("camera_angle", "")),
                 background_signature=str(data.get("background_signature", "")),
@@ -128,4 +142,6 @@ class SelmaGPTVisionProvider(VisionAnalysisPort):
                 ),
             )
         except (TypeError, ValueError, json.JSONDecodeError) as error:
-            raise ProviderError(f"SelmaGPT vision returned invalid JSON: {error}") from error
+            raise ProviderError(
+                f"SelmaGPT vision returned invalid JSON: {error}"
+            ) from error

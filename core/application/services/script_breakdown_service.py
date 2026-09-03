@@ -5,7 +5,9 @@ import re
 
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.character_state import CharacterState
+from core.domain.entities.episode_script import EpisodeScript, EpisodeScriptStatus
 from core.domain.entities.shot_animation import ShotPlan
+from core.domain.exceptions import StoryApprovalError
 
 
 class ScriptBreakdownService:
@@ -83,6 +85,19 @@ class ScriptBreakdownService:
         if not shots:
             raise ValueError("Script did not contain any executable dialogue or action lines.")
         return shots
+
+    def parse_episode(self, script: EpisodeScript) -> list[ShotPlan]:
+        """Break down only a reviewed and explicitly human-approved screenplay."""
+        if script.status is not EpisodeScriptStatus.LOCKED:
+            raise StoryApprovalError(
+                "Script breakdown requires a human-approved locked episode script."
+            )
+        lines: list[str] = []
+        for scene in script.scenes:
+            lines.append(f"SCENE: {scene.location}")
+            lines.append(scene.summary)
+            lines.extend(f"{line.speaker.upper()}: {line.text}" for line in scene.dialogue)
+        return self.parse_script("\n".join(lines), script.id)
 
     @staticmethod
     def _duration_seconds(word_count: int, *, dialogue: bool) -> float:

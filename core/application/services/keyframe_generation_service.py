@@ -309,8 +309,8 @@ class KeyframeGenerationService:
                 **request.visual_constraints,
                 "pose_storage_key": pose_key,
                 "controlnet_type": shot_plan.controlnet_type or "openpose",
-                "pose_strength": 0.85,
-                "identity_strength": 0.65,
+                "pose_strength": 0.8,
+                "identity_strength": 0.8,
                 "identity_mode": "identity_only",
             }
             requests.append(request.from_dict(request_payload))

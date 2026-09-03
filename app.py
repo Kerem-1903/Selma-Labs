@@ -70,18 +70,6 @@ async def generate_short(topic: str, language: str, music_theme: str, privacy: s
         settings.video_generation_provider = "comfyui"
         settings.comfyui_mode = "v2v"
 
-    settings.vision_enabled = True
-    settings.vision_provider = "openai" # Or nvidia, just to pass config test
-
-    # Avoid crashing on missing API keys during UI initialization testing
-    if not settings.pexels_api_key: settings.pexels_api_key = "mock"
-    if not settings.elevenlabs_api_key: settings.elevenlabs_api_key = "mock"
-    if not settings.nvidia_api_key: settings.nvidia_api_key = "mock"
-    if not settings.openai_api_key: settings.openai_api_key = "mock"
-    if not settings.anthropic_api_key: settings.anthropic_api_key = "mock"
-    if not settings.youtube_data_api_key: settings.youtube_data_api_key = "mock"
-
-
     # Init repository
     run_id = str(uuid.uuid4())
     os.makedirs(settings.storage_root_dir, exist_ok=True)

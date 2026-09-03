@@ -249,6 +249,34 @@ class CharacterBibleNotFoundError(SelmaError):
     """The requested character bible does not exist in the repository."""
 
 
+class PreProductionValidationError(SelmaError):
+    """A story or canon artifact violates its deterministic domain contract."""
+
+
+class StoryDevelopmentError(SelmaError):
+    """A story draft cannot safely advance through the development pipeline."""
+
+
+class StoryApprovalError(SelmaError):
+    """A story attempted to bypass review or human approval."""
+
+
+class PreProductionStateError(SelmaError):
+    """Persisted pre-production state is missing, corrupt, or incompatible."""
+
+
+class GoldenSetValidationError(SelmaError):
+    """The character Golden Set is incomplete or below its quality thresholds."""
+
+
+class AnimaticApprovalError(SelmaError):
+    """An animatic attempted to bypass storyboard or human approval."""
+
+
+class AnimationPackageError(SelmaError):
+    """A shot cannot become an animation-ready package."""
+
+
 class AutonomousShotPlanningError(SelmaError):
     """Typed shot contracts could not be built from story and continuity data."""
 

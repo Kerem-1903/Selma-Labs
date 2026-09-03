@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "world_bible": {
+    "id": "kizil-sehir-v1",
+    "name": "Kizil Sehir",
+    "version": 1,
+    "premise": "A private security network regulates memory in a rain-soaked city; recovered memories carry physical and political consequences.",
+    "locations": [
+      {"id": "north-rooftop", "name": "North District Rooftop", "aliases": ["Rain Rooftop", "Cati"]},
+      {"id": "memory-clinic", "name": "Abandoned Memory Clinic", "aliases": ["Clinic", "Hospital"]},
+      {"id": "red-line", "name": "Red Line Transit Tunnel", "aliases": ["Tunnel"]},
+      {"id": "old-market", "name": "Old Market Street", "aliases": ["Market", "Street"]}
+    ],
+    "rules": [
+      {"id": "death-final", "description": "Death is irreversible.", "forbidden_phrases": ["resurrection", "returns from death"]},
+      {"id": "memory-cost", "description": "Restoring a memory always causes a measurable personal cost.", "forbidden_phrases": ["restored every memory without consequence"]},
+      {"id": "no-free-teleport", "description": "Movement obeys physical distance and established transit routes.", "forbidden_phrases": ["teleports instantly"]}
+    ],
+    "status": "LOCKED"
+  }
+}

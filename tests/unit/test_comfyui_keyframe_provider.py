@@ -12,7 +12,9 @@ from config.provider_registry import get_keyframe_generation_provider
 from config.settings import Settings
 from core.domain.exceptions import ProviderError, StorageError
 from core.domain.ports.storage_port import StoragePort
-from core.domain.value_objects.keyframe_generation_request import KeyframeGenerationRequest
+from core.domain.value_objects.keyframe_generation_request import (
+    KeyframeGenerationRequest,
+)
 from core.domain.value_objects.storage_reference import StorageReference
 from infrastructure.providers.keyframe.comfyui_keyframe_provider import (
     ComfyUIKeyframeProvider,
@@ -21,11 +23,13 @@ from infrastructure.providers.keyframe.fake_keyframe_generation_provider import 
     FakeKeyframeGenerationProvider,
 )
 
-
 PNG_BYTES = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
 WORKFLOW_PATH = Path(__file__).parents[2] / "assets" / "comfyui_keyframe_workflow.json"
+FACEID_WORKFLOW_PATH = (
+    Path(__file__).parents[2] / "assets" / "comfyui_keyframe_faceid_workflow.json"
+)
 
 
 class MemoryStorage(StoragePort):
@@ -159,6 +163,7 @@ def _request(*, with_reference: bool = True) -> KeyframeGenerationRequest:
         camera_constraints={"angle": "close-up", "lens": "50mm", "movement": "static"},
         action_constraints={"primary_action": "draw katana", "secondary_actions": []},
         visual_constraints={
+            "prompt": "locked Akira visual identity",
             "lighting": "low-key",
             "environment_style": "neon street",
             "weather": "rain",
@@ -190,6 +195,34 @@ def _request(*, with_reference: bool = True) -> KeyframeGenerationRequest:
         height=720,
         seed=1903,
     )
+
+
+def test_positive_prompt_keeps_explicit_selma_visual_contract():
+    prompt = ComfyUIKeyframeProvider._build_positive_prompt(_request())
+
+    assert "locked Akira visual identity" in prompt
+    assert "draw katana" in prompt
+
+
+def test_positive_prompt_flattens_identity_and_composition_contracts():
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "composition_contract": "face occupies 55-70% of frame",
+            "identity_contract": {
+                "hair": "long black hair",
+                "immutable_marks": ("one red streak", "amber eyes"),
+            },
+        },
+    )
+
+    prompt = ComfyUIKeyframeProvider._build_positive_prompt(request)
+
+    assert "face occupies 55-70% of frame" in prompt
+    assert "locked hair: (long black hair:1.25)" in prompt
+    assert "locked immutable_marks: (one red streak:1.25)" in prompt
+    assert "locked immutable_marks: (amber eyes:1.25)" in prompt
 
 
 @pytest.mark.asyncio
@@ -322,6 +355,98 @@ async def test_provider_identity_only_mode_reduces_composition_transfer():
     assert adapter["combine_embeds"] == "average"
     assert adapter["end_at"] == 0.65
     assert adapter["embeds_scaling"] == "K+V w/ C penalty"
+
+
+@pytest.mark.asyncio
+async def test_provider_supports_faceid_loader_and_strength_override():
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=FACEID_WORKFLOW_PATH,
+        storage=MemoryStorage(
+            {
+                "characters/akira/face.png": PNG_BYTES,
+                "characters/akira/front.png": PNG_BYTES,
+            }
+        ),
+        session_factory=lambda **kwargs: session,
+    )
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "identity_strength": 0.85,
+            "identity_faceidv2_strength": 1.15,
+        },
+    )
+
+    await provider.generate_keyframe(request)
+
+    workflow = session.queued_workflow
+    assert workflow["18"]["class_type"] == "IPAdapterUnifiedLoaderFaceID"
+    assert workflow["18"]["inputs"]["model"] == ["4", 0]
+    assert workflow["20"]["class_type"] == "IPAdapterFaceID"
+    assert workflow["20"]["inputs"]["weight"] == 0.85
+    assert workflow["20"]["inputs"]["weight_faceidv2"] == 1.15
+    assert workflow["3"]["inputs"]["model"] == ["20", 0]
+
+
+@pytest.mark.asyncio
+async def test_faceid_workflow_can_apply_a_reviewed_pose_guide():
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=FACEID_WORKFLOW_PATH,
+        storage=MemoryStorage(
+            {
+                "characters/akira/face.png": PNG_BYTES,
+                "characters/akira/front.png": PNG_BYTES,
+                "characters/akira/poses/hand.png": PNG_BYTES,
+            }
+        ),
+        session_factory=lambda **kwargs: session,
+    )
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "pose_storage_key": "characters/akira/poses/hand.png",
+            "pose_strength": 0.72,
+        },
+    )
+
+    await provider.generate_keyframe(request)
+
+    workflow = session.queued_workflow
+    assert workflow["23"]["inputs"]["image"] == "selma/reference.png"
+    assert workflow["22"]["inputs"]["strength"] == 0.72
+    assert workflow["3"]["inputs"]["positive"] == ["22", 0]
+    assert workflow["3"]["inputs"]["negative"] == ["22", 1]
+
+
+@pytest.mark.asyncio
+async def test_provider_rejects_unsafe_faceid_strength():
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=FACEID_WORKFLOW_PATH,
+        storage=MemoryStorage(
+            {
+                "characters/akira/face.png": PNG_BYTES,
+                "characters/akira/front.png": PNG_BYTES,
+            }
+        ),
+        session_factory=lambda **kwargs: FakeSession(),
+    )
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "identity_faceidv2_strength": 5.1,
+        },
+    )
+
+    with pytest.raises(ProviderError, match="FaceID v2"):
+        await provider.generate_keyframe(request)
 
 
 @pytest.mark.asyncio
