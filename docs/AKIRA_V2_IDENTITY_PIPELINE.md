@@ -16,8 +16,10 @@ unverified.
 
 ## V2 gates
 
-1. Generate one neutral identity anchor from the Character Bible.
-2. Human-approve the anchor and keep its SHA-256 hash in the review manifest.
+1. Use the locked neutral identity anchor at
+   `assets/characters/akira/identity_lock/v2/akira-canonical-anchor-v2.png`.
+2. Keep its approved SHA-256 hash in the review manifest. The V2 anchor was
+   human-approved on 2026-09-04 and must not be replaced without a new lock version.
 3. Generate the 20 training and 3 holdout references through SELMA Labs.
 4. Review every source image against the anchor. A sample passes only when:
    - identity score is at least `0.90`;
@@ -42,7 +44,7 @@ python -m cli.main character dataset `
   --source output/training/akira-lora-v1-source `
   --output output/training/akira-lora-v2-curation `
   --trigger-token selma_akira_v2 `
-  --canonical-anchor output/training/akira-lora-v1-source/face-closeup-front.png
+  --canonical-anchor assets/characters/akira/identity_lock/v2/akira-canonical-anchor-v2.png
 ```
 
 Audit any old or new dataset without starting GPU training:
@@ -57,7 +59,7 @@ Create the pending per-image review form automatically:
 ```powershell
 python -m cli.main character review-template `
   --manifest output/training/akira-lora-v2-curation/manifest.json `
-  --canonical-anchor output/training/akira-lora-v1-source/face-closeup-front.png `
+  --canonical-anchor assets/characters/akira/identity_lock/v2/akira-canonical-anchor-v2.png `
   --output output/training/akira-lora-v2-curation/review.json
 ```
 

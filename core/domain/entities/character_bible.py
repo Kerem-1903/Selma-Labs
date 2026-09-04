@@ -68,14 +68,14 @@ class CharacterBible:
                     StructuredMark(
                         id="akira-red-streak",
                         label="single deep-red front hair streak",
-                        color_hex="#B0171F",
+                        color_hex="#C04838",
                         viewer_side="viewer_right",
                         count=1,
-                        color_tolerance_delta_e=6.0,
+                        color_tolerance_delta_e=18.0,
                         anchor=MarkAnchor(
                             region="front-hairline",
-                            x_center=0.58,
-                            y_root=0.06,
+                            x_center=0.73,
+                            y_root=0.11,
                             extent=0.12,
                             sweep_deg=-18.0,
                         ),

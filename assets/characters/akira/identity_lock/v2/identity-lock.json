@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "character_id": "akira",
+  "lock_version": "v2",
+  "status": "LOCKED",
+  "approved_at": "2026-09-04",
+  "approved_by": "Kerem",
+  "master_reference": {
+    "path": "characters/akira/identity_lock/v2/akira-canonical-anchor-v2.png",
+    "sha256": "0c9b22e9ff7d3c53829c4695d8322d7e405bd8e9fab2668d5b98a0d212e3e29e"
+  },
+  "immutable_identity": {
+    "appearance": "adult athletic anime woman with a narrow angular jaw and warm pale skin",
+    "eyes": "amber-orange, sharp almond shape",
+    "hair": "long near-black hair with layered bangs",
+    "signature_mark": "exactly one vivid red front streak on the viewer-right side",
+    "outfit": "cropped charcoal tactical jacket with deep-red lining over a fitted black high-neck shirt"
+  },
+  "structured_mark_calibration": {
+    "color_hex": "#C04838",
+    "color_tolerance_delta_e": 18.0,
+    "viewer_side": "viewer_right",
+    "count": 1,
+    "anchor": {
+      "region": "front-hairline",
+      "x_center": 0.73,
+      "y_root": 0.11,
+      "extent": 0.12
+    }
+  },
+  "training_policy": {
+    "anchor_approved": true,
+    "dataset_approved": false,
+    "next_gate": "PER_IMAGE_DATASET_REVIEW"
+  },
+  "forbidden_drift": [
+    "missing, duplicated, or relocated red hair streak",
+    "red hair on the viewer-left side",
+    "multiple red hair streaks or red hair tips",
+    "different face, apparent age, eye color, hairstyle, or outfit",
+    "photorealistic, 3D, chibi, or painterly rendering"
+  ]
+}

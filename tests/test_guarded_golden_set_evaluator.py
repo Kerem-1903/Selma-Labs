@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import hashlib
 import io
+import json
 from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -31,7 +34,17 @@ from infrastructure.providers.vision.insightface_head_region_provider import (
     InsightFaceHeadRegionProvider,
 )
 
-HEAD = (100.0, 40.0, 200.0, 260.0)  # root = (158, 53.2)
+HEAD = (100.0, 40.0, 200.0, 260.0)  # root = (173, 64.2)
+APPROVED_ANCHOR = (
+    Path(__file__).parents[1]
+    / "assets"
+    / "characters"
+    / "akira"
+    / "identity_lock"
+    / "v2"
+    / "akira-canonical-anchor-v2.png"
+)
+IDENTITY_LOCK = APPROVED_ANCHOR.with_name("identity-lock.json")
 
 
 class _FakeHead(HeadRegionPort):
@@ -80,7 +93,7 @@ class _PassHuman:
         )
 
 
-def _img(root_x, root_y=53, collateral_red=False):
+def _img(root_x, root_y=64, collateral_red=False):
     img = Image.new("RGB", (300, 300), (20, 20, 20))
     d = ImageDraw.Draw(img)
     if root_x is not None:
@@ -91,10 +104,10 @@ def _img(root_x, root_y=53, collateral_red=False):
                 (root_x + 2, root_y + 80),
                 (root_x - 2, root_y + 80),
             ],
-            fill=(176, 23, 31),
+            fill=(192, 72, 56),
         )
     if collateral_red:
-        d.rectangle([80, 270, 220, 295], fill=(176, 23, 31))
+        d.rectangle([80, 270, 220, 295], fill=(192, 72, 56))
     b = io.BytesIO()
     img.save(b, format="PNG")
     return b.getvalue()
@@ -133,7 +146,7 @@ def _style():
 
 @pytest.mark.asyncio
 async def test_correct_streak_passes():
-    result = await _guard(_img(158), HeadRegion(bbox=HEAD, source="fake")).evaluate(
+    result = await _guard(_img(173), HeadRegion(bbox=HEAD, source="fake")).evaluate(
         character=CharacterBible.akira(),
         style=_style(),
         test_case=_tc(),
@@ -157,7 +170,7 @@ async def test_wrong_side_blocks():
 @pytest.mark.asyncio
 async def test_collateral_red_outside_head_ignored():
     result = await _guard(
-        _img(158, collateral_red=True), HeadRegion(bbox=HEAD, source="fake")
+        _img(173, collateral_red=True), HeadRegion(bbox=HEAD, source="fake")
     ).evaluate(
         character=CharacterBible.akira(),
         style=_style(),
@@ -171,7 +184,7 @@ async def test_collateral_red_outside_head_ignored():
 @pytest.mark.asyncio
 async def test_no_head_fails_closed():
     with pytest.raises(GoldenSetValidationError):
-        await _guard(_img(158), None).evaluate(
+        await _guard(_img(173), None).evaluate(
             character=CharacterBible.akira(),
             style=_style(),
             test_case=_tc(),
@@ -220,7 +233,7 @@ def test_legacy_record_without_marker_gate_migrates_to_false():
 @pytest.mark.asyncio
 async def test_unreliable_wide_shot_skips_marker_detection():
     test_case = replace(_tc(), marker_validation_required=False)
-    result = await _guard(_img(158), None).evaluate(
+    result = await _guard(_img(173), None).evaluate(
         character=CharacterBible.akira(),
         style=_style(),
         test_case=test_case,
@@ -235,7 +248,7 @@ async def test_unreliable_wide_shot_skips_marker_detection():
 async def test_character_without_structured_marks_skips_marker_detection():
     character = CharacterBible.akira()
     character.identity_constraints.structured_marks.clear()
-    result = await _guard(_img(158), None).evaluate(
+    result = await _guard(_img(173), None).evaluate(
         character=character,
         style=_style(),
         test_case=_tc(),
@@ -244,6 +257,52 @@ async def test_character_without_structured_marks_skips_marker_detection():
 
     assert result.marker_gate_passed is True
     assert result.structured_mark_reports == ()
+
+
+@pytest.mark.asyncio
+async def test_approved_akira_v2_anchor_passes_the_real_marker_gate():
+    data = APPROVED_ANCHOR.read_bytes()
+    calibrated_head = (
+        318.43206787109375,
+        171.85008697509767,
+        663.5477905273438,
+        609.806640625,
+    )
+
+    result = await _guard(
+        data, HeadRegion(bbox=calibrated_head, source="approved-anchor-fixture")
+    ).evaluate(
+        character=CharacterBible.akira(),
+        style=_style(),
+        test_case=_tc(),
+        storage_key="akira-canonical-anchor-v2.png",
+    )
+
+    assert result.marker_gate_passed is True
+    assert result.structured_mark_reports[0].detected_count == 1
+
+
+def test_akira_v2_identity_lock_hash_and_calibration_cannot_drift():
+    lock = json.loads(IDENTITY_LOCK.read_text(encoding="utf-8"))
+    mark = CharacterBible.akira().identity_constraints.structured_marks[0]
+
+    assert lock["status"] == "LOCKED"
+    assert lock["master_reference"]["sha256"] == hashlib.sha256(
+        APPROVED_ANCHOR.read_bytes()
+    ).hexdigest()
+    assert lock["structured_mark_calibration"] == {
+        "color_hex": mark.color_hex,
+        "color_tolerance_delta_e": mark.color_tolerance_delta_e,
+        "viewer_side": mark.viewer_side,
+        "count": mark.count,
+        "anchor": {
+            "region": mark.anchor.region,
+            "x_center": mark.anchor.x_center,
+            "y_root": mark.anchor.y_root,
+            "extent": mark.anchor.extent,
+        },
+    }
+    assert lock["training_policy"]["dataset_approved"] is False
 
 
 def test_akira_defaults_lock_critical_scenarios_and_action_poses():
