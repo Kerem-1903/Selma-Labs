@@ -188,6 +188,10 @@ class Settings(BaseSettings):
     vision_max_concurrency: int = 2
     vision_weight: float = 0.65
 
+    # Deterministic identity pre-gate (cheap structured-mark seal) that runs
+    # before the slow vision model so defective frames never cost a review.
+    streak_pre_gate_enabled: bool = True
+
     # Scene planning (Sprint 4). Reuses anthropic_api_key above -- same
     # Anthropic account, a separate model setting because scene planning's
     # prompt/output shape is different enough from script generation that

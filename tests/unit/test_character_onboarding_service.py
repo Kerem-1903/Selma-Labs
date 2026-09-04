@@ -5,17 +5,19 @@ import io
 from pathlib import Path
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from core.application.services.character_onboarding_service import (
     CharacterOnboardingService,
 )
+from core.application.services.streak_pre_gate import StreakPreGate
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.character_golden_set import default_character_golden_cases
 from core.domain.value_objects.character_identity import (
     IdentityConstraints,
     ReferenceView,
 )
+from core.domain.value_objects.generated_keyframe import GeneratedKeyframe
 from core.domain.value_objects.outfit import Outfit
 from core.domain.value_objects.preproduction_image_quality import (
     PreproductionImageQuality,
@@ -540,3 +542,143 @@ def test_approve_reference_pack_registers_selected_required_views(tmp_path):
         asyncio.run(storage.exists(reference.storage_key))
         for reference in approved.reference_pack.values()
     )
+
+
+# --- Streak pre-gate integration (Faz 1.2) -------------------------------
+
+_AKIRA_ANCHOR = (
+    Path(__file__).parents[2]
+    / "assets"
+    / "characters"
+    / "akira"
+    / "identity_lock"
+    / "v2"
+    / "akira-canonical-anchor-v2.png"
+)
+
+
+def _akira_anchor_bytes() -> bytes:
+    return _AKIRA_ANCHOR.read_bytes()
+
+
+def _akira_mirrored_bytes() -> bytes:
+    """Anchor plus a second red component on the viewer-left inside the head zone."""
+    image = Image.open(io.BytesIO(_akira_anchor_bytes())).convert("RGB")
+    ImageDraw.Draw(image).ellipse((334, 240, 386, 320), fill="#C04838")
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+class _FixedImageProvider:
+    """Deterministic provider returning caller-supplied PNG bytes."""
+
+    def __init__(self, png_bytes: bytes) -> None:
+        self._png = png_bytes
+        self.requests: list[object] = []
+
+    @property
+    def name(self) -> str:
+        return "fake:keyframe-fixed"
+
+    async def generate_keyframe(self, request):
+        self.requests.append(request)
+        with Image.open(io.BytesIO(self._png)) as opened:
+            width, height = opened.size
+        return GeneratedKeyframe(
+            image_bytes=self._png,
+            content_type="image/png",
+            width=width,
+            height=height,
+            provider_asset_id="fixed",
+            metadata={"offline": True},
+        )
+
+
+class _CountingEvaluator(_PassEvaluator):
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def evaluate(self, **_kwargs):
+        self.calls += 1
+        return await super().evaluate(**_kwargs)
+
+
+def _streak_service(tmp_path, png_bytes, evaluator):
+    storage = LocalFsStorage(str(tmp_path))
+    anchor_key = "approved/akira-anchor-v2.png"
+    asyncio.run(storage.save(anchor_key, _akira_anchor_bytes(), "image/png"))
+    service = CharacterOnboardingService(
+        _FixedImageProvider(png_bytes),
+        storage,
+        evaluator,
+        streak_pre_gate=StreakPreGate(),
+    )
+    return service, anchor_key
+
+
+def test_face_closeup_passes_streak_pre_gate_then_vision(tmp_path):
+    evaluator = _CountingEvaluator()
+    service, anchor_key = _streak_service(
+        tmp_path, _akira_anchor_bytes(), evaluator
+    )
+    pack = asyncio.run(
+        service.generate_reference_pack(
+            CharacterBible.akira(),
+            anchor_storage_key=anchor_key,
+            recipe_limit=1,
+        )
+    )
+
+    assert len(pack.candidates) == 1
+    assert pack.quarantined == ()
+    assert pack.candidates[0].gate_note is not None
+    assert pack.candidates[0].gate_note.startswith("single-streak check passed")
+    assert evaluator.calls == 1
+
+
+def test_mirrored_streak_quarantines_all_attempts_without_vision(tmp_path):
+    evaluator = _CountingEvaluator()
+    service, anchor_key = _streak_service(
+        tmp_path, _akira_mirrored_bytes(), evaluator
+    )
+    pack = asyncio.run(
+        service.generate_reference_pack(
+            CharacterBible.akira(),
+            anchor_storage_key=anchor_key,
+            recipe_limit=1,
+        )
+    )
+
+    assert pack.candidates == ()
+    assert len(pack.quarantined) == 3  # every reseed died on the cheap gate
+    assert evaluator.calls == 0  # the 110s vision model was never woken
+    assert all(
+        candidate.gate_note is not None
+        and candidate.gate_note.startswith("streak pre-gate reject")
+        for candidate in pack.quarantined
+    )
+
+
+def test_non_head_dominant_view_skips_streak_pre_gate(tmp_path):
+    evaluator = _CountingEvaluator()
+    service, anchor_key = _streak_service(
+        tmp_path, _akira_mirrored_bytes(), evaluator
+    )
+    plan = CharacterOnboardingService.plan(CharacterBible.akira())
+    back_index = next(
+        index for index, recipe in enumerate(plan.recipes) if recipe.view == "BACK"
+    )
+    pack = asyncio.run(
+        service.generate_reference_pack(
+            CharacterBible.akira(),
+            anchor_storage_key=anchor_key,
+            recipe_offset=back_index,
+            recipe_limit=1,
+        )
+    )
+
+    assert len(pack.candidates) == 1
+    assert pack.candidates[0].filename == "back-neutral-01.png"
+    assert pack.candidates[0].gate_note is None
+    assert evaluator.calls == 1

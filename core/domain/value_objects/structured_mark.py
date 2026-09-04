@@ -61,6 +61,11 @@ class StructuredMark:
     count: int = 1
     color_tolerance_delta_e: float = 6.0
     anchor: MarkAnchor | None = None
+    # Normalized head region (left, top, right, bottom as frame
+    # fractions) calibrated against the approved anchor frame. Lets the
+    # deterministic streak pre-gate scale the sealed mark zone to any
+    # generated resolution without an anime-capable head detector.
+    head_bbox: tuple[float, float, float, float] | None = None
     mirror_side: MirrorSide = "none"
     shape_grammar: str = ""
     enforcement: MarkEnforcement = "both"
@@ -85,6 +90,16 @@ class StructuredMark:
             raise ValueError("Structured mark enforcement is invalid.")
         if self.enforcement in {"seal", "both"} and self.anchor is None:
             raise ValueError("Sealed structured marks require an anchor.")
+        if self.head_bbox is not None:
+            if len(self.head_bbox) != 4 or not all(
+                math.isfinite(value) for value in self.head_bbox
+            ):
+                raise ValueError("Structured mark head bbox must be four numbers.")
+            left, top, right, bottom = self.head_bbox
+            if not (0.0 <= left < right <= 1.0 and 0.0 <= top < bottom <= 1.0):
+                raise ValueError(
+                    "Structured mark head bbox must be normalized frame fractions."
+                )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -95,6 +110,7 @@ class StructuredMark:
             "count": self.count,
             "color_tolerance_delta_e": self.color_tolerance_delta_e,
             "anchor": self.anchor.to_dict() if self.anchor else None,
+            "head_bbox": list(self.head_bbox) if self.head_bbox else None,
             "mirror_side": self.mirror_side,
             "shape_grammar": self.shape_grammar,
             "enforcement": self.enforcement,
@@ -113,6 +129,11 @@ class StructuredMark:
             anchor=MarkAnchor.from_dict(anchor)
             if isinstance(anchor, Mapping)
             else None,
+            head_bbox=(
+                tuple(float(value) for value in data["head_bbox"])
+                if data.get("head_bbox") is not None
+                else None
+            ),
             mirror_side=cast(MirrorSide, data.get("mirror_side", "none")),
             shape_grammar=str(data.get("shape_grammar", "")),
             enforcement=cast(MarkEnforcement, data.get("enforcement", "both")),

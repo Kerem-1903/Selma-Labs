@@ -330,6 +330,7 @@ def test_akira_v2_identity_lock_hash_and_calibration_cannot_drift():
         "color_tolerance_delta_e": mark.color_tolerance_delta_e,
         "viewer_side": mark.viewer_side,
         "count": mark.count,
+        "head_bbox": list(mark.head_bbox),
         "anchor": {
             "region": mark.anchor.region,
             "x_center": mark.anchor.x_center,

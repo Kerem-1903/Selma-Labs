@@ -96,6 +96,9 @@ class CharacterBible:
                             extent=0.12,
                             sweep_deg=-18.0,
                         ),
+                        # Calibrated head zone of the locked 1024px anchor
+                        # (318, 171, 663, 609) as normalized frame fractions.
+                        head_bbox=(0.3105, 0.1670, 0.6475, 0.5947),
                         mirror_side="viewer_left",
                         shape_grammar="single narrow lock, full length, matte, no gradient",
                         enforcement="both",

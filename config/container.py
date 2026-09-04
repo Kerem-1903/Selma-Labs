@@ -36,6 +36,7 @@ from core.application.services.keyframe_generation_service import (
 )
 from core.application.services.script_breakdown_service import ScriptBreakdownService
 from core.application.services.story_engine_service import StoryEngineService
+from core.application.services.streak_pre_gate import StreakPreGate
 from core.application.services.structured_mark_validation_service import (
     StructuredMarkValidationService,
 )
@@ -244,7 +245,12 @@ def create_container(
         story_engine_service=story_engine,
         character_golden_set_service=golden_set,
         character_onboarding_service=CharacterOnboardingService(
-            keyframe_generator, keyframe_storage, preproduction_evaluator
+            keyframe_generator,
+            keyframe_storage,
+            preproduction_evaluator,
+            streak_pre_gate=(
+                StreakPreGate() if resolved.streak_pre_gate_enabled else None
+            ),
         ),
         background_factory_service=BackgroundFactoryService(
             keyframe_generator, keyframe_storage, preproduction_evaluator

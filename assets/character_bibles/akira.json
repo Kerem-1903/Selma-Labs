@@ -28,6 +28,7 @@
           },
           "mirror_side": "viewer_left",
           "shape_grammar": "single narrow lock, full length, matte, no gradient",
+          "head_bbox": [0.3105, 0.167, 0.6475, 0.5947],
           "enforcement": "both"
         }
       ],

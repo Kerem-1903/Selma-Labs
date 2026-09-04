@@ -44,6 +44,21 @@ face, hair, eyes, proportions, and style only. Costume is added only when the
 frame can show it, and weapon text only for action views. The audit blocks any
 caption that contradicts its view.
 
+Guarded reference generation runs a deterministic single-streak pre-gate before
+the vision model, which costs ~2 minutes per frame on the 8 GB card. The sealed
+mark's calibrated head zone (stored in `identity-lock.json` and mirrored in
+`CharacterBible.akira()`) is scaled to the generated frame and checked in
+milliseconds; a duplicated, mirrored, or missing streak quarantines the attempt
+and reseeds without ever waking the model. The check applies only to true
+close-ups (`FACE_CLOSEUP`): live checks showed the calibrated close-up zone
+spills onto the torso in chest-up `FRONT` renders and reads the jacket lining
+as extra streak components, so every other framing is owned by the vision
+model and the human per-image review. Passing frames carry
+the deterministic evidence as `gate_note` on the candidate asset; rejections are
+stored as `gate_note: streak pre-gate reject: ...` in `quarantine/`. The gate
+self-disables for characters whose sealed marks carry no calibrated head zone;
+`STREAK_PRE_GATE_ENABLED=false` forces it off regardless.
+
 ## Commands
 
 Build a reviewable dataset (this correctly exits with status 2 until all reviews

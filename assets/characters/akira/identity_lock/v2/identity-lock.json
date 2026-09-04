@@ -21,6 +21,7 @@
     "color_tolerance_delta_e": 18.0,
     "viewer_side": "viewer_right",
     "count": 1,
+    "head_bbox": [0.3105, 0.167, 0.6475, 0.5947],
     "anchor": {
       "region": "front-hairline",
       "x_center": 0.73,

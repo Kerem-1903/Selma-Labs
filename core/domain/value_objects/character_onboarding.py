@@ -170,6 +170,9 @@ class CharacterCandidateAsset:
     height: int
     attempt: int = 1
     quality: PreproductionImageQuality | None = None
+    # Deterministic pre-gate evidence (e.g. single-streak seal outcome) that
+    # explains why a candidate reached source/ or quarantine without a model.
+    gate_note: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -180,6 +183,7 @@ class CharacterCandidateAsset:
             "height": self.height,
             "attempt": self.attempt,
             "quality": self.quality.to_dict() if self.quality else None,
+            "gate_note": self.gate_note,
         }
 
 
