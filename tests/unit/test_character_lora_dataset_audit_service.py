@@ -56,3 +56,38 @@ def test_service_creates_fail_closed_review_template(tmp_path):
     assert template["approved_by"] == ""
     assert template["reviews"]["front.png"]["human_approved"] is False
     assert template["reviews"]["front.png"]["content_hash"] == "abc123"
+
+
+def test_audit_blocks_caption_that_contradicts_face_view(tmp_path):
+    (tmp_path / "train").mkdir()
+    (tmp_path / "train/sample.png").write_bytes(b"image")
+    (tmp_path / "train/sample.txt").write_text("caption", encoding="utf-8")
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "schema_version": 2,
+                "character_id": "akira",
+                "dataset_complete": True,
+                "training_approved": True,
+                "is_ready": True,
+                "anchor_content_hash": "anchor",
+                "approved_by": "Kerem",
+                "samples": [
+                    {
+                        "view": "FACE_CLOSEUP",
+                        "caption": "selma_akira_v2, face close-up, full body, knee pads",
+                        "image_path": "train/sample.png",
+                        "caption_path": "train/sample.txt",
+                        "review": {"passed": True},
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    audit = CharacterLoraDatasetAuditService().audit(manifest)
+
+    assert audit.training_approved is False
+    assert "caption_view_mismatch" in audit.blockers

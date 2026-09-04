@@ -63,9 +63,9 @@ Place the approved `.safetensors` file in ComfyUI's `models/loras` directory and
 set:
 
 ```dotenv
-COMFYUI_CHARACTER_LORA_NAME=selma-akira-v1-preview.safetensors
-COMFYUI_CHARACTER_LORA_TRIGGER_TOKEN=selma_akira_v1
-COMFYUI_CHARACTER_LORA_STRENGTH_MODEL=0.4
+COMFYUI_CHARACTER_LORA_NAME=selma-akira-v2.safetensors
+COMFYUI_CHARACTER_LORA_TRIGGER_TOKEN=selma_akira_v2
+COMFYUI_CHARACTER_LORA_STRENGTH_MODEL=0.45
 COMFYUI_CHARACTER_LORA_STRENGTH_CLIP=0.0
 ```
 

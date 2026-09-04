@@ -215,15 +215,17 @@ class CharacterOnboardingService:
 
     @classmethod
     def plan(cls, character: CharacterBible) -> CharacterOnboardingPlan:
-        identity = ", ".join(character.prompt_fragments())
+        anchor_identity = ", ".join(
+            character.prompt_fragments_for_view("FULL_BODY")
+        )
         immutable_marks = "; ".join(character.identity_constraints.immutable_marks)
-        if not identity:
+        if not anchor_identity:
             raise ValueError("Character Bible contains no usable prompt fragments.")
         seed_base = int(
             hashlib.sha256(character.character_id.encode("utf-8")).hexdigest()[:8], 16
         )
         anchor_prompt = (
-            f"{cls._QUALITY}, solo, {identity}, full body front view, neutral standing "
+            f"{cls._QUALITY}, solo, {anchor_identity}, full body front view, neutral standing "
             "pose, plain light background, entire head and both feet visible, "
             f"immutable identity marks exactly once with no duplicates: {immutable_marks}"
         )
@@ -232,7 +234,11 @@ class CharacterOnboardingService:
                 filename=filename,
                 view=view,
                 split=split,
-                prompt=f"{cls._QUALITY}, solo, {identity}, {direction}, plain light background",
+                prompt=(
+                    f"{cls._QUALITY}, solo, "
+                    f"{', '.join(character.prompt_fragments_for_view(view))}, "
+                    f"{direction}, plain light background"
+                ),
                 seed=seed_base + index,
             )
             for index, (filename, view, split, direction) in enumerate(cls._RECIPES, 1)
@@ -289,9 +295,11 @@ class CharacterOnboardingService:
                 request,
                 visual_constraints={
                     **request.visual_constraints,
-                    "identity_strength": 0.95,
-                    "identity_weight_type": "linear",
-                    "identity_end_at": 0.90,
+                    "identity_strength": 0.6,
+                    "identity_weight_type": "weak input",
+                    "identity_combine_embeds": "average",
+                    "identity_end_at": 0.65,
+                    "identity_embeds_scaling": "K+V w/ C penalty",
                 },
             )
         generated = await self._generator.generate_keyframe(request)
@@ -360,7 +368,12 @@ class CharacterOnboardingService:
                 run_root=run_root,
                 view=recipe.view,
             )
-            for attempt in range(1, self._max_attempts + 1):
+            attempts = (
+                self._max_attempts
+                if automatic_review and self._evaluator is not None
+                else 1
+            )
+            for attempt in range(1, attempts + 1):
                 generated = await self._generator.generate_keyframe(
                     self._request(
                         character=character,
@@ -385,7 +398,7 @@ class CharacterOnboardingService:
                         ),
                         subject_policy="character_required",
                     )
-                passed = quality is None or quality.passed
+                passed = quality is not None and quality.passed
                 candidate = await self._save_candidate(
                     storage_prefix=f"{run_root}/{'source' if passed else 'quarantine'}",
                     filename=(
@@ -402,10 +415,7 @@ class CharacterOnboardingService:
                     break
                 quarantined.append(candidate)
             if accepted is None:
-                raise KeyframeGenerationError(
-                    f"Character candidate '{recipe.filename}' failed automatic "
-                    f"quality review after {self._max_attempts} attempts."
-                )
+                continue
             candidates.append(accepted)
         return CharacterCandidatePack(
             schema_version=1,
@@ -429,6 +439,10 @@ class CharacterOnboardingService:
         pilot_key = self._portable_key(pilot_storage_key)
         if not approved_by.strip():
             raise ValueError("Pilot approval requires a named approver.")
+        if "quarantine" in {
+            part.casefold() for part in PurePosixPath(pilot_key).parts
+        }:
+            raise ValueError("quarantined pilot candidates cannot be approved.")
         failed = [
             name
             for name in CharacterPilotApproval.REQUIRED_CHECKS
@@ -487,6 +501,11 @@ class CharacterOnboardingService:
         reference_service = CharacterReferenceAssetService(self._storage)
         for view, raw_key in selections.items():
             storage_key = self._portable_key(raw_key)
+            parts = tuple(part.casefold() for part in PurePosixPath(storage_key).parts)
+            if "quarantine" in parts or "source" not in parts:
+                raise ValueError(
+                    "Reference approval accepts only automatically reviewed source assets."
+                )
             data = await self._storage.load(storage_key)
             await reference_service.save_reference(character, view, data, "image/png")
         report = CharacterBibleValidationService().validate(character)
@@ -523,6 +542,22 @@ class CharacterOnboardingService:
             view
         )
         identity = character.identity_constraints
+        face_only = character.is_face_only_view(view)
+        action_view = view.startswith("ACTION_")
+        visible_costume = (
+            ()
+            if face_only
+            else (
+                character.upper_body_costume_fragments()
+                if "UPPER_BODY" in view or view == "FRONT"
+                else character.costume_fragments()
+            )
+        )
+        identity_marks = tuple(
+            mark
+            for mark in identity.immutable_marks
+            if not character.is_prop_fragment(mark)
+        )
         return KeyframeGenerationRequest(
             shot_contract_id=f"character-onboarding-{character.character_id}-{seed}",
             camera_constraints=camera,
@@ -537,21 +572,25 @@ class CharacterOnboardingService:
                     "face": identity.facial_geometry,
                     "hair": identity.hair,
                     "eyes": identity.eye_color,
-                    "silhouette": identity.silhouette,
-                    "immutable_marks": tuple(identity.immutable_marks),
-                    "outfit": (
-                        character.outfit_catalog[0].description
-                        if character.outfit_catalog
-                        else ""
+                    "body_proportions": identity.body_proportions,
+                    "silhouette": ", ".join(visible_costume),
+                    "immutable_marks": (
+                        (*identity_marks, *character.prop_fragments())
+                        if action_view
+                        else identity_marks
                     ),
+                    "outfit": ", ".join(visible_costume),
                 },
                 "identity_strength": identity_strength,
                 "identity_mode": "identity_only",
-                "identity_weight_type": "linear",
-                "identity_combine_embeds": "concat",
+                "identity_weight_type": "weak input",
+                "identity_combine_embeds": "average",
                 "identity_start_at": 0.0,
-                "identity_end_at": 0.9,
-                "identity_embeds_scaling": "V only",
+                "identity_end_at": 0.65,
+                "identity_embeds_scaling": "K+V w/ C penalty",
+                "reference_denoise": CharacterOnboardingService._denoise_for_view(
+                    view
+                ),
             },
             character_conditioning=(
                 {
@@ -582,31 +621,41 @@ class CharacterOnboardingService:
                     "single centered headshot; face occupies 70-85% of frame; complete "
                     "hair silhouette and top of shoulders visible; torso and arms excluded"
                 ),
-                1.0,
+                0.6,
             )
         if view.startswith("PROFILE"):
             return (
                 {"angle": "strict profile portrait", "lens": "70mm", "movement": "locked"},
                 "single character profile; head and torso readable; no front-facing pose",
-                0.95,
+                0.58,
             )
         if view.startswith("ACTION"):
             return (
                 {"angle": "full body action", "lens": "50mm", "movement": "locked"},
                 "single complete body; head, hands and feet visible; action silhouette clear",
-                0.82,
+                0.55,
             )
         if view in {"FULL_BODY", "BACK"}:
             return (
                 {"angle": "full body", "lens": "50mm", "movement": "locked"},
                 "single complete body; entire head and both feet visible",
-                0.9,
+                0.58,
             )
         return (
             {"angle": "upper-body portrait", "lens": "65mm", "movement": "locked"},
             "single character upper-body portrait; face, hair and outfit construction readable",
-            0.95,
+            0.6,
         )
+
+    @staticmethod
+    def _denoise_for_view(view: str) -> float:
+        if view == "FACE_CLOSEUP":
+            return 0.38
+        if view.startswith("ACTION"):
+            return 0.72
+        if view in {"FULL_BODY", "BACK"} or "FULL_BODY" in view:
+            return 0.62
+        return 0.52
 
     @classmethod
     def _negatives_for_view(

@@ -248,6 +248,9 @@ async def test_provider_uploads_selected_reference_and_injects_typed_contract():
     assert workflow is not None
     assert workflow["10"]["inputs"]["image"] == "selma/reference.png"
     assert workflow["3"]["inputs"]["latent_image"] == ["13", 0]
+    assert workflow["3"]["inputs"]["denoise"] == 0.62
+    assert workflow["13"]["class_type"] == "VAEEncode"
+    assert workflow["13"]["inputs"]["pixels"] == ["12", 0]
     assert workflow["3"]["inputs"]["model"] == ["20", 0]
     assert workflow["18"]["inputs"]["model"] == ["4", 0]
     assert workflow["20"]["inputs"]["model"] == ["18", 0]
@@ -279,6 +282,7 @@ async def test_provider_uses_empty_latent_when_shot_has_no_character_reference()
 
     assert session.uploaded_forms == []
     assert session.queued_workflow["3"]["inputs"]["latent_image"] == ["5", 0]
+    assert session.queued_workflow["3"]["inputs"]["denoise"] == 1.0
     assert session.queued_workflow["3"]["inputs"]["model"] == ["4", 0]
     assert session.queued_workflow["3"]["inputs"]["positive"] == ["6", 0]
     assert session.queued_workflow["3"]["inputs"]["negative"] == ["7", 0]

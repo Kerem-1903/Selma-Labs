@@ -33,6 +33,17 @@ unverified.
 7. Run the ten-case Golden Set. No scene generation may call the model locked
    until all ten cases pass and a human locks the set.
 
+Current state: the canonical anchor is locked, but
+`training_policy.dataset_approved` remains `false` and `next_gate` remains
+`PER_IMAGE_DATASET_REVIEW`. The existing 23 images are V1-era material and are
+useful only for exercising the curation gates. GPU generation and training are
+intentionally outside the repository-side completion point.
+
+Captions are now view-scoped. Face and close-profile samples contain identity,
+face, hair, eyes, proportions, and style only. Costume is added only when the
+frame can show it, and weapon text only for action views. The audit blocks any
+caption that contradicts its view.
+
 ## Commands
 
 Build a reviewable dataset (this correctly exits with status 2 until all reviews
@@ -85,6 +96,46 @@ file must use this shape for every source filename:
   }
 }
 ```
+
+Then run the audit again. Only an exit code of `0` and
+`training_approved: true` permit changing the identity lock to
+`dataset_approved: true` and `next_gate: LORA_TRAINING`.
+
+## 8 GB training runbook (run only after approval)
+
+The CLI creates the 1024 px, batch-size 1, fp16, cached-latent,
+gradient-checkpointed kohya profile automatically:
+
+```powershell
+python -m cli.main character train `
+  --input assets/character_bibles/akira.json `
+  --dataset output/training/akira-lora-v2-curation `
+  --base-model C:/models/animagine-xl-4.0-opt.safetensors `
+  --sd-scripts-dir C:/tools/sd-scripts `
+  --output output/training/akira-lora-v2/model `
+  --model-name selma-akira-v2 `
+  --steps 240
+```
+
+The result is
+`output/training/akira-lora-v2/model/selma-akira-v2.safetensors`. Copy the
+reviewed artifact to ComfyUI's `models/loras`, record its SHA-256, then configure:
+
+```dotenv
+COMFYUI_CHARACTER_LORA_NAME=selma-akira-v2.safetensors
+COMFYUI_CHARACTER_LORA_TRIGGER_TOKEN=selma_akira_v2
+COMFYUI_CHARACTER_LORA_STRENGTH_MODEL=0.45
+COMFYUI_CHARACTER_LORA_STRENGTH_CLIP=0.0
+```
+
+Finally run `python -m cli.main preproduction golden-set --character-id akira
+--model-id selma-akira-v2 --model-revision <sha256-prefix>`. A human may lock the
+model only after all ten cases pass. Scene generation remains blocked until then.
+
+Anime generation must use `assets/comfyui_keyframe_workflow.json`, never the
+FaceID workflow. The standard workflow combines the V2 visual reference,
+moderate IP-Adapter (`0.55-0.65`), real img2img initialization, and OpenPose.
+Missing action pose maps are a Phase 3 prerequisite, not something SELMA invents.
 
 ## Scene integration order
 

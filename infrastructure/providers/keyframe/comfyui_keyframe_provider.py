@@ -139,7 +139,9 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                     )
                     workflow[pose_nodes[0]]["inputs"]["image"] = uploaded_pose
                 self._select_latent_source(
-                    workflow, use_reference=bool(selected_references)
+                    workflow,
+                    request=request,
+                    use_reference=bool(selected_references),
                 )
                 prompt_id = await self._queue_prompt(session, workflow)
                 history = await self._wait_for_completion(session, prompt_id)
@@ -756,7 +758,11 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             sampler[1]["inputs"]["negative"] = [negative[0], 0]
 
     def _select_latent_source(
-        self, workflow: dict[str, Any], *, use_reference: bool
+        self,
+        workflow: dict[str, Any],
+        *,
+        request: KeyframeGenerationRequest,
+        use_reference: bool,
     ) -> None:
         sampler = self._node_for_role(workflow, "sampler", "KSampler")
         if sampler is None:
@@ -766,6 +772,14 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         if source is None:
             raise ProviderError(f"ComfyUI workflow has no {role} node.")
         sampler[1]["inputs"]["latent_image"] = [source[0], 0]
+        denoise = float(
+            request.visual_constraints.get("reference_denoise", 0.62)
+            if use_reference
+            else 1.0
+        )
+        if not 0.0 < denoise <= 1.0:
+            raise ProviderError("Reference denoise must be between 0 and 1.")
+        sampler[1]["inputs"]["denoise"] = denoise
 
     @staticmethod
     def _nodes_for_role(

@@ -8,6 +8,10 @@ use semantic versioning.
 
 ### Added
 
+- View-scoped character prompts and captions, caption/view coherence auditing,
+  and fail-closed quarantine rules for unaudited reference candidates.
+- Anime-safe visual IP-Adapter plus img2img reference routing and an Akira V2
+  dataset-to-Golden-Set operating runbook.
 - Canonical Akira Character Bible and guarded two-pass anime production pipeline.
 - ComfyUI motion, LivePortrait mock, and layered FFmpeg composition boundaries.
 - Script breakdown, animation orchestration, dependency injection, and CLI tools.
@@ -15,6 +19,8 @@ use semantic versioning.
 
 ### Changed
 
+- Character LoRA operation now defaults to model strength `0.45`, CLIP strength
+  `0.0`, and lower visual identity conditioning when an approved LoRA is active.
 - Repository documentation is organized by architecture, operations, project
   status, and historical material.
 

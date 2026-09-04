@@ -212,6 +212,7 @@ def create_container(
             get_keyframe_generation_provider(resolved, storage=preproduction_storage),
             preproduction_storage,
             output_prefix=resolved.golden_set_output_prefix,
+            character_lora_active=bool(resolved.comfyui_character_lora_name),
         ),
         golden_evaluator,
     )
@@ -233,6 +234,7 @@ def create_container(
         ),
         candidate_evaluation=candidate_evaluation,
         human_review_required=human_review_required,
+        character_lora_active=bool(resolved.comfyui_character_lora_name),
     )
     return AnimationContainer(
         character_bible=character_bible,

@@ -22,10 +22,12 @@ class GoldenSetKeyframeAdapter(GoldenImageGeneratorPort):
         generator: KeyframeGenerationPort,
         storage: StoragePort,
         output_prefix: str = "golden",
+        character_lora_active: bool = False,
     ) -> None:
         self._generator = generator
         self._storage = storage
         self._prefix = output_prefix.strip("/")
+        self._character_lora_active = character_lora_active
 
     async def generate(
         self,
@@ -45,7 +47,7 @@ class GoldenSetKeyframeAdapter(GoldenImageGeneratorPort):
             )
         prompt = ", ".join(
             (
-                *character.prompt_fragments(),
+                *character.prompt_fragments_for_view(references[0].view),
                 test_case.prompt,
                 style.line_language,
                 style.shading_language,
@@ -54,7 +56,7 @@ class GoldenSetKeyframeAdapter(GoldenImageGeneratorPort):
         )
         visual_constraints: dict[str, object] = {
             "prompt": prompt,
-            "identity_strength": 0.65,
+            "identity_strength": 0.5 if self._character_lora_active else 0.6,
             "identity_mode": "identity_only",
             "sampling_steps": 28,
             "guidance_scale": 5.0,
@@ -66,6 +68,7 @@ class GoldenSetKeyframeAdapter(GoldenImageGeneratorPort):
                 {
                     "pose_storage_key": test_case.pose_reference_key,
                     "controlnet_type": "openpose",
+                    "pose_strength": 0.8,
                 }
             )
         request = KeyframeGenerationRequest(

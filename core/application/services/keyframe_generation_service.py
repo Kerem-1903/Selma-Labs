@@ -3,29 +3,40 @@ from __future__ import annotations
 import re
 import uuid
 from datetime import datetime, timezone
+from typing import ClassVar
 
-from core.domain.entities.character_bible import CharacterBible
-from core.domain.entities.candidate.keyframe_candidate import CandidateStatus
-from core.domain.entities.shot_contract import ShotContract
-from core.domain.entities.shot_storyboard import ShotStoryboard
-from core.domain.entities.keyframe import KeyframePair
-from core.domain.entities.shot_animation import ShotPlan
-from core.domain.exceptions import KeyframeGenerationError, StorageError
-from core.domain.ports.character_bible_repository_port import CharacterBibleRepositoryPort
-from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
-from core.domain.ports.shot_storyboard_repository_port import ShotStoryboardRepositoryPort
-from core.domain.ports.storage_port import StoragePort
-from core.domain.services.reference_conditioning_builder import ReferenceConditioningBuilder
-from core.domain.value_objects.storyboard_frame import StoryboardFrame
 from core.application.services.candidate.candidate_evaluation_service import (
     CandidateEvaluationService,
 )
+from core.domain.entities.candidate.keyframe_candidate import CandidateStatus
+from core.domain.entities.character_bible import CharacterBible
+from core.domain.entities.keyframe import KeyframePair
+from core.domain.entities.shot_animation import ShotPlan
+from core.domain.entities.shot_contract import ShotContract
+from core.domain.entities.shot_storyboard import ShotStoryboard
+from core.domain.exceptions import KeyframeGenerationError, StorageError
+from core.domain.ports.character_bible_repository_port import (
+    CharacterBibleRepositoryPort,
+)
+from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
+from core.domain.ports.shot_storyboard_repository_port import (
+    ShotStoryboardRepositoryPort,
+)
+from core.domain.ports.storage_port import StoragePort
+from core.domain.services.reference_conditioning_builder import (
+    ReferenceConditioningBuilder,
+)
+from core.domain.value_objects.storyboard_frame import StoryboardFrame
 
 
 class KeyframeGenerationService:
     """Orchestrate reference loading, image generation, and durable metadata."""
 
-    _CONTENT_TYPES = {"image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp"}
+    _CONTENT_TYPES: ClassVar[dict[str, str]] = {
+        "image/png": ".png",
+        "image/jpeg": ".jpg",
+        "image/webp": ".webp",
+    }
     _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
     def __init__(
@@ -38,6 +49,7 @@ class KeyframeGenerationService:
         candidate_evaluation: CandidateEvaluationService | None = None,
         human_review_required: bool = True,
         conditioning_builder: ReferenceConditioningBuilder | None = None,
+        character_lora_active: bool = False,
     ) -> None:
         self._generator = generator
         self._storage = storage
@@ -50,6 +62,7 @@ class KeyframeGenerationService:
                 "Candidate evaluation service is required when human review is enabled."
             )
         self._conditioning_builder = conditioning_builder or ReferenceConditioningBuilder()
+        self._character_lora_active = character_lora_active
 
     async def generate(
         self,
@@ -310,7 +323,7 @@ class KeyframeGenerationService:
                 "pose_storage_key": pose_key,
                 "controlnet_type": shot_plan.controlnet_type or "openpose",
                 "pose_strength": 0.8,
-                "identity_strength": 0.8,
+                "identity_strength": 0.5 if self._character_lora_active else 0.65,
                 "identity_mode": "identity_only",
             }
             requests.append(request.from_dict(request_payload))

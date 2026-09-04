@@ -134,8 +134,8 @@ class Settings(BaseSettings):
     comfyui_keyframe_checkpoint: str = "sd_xl_base_1.0.safetensors"
     comfyui_character_lora_name: str = ""
     comfyui_character_lora_trigger_token: str = ""
-    comfyui_character_lora_strength_model: float = 0.8
-    comfyui_character_lora_strength_clip: float = 0.8
+    comfyui_character_lora_strength_model: float = 0.45
+    comfyui_character_lora_strength_clip: float = 0.0
     comfyui_keyframe_timeout_seconds: float = 300.0
     comfyui_keyframe_poll_interval_seconds: float = 1.0
     keyframe_candidate_db_path: str = "data/keyframe_candidates.db"

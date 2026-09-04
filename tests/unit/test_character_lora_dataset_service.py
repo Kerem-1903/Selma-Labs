@@ -131,9 +131,69 @@ def test_service_captions_canonical_akira_identity_and_action_pose(tmp_path):
     caption = report.samples[0].caption
     assert report.samples[0].view == "ACTION_KATANA_READY"
     assert "long straight black hair" in caption
-    assert "single deep-red hair streak on the left-front section" in caption
+    assert "exactly one narrow deep-red front streak" in caption
     assert "two-handed katana ready stance" in caption
+    assert "one katana only" not in caption
     assert "scar" not in caption
+
+
+def test_face_caption_excludes_costume_props_and_full_body_claims(tmp_path):
+    source = tmp_path / "source"
+    output = tmp_path / "dataset"
+    source.mkdir()
+    _image(source / "face-closeup-front.png")
+
+    report = CharacterLoraDatasetService(
+        required_training_images=1, required_holdout_images=1
+    ).build(
+        source_dir=source,
+        output_dir=output,
+        character_id="akira",
+        trigger_token="selma_akira_v2",
+        character_bible=CharacterBible.akira(),
+    )
+
+    caption = report.samples[0].caption
+    assert "amber eyes" in caption
+    assert "face close-up" in caption
+    assert "combat trousers" not in caption
+    assert "knee pads" not in caption
+    assert "boots" not in caption
+    assert "katana" not in caption
+    assert CharacterLoraDatasetService.caption_scope_violations(
+        "FACE_CLOSEUP", caption
+    ) == ()
+
+
+def test_upper_body_caption_keeps_jacket_but_excludes_lower_body_costume():
+    caption = CharacterLoraDatasetService._caption(
+        "selma_akira_v2",
+        "PROFILE_RIGHT_UPPER_BODY",
+        CharacterBible.akira(),
+    )
+
+    assert "combat jacket" in caption
+    assert "combat trousers" not in caption
+    assert "knee pads" not in caption
+    assert "boots" not in caption
+
+
+def test_dataset_rejects_quarantined_source_assets(tmp_path):
+    source = tmp_path / "source"
+    quarantine = source / "quarantine"
+    quarantine.mkdir(parents=True)
+    _image(quarantine / "front-v1.png")
+
+    report = CharacterLoraDatasetService().build(
+        source_dir=source,
+        output_dir=tmp_path / "dataset",
+        character_id="akira",
+        trigger_token="selma_akira_v2",
+    )
+
+    assert report.rejected_files == (
+        {"file": "front-v1.png", "reason": "quarantined_asset"},
+    )
 
 
 def test_service_fails_closed_without_per_image_review_and_anchor(tmp_path):

@@ -64,6 +64,13 @@ def test_container_allows_explicit_legacy_keyframe_flow(tmp_path):
     assert container.keyframe_generation_service._human_review_required is False
 
 
+def test_character_lora_defaults_are_identity_safe():
+    settings = Settings(_env_file=None)
+
+    assert settings.comfyui_character_lora_strength_model == 0.45
+    assert settings.comfyui_character_lora_strength_clip == 0.0
+
+
 def test_cli_shows_character_without_constructing_provider_container(capsys):
     def forbidden_container():
         raise AssertionError("character show must not construct provider adapters")
@@ -190,6 +197,7 @@ def test_preproduction_golden_set_runs_through_selma_pipeline(tmp_path, capsys):
         preproduction_asset_root=str(tmp_path / "assets"),
         keyframe_generation_provider="fake",
         keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+        golden_marker_gate_enabled=False,
     )
 
     def factory():

@@ -11,6 +11,26 @@
         "amber eyes",
         "one katana only"
       ],
+      "structured_marks": [
+        {
+          "id": "akira-red-streak",
+          "label": "single deep-red front hair streak",
+          "color_hex": "#C04838",
+          "viewer_side": "viewer_right",
+          "count": 1,
+          "color_tolerance_delta_e": 18.0,
+          "anchor": {
+            "region": "front-hairline",
+            "x_center": 0.73,
+            "y_root": 0.11,
+            "extent": 0.12,
+            "sweep_deg": -18.0
+          },
+          "mirror_side": "viewer_left",
+          "shape_grammar": "single narrow lock, full length, matte, no gradient",
+          "enforcement": "both"
+        }
+      ],
       "silhouette": "cropped combat jacket, tapered combat trousers, single katana",
       "trigger_prompt": "akira_girl"
     },

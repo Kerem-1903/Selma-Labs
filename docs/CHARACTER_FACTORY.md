@@ -16,8 +16,8 @@ the reference pack still requires explicit human selection.
 3. Generate one anchor candidate and approve it manually. No unapproved anchor
    can be presented to the reference-pack command.
 4. Generate only the first face-closeup pilot. SELMA sends a portrait-specific
-   camera/lens contract and separate face, hair, immutable-mark, outfit and
-   framing locks to the image provider.
+   contract containing identity and framing locks; face-only prompts never
+   inherit full-body, costume, boot, or weapon claims.
 5. Review the pilot against all six checks and create a signed approval receipt.
    Full generation is rejected if the receipt, anchor or pilot hash has changed.
 6. Generate the remaining 22 reference candidates through the configured
@@ -43,7 +43,6 @@ python -m cli.main character references `
   --input assets/character_bibles/akira.json `
   --approved-anchor-key '<key printed by the anchor command>' `
   --limit 1 `
-  --defer-visual-review `
   --manifest output/characters/akira/pilot.json
 
 python -m cli.main character approve-pilot `
@@ -91,12 +90,23 @@ Use `--seed-offset 10000` and `--seed-offset 20000` with separate pilot
 manifests to create reproducible alternatives without changing the identity
 contract.
 
-Use `KEYFRAME_GENERATION_PROVIDER=comfyui` for real local generation. The fake
+Use `KEYFRAME_GENERATION_PROVIDER=comfyui` for real local generation. Anime
+characters use `assets/comfyui_keyframe_workflow.json`: standard visual
+IP-Adapter in `identity_only` mode, the locked reference encoded as the img2img
+latent, moderate denoise, and OpenPose where a recipe has a reviewed pose map.
+This lets composition move without asking a face-recognition model to understand
+anime geometry. The fake
 provider remains available for offline pipeline tests. Candidate manifests keep
 `human_approved: false`; selecting and approving an anchor or Golden Set remains
 an explicit human decision.
 
-For portrait pilots whose reference face is detectable by InsightFace, select
+`--defer-visual-review` is diagnostic only. It writes one unaudited frame under
+`quarantine/`; that frame cannot pass `approve-pilot`, `approve-references`, or
+enter a dataset. With the default automatic review, failed frames are reseeded
+up to three times and remain quarantined if all attempts fail.
+
+For human-realistic portrait pilots whose reference face is detectable by
+InsightFace, select
 `assets/comfyui_keyframe_faceid_workflow.json` with
 `COMFYUI_KEYFRAME_WORKFLOW_PATH`. This workflow uses FaceID Plus V2 to lock
 facial geometry while the Character Bible continues to control hair, outfit,
@@ -104,9 +114,17 @@ palette and immutable marks. It requires the FaceID Plus V2 SDXL IP-Adapter,
 its matching technical LoRA, InsightFace `buffalo_l`, and the ComfyUI
 IPAdapter Plus custom nodes. FaceID is an identity aid, not human approval: a
 pilot with a misplaced hair mark or invented costume detail must still fail.
-The same workflow accepts a reviewed OpenPose image through
+Do not use FaceID for anime characters: `NO_HEAD` is a model-domain mismatch,
+not evidence that the anime drawing lacks a face. Anime candidates instead pass
+the configured vision/QA evaluator and later the structured-mark Golden Set
+gate. The visual workflow accepts a reviewed OpenPose image through
 `pose_storage_key`, allowing facial identity and acting pose to be controlled
 in one render.
+
+Neutral, face, upper-body, and profile recipes may run now. Action recipes must
+wait until their `pose_reference_key` exists in the pose manifest. Katana-ready
+and running are present; remaining action skeletons must come from licensed pose
+photos or SELMA's own rig renders before those recipes are enabled.
 
 When an otherwise usable anchor conflicts with one local immutable mark, repair
 only a reviewed mask before running the pilot again:

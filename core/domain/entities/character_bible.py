@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -16,6 +17,22 @@ from core.domain.value_objects.style_profile import StyleProfile
 
 @dataclass
 class CharacterBible:
+    _PROP_WORDS = frozenset(
+        {"bow", "gun", "katana", "knife", "rifle", "spear", "sword", "weapon"}
+    )
+    _LOWER_BODY_WORDS = frozenset(
+        {"boot", "boots", "knee", "kneepad", "kneepads", "trouser", "trousers"}
+    )
+    _FACE_ONLY_VIEWS = frozenset(
+        {
+            "FACE_CLOSEUP",
+            "PROFILE_LEFT",
+            "PROFILE_RIGHT",
+            "PROFILE_RIGHT_FACE_CLOSEUP",
+            "THREE_QUARTER_LEFT",
+            "THREE_QUARTER_RIGHT",
+        }
+    )
     character_id: str
     identity_constraints: IdentityConstraints
     style_profile: StyleProfile
@@ -139,20 +156,153 @@ class CharacterBible:
 
     def prompt_fragments(self) -> tuple[str, ...]:
         """Provider-neutral, deterministic identity fragments for prompt builders."""
-        fragments = (
+        return self._dedupe_fragments(
+            (
+                *self.identity_core_fragments(),
+                *self.costume_fragments(),
+                *self.prop_fragments(),
+            )
+        )
+
+    def identity_core_fragments(self) -> tuple[str, ...]:
+        """Return identity details that remain visible in every camera scope."""
+        identity = self.identity_constraints
+        fragments = [
             self.trigger_prompt,
-            self.identity_constraints.hair,
-            f"{self.identity_constraints.eye_color} eyes",
-            self.identity_constraints.facial_geometry,
-            self.identity_constraints.body_proportions,
-            self.identity_constraints.silhouette,
-            *self.identity_constraints.immutable_marks,
-            self.outfit_catalog[0].description if self.outfit_catalog else "",
+            identity.hair,
+            f"{identity.eye_color} eyes",
+            identity.facial_geometry,
+            identity.body_proportions,
             self.style_profile.base_style,
+        ]
+        fragments.extend(
+            mark
+            for mark in identity.immutable_marks
+            if not self._contains_prop_word(mark)
         )
+        return self._dedupe_fragments(fragments)
+
+    def costume_fragments(self) -> tuple[str, ...]:
+        """Return silhouette and outfit details, excluding held props."""
+        fragments = [
+            clause
+            for clause in self._silhouette_clauses()
+            if not self._contains_prop_word(clause)
+        ]
+        fragments.extend(self._outfit_clauses())
+        return self._dedupe_fragments(fragments)
+
+    def upper_body_costume_fragments(self) -> tuple[str, ...]:
+        """Return costume clauses that can truthfully appear above the waist."""
+        return self._dedupe_fragments(
+            clause
+            for clause in self.costume_fragments()
+            if not self._contains_lower_body_word(clause)
+        )
+
+    def prop_fragments(self) -> tuple[str, ...]:
+        """Return held-object constraints separately from identity and costume."""
+        fragments = [
+            clause
+            for clause in self._silhouette_clauses()
+            if self._contains_prop_word(clause)
+        ]
+        fragments.extend(
+            mark
+            for mark in self.identity_constraints.immutable_marks
+            if self._contains_prop_word(mark)
+        )
+        return self._dedupe_fragments(fragments)
+
+    def prompt_fragments_for_view(self, view: str | ReferenceView) -> tuple[str, ...]:
+        """Return truthful prompt fragments for the visible camera scope."""
+        view_name = view.value if isinstance(view, ReferenceView) else str(view)
+        fragments = list(self.identity_core_fragments())
+        if view_name not in self._FACE_ONLY_VIEWS:
+            costume = (
+                self.upper_body_costume_fragments()
+                if "UPPER_BODY" in view_name or view_name == "FRONT"
+                else self.costume_fragments()
+            )
+            fragments.extend(costume)
+        if view_name.startswith("ACTION_"):
+            fragments.extend(self.prop_fragments())
+        return self._dedupe_fragments(fragments)
+
+    @classmethod
+    def is_face_only_view(cls, view: str | ReferenceView) -> bool:
+        view_name = view.value if isinstance(view, ReferenceView) else str(view)
+        return view_name in cls._FACE_ONLY_VIEWS
+
+    @classmethod
+    def is_prop_fragment(cls, value: str) -> bool:
+        return cls._contains_prop_word(value)
+
+    def _silhouette_clauses(self) -> tuple[str, ...]:
         return tuple(
-            dict.fromkeys(value.strip() for value in fragments if value.strip())
+            value.strip()
+            for value in re.split(
+                r",|\band\b", self.identity_constraints.silhouette, flags=re.IGNORECASE
+            )
+            if value.strip()
         )
+
+    def _outfit_clauses(self) -> tuple[str, ...]:
+        return tuple(
+            clause.strip()
+            for outfit in self.outfit_catalog
+            for clause in re.split(
+                r",|\band\b", outfit.description, flags=re.IGNORECASE
+            )
+            if clause.strip()
+        )
+
+    @classmethod
+    def _contains_prop_word(cls, value: str) -> bool:
+        words = set(re.findall(r"[a-z0-9]+", value.casefold()))
+        return bool(words & cls._PROP_WORDS)
+
+    @classmethod
+    def _contains_lower_body_word(cls, value: str) -> bool:
+        words = set(re.findall(r"[a-z0-9]+", value.casefold()))
+        return bool(words & cls._LOWER_BODY_WORDS)
+
+    @staticmethod
+    def _dedupe_fragments(values: Any) -> tuple[str, ...]:
+        result: list[str] = []
+        token_sets: list[set[str]] = []
+        stopwords = {"a", "an", "and", "on", "only", "section", "the", "with"}
+
+        def tokens(value: str) -> set[str]:
+            normalized = re.sub(
+                r"\b(?:exactly\s+one|a\s+single|single)\b",
+                "one",
+                value.casefold(),
+            )
+            return {
+                token.rstrip("s")
+                for token in re.findall(r"[a-z0-9]+", normalized)
+                if token not in stopwords
+            }
+
+        for raw in values:
+            value = str(raw).strip()
+            if not value:
+                continue
+            current = tokens(value)
+            if any(
+                current == existing
+                or (
+                    current
+                    and existing
+                    and len(current & existing) / min(len(current), len(existing)) >= 0.8
+                )
+                for existing in token_sets
+            ):
+                continue
+            result.append(value)
+            token_sets.append(current)
+        return tuple(result)
 
     def to_dict(self) -> dict[str, Any]:
         return {

@@ -7,11 +7,12 @@ supports both the durable topic/audio factory and a guarded Akira anime pipeline
 
 | Area | Status |
 |---|---|
-| Python test suite | 663 tests passing |
+| Python test suite | Verified by CI and the current branch test run |
 | Python and real FFmpeg render CI | Passing on `main` |
 | Remotion type-check and smoke frame CI | Passing on `main` |
 | Topic/audio production factory | Implemented and live-validated |
 | Akira character reference workflow | Implemented |
+| Akira V2 dataset + LoRA | Active: waiting at per-image human review gate |
 | Human keyframe approval boundary | Enforced and fail-closed |
 | Two-pass ComfyUI motion workflow | Implemented and automated-test validated |
 | FFmpeg layered composition | Real integration coverage |
@@ -31,9 +32,11 @@ supports both the durable topic/audio factory and a guarded Akira anime pipeline
 
 ## Current production target
 
-The next milestone is a reviewable Akira pilot with approved keyframes,
-controlled local motion generation, audio-driven character processing, layered
-composition, and a reproducible delivery package.
+The active milestone is a clean Akira V2 identity model: generate an
+automatically screened 23-image reference pack, approve every source and
+caption against the locked anchor, train only after the audit turns green, and
+human-lock a passing ten-case Golden Set. Anime uses visual IP-Adapter and
+OpenPose; FaceID is reserved for human-realistic references.
 
 See the [roadmap](roadmap.md) for the ordered work and the
 [runbook](../operations/runbook.md) for environment setup.

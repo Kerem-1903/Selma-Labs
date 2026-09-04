@@ -1,12 +1,19 @@
-import pytest
 import base64
-from unittest.mock import AsyncMock
-from core.application.services.keyframe_generation_service import KeyframeGenerationService
-from core.domain.entities.shot_animation import AnimationShotPlan
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
+from core.application.services.keyframe_generation_service import (
+    KeyframeGenerationService,
+)
+from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.character_state import CharacterState
-from core.domain.value_objects.keyframe_generation_request import KeyframeGenerationRequest
 from core.domain.entities.keyframe import KeyframePair
+from core.domain.entities.shot_animation import AnimationShotPlan
 from core.domain.value_objects.generated_keyframe import GeneratedKeyframe
+from core.domain.value_objects.keyframe_generation_request import (
+    KeyframeGenerationRequest,
+)
 from infrastructure.storage.local_fs_storage import LocalFsStorage
 
 PNG_BYTES = base64.b64decode(
@@ -24,7 +31,6 @@ async def test_generate_keyframe_pair_calls_provider_twice(tmp_path):
     bibles_repo = AsyncMock()
     bibles_repo.load.return_value = "dummy_bible"
 
-    from unittest.mock import MagicMock
     builder = MagicMock()
     req_dummy = KeyframeGenerationRequest(
         shot_contract_id="dummy",
@@ -79,3 +85,68 @@ async def test_generate_keyframe_pair_calls_provider_twice(tmp_path):
     requests = [call.args[0] for call in generator.generate_keyframe.call_args_list]
     assert requests[0].visual_constraints["pose_storage_key"] == "poses/start.png"
     assert requests[1].visual_constraints["pose_storage_key"] == "poses/end.png"
+
+
+@pytest.mark.asyncio
+async def test_lora_primary_pair_uses_moderate_visual_identity_strength(tmp_path):
+    generator = AsyncMock()
+    generator.generate_keyframe.return_value = GeneratedKeyframe(
+        image_bytes=PNG_BYTES,
+        content_type="image/png",
+        width=1024,
+        height=1024,
+    )
+    storage = LocalFsStorage(str(tmp_path))
+    await storage.save("poses/start.png", PNG_BYTES, "image/png")
+    await storage.save("poses/end.png", PNG_BYTES, "image/png")
+    character_bibles = AsyncMock()
+    character_bibles.load.return_value = CharacterBible.akira()
+    builder = MagicMock()
+    builder.build.return_value = KeyframeGenerationRequest(
+        shot_contract_id="shot-lora",
+        camera_constraints={},
+        action_constraints={},
+        visual_constraints={},
+        character_conditioning=(),
+        reference_asset_ids=(),
+        reference_storage_keys=(),
+        negative_prompts=(),
+        width=1024,
+        height=1024,
+    )
+    service = KeyframeGenerationService(
+        generator=generator,
+        storage=storage,
+        character_bibles=character_bibles,
+        storyboards=AsyncMock(),
+        human_review_required=False,
+        conditioning_builder=builder,
+        character_lora_active=True,
+    )
+
+    shot_plan = AnimationShotPlan(
+        id="shot-lora",
+        script_id="script1",
+        scene_plan_id="scene1",
+        prompt="akira ready stance",
+        prompt_end="akira raises katana",
+        duration_seconds=2.0,
+        character_state=CharacterState(
+            character_id="akira",
+            active_outfit_id="akira-default",
+            injuries=[],
+            held_objects=["katana"],
+        ),
+        start_pose_reference_key="poses/start.png",
+        end_pose_reference_key="poses/end.png",
+        controlnet_type="openpose",
+    )
+
+    await service.generate_keyframe_pair(shot_plan)
+
+    requests = [call.args[0] for call in generator.generate_keyframe.call_args_list]
+    assert len(requests) == 2
+    assert all(
+        request.visual_constraints["identity_strength"] == 0.5
+        for request in requests
+    )

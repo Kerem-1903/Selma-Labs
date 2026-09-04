@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -9,6 +10,7 @@ from PIL import Image
 from core.application.services.character_reference_asset_service import (
     CharacterReferenceAssetService,
 )
+from core.domain.entities.character_bible import CharacterBible
 from core.domain.services.character_bible_validation_service import (
     CharacterBibleValidationService,
 )
@@ -23,7 +25,6 @@ from scripts.import_akira_reference_pack import (
     import_reference_pack,
     split_reference_sheet,
 )
-
 
 EXPECTED_VIEWS = (
     ReferenceView.FRONT,
@@ -45,6 +46,21 @@ def _sheet(path) -> None:
 def test_default_multi_view_contract_matches_approved_akira_sheet():
     assert CharacterBibleValidationService.DEFAULT_REQUIRED_VIEWS == EXPECTED_VIEWS
     assert CharacterBibleValidationService().required_views == EXPECTED_VIEWS
+
+
+def test_persisted_akira_mark_matches_domain_canonical():
+    repo_root = Path(__file__).resolve().parents[2]
+    envelope = json.loads(
+        (repo_root / "assets" / "character_bibles" / "akira.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    persisted = envelope["character_bible"]["identity_constraints"][
+        "structured_marks"
+    ]
+    canonical = CharacterBible.akira().identity_constraints.structured_marks
+
+    assert persisted == [mark.to_dict() for mark in canonical]
 
 
 def test_split_reference_sheet_extracts_each_named_panel(tmp_path):

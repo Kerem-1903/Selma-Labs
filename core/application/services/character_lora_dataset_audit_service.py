@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from core.application.services.character_lora_dataset_service import (
+    CharacterLoraDatasetService,
+)
+
 
 @dataclass(frozen=True)
 class CharacterLoraDatasetAudit:
@@ -65,6 +69,12 @@ class CharacterLoraDatasetAuditService:
                 ):
                     blockers.append("sample_asset_missing_or_unsafe")
                     break
+            view = self._text(sample.get("view"))
+            caption = self._text(sample.get("caption"))
+            if not view or not caption or CharacterLoraDatasetService.caption_scope_violations(
+                view, caption
+            ):
+                blockers.append("caption_view_mismatch")
             review = sample.get("review")
             if not isinstance(review, dict):
                 blockers.append("sample_reviews_missing")

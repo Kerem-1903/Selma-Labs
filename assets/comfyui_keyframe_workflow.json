@@ -54,13 +54,18 @@
   },
   "13": {
     "inputs": {
-      "width": 1024,
-      "height": 1024,
-      "batch_size": 1
+      "pixels": [
+        "12",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
     },
-    "class_type": "EmptyLatentImage",
+    "class_type": "VAEEncode",
     "_meta": {
-      "title": "SELMA Ref Latent (Dummy)",
+      "title": "SELMA Reference Image Latent",
       "selma_role": "reference_latent"
     }
   },
@@ -185,12 +190,12 @@
   },
   "20": {
     "inputs": {
-      "weight": 0.8,
+      "weight": 0.6,
       "weight_type": "linear",
       "combine_embeds": "concat",
       "start_at": 0.0,
-      "end_at": 1.0,
-      "embeds_scaling": "V only",
+      "end_at": 0.65,
+      "embeds_scaling": "K+V w/ C penalty",
       "model": [
         "18",
         0

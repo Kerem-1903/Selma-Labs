@@ -78,6 +78,35 @@ class CharacterLoraDatasetService:
         "PROFILE_RIGHT_FULL_BODY": "full body, strict right profile view, neutral standing pose, complete outfit",
         "PROFILE_RIGHT_UPPER_BODY": "upper body, strict right profile view, complete jacket construction",
     }
+    _FACE_ONLY_VIEWS: ClassVar[frozenset[str]] = frozenset(
+        {
+            "FACE_CLOSEUP",
+            "PROFILE_LEFT",
+            "PROFILE_RIGHT",
+            "PROFILE_RIGHT_FACE_CLOSEUP",
+            "THREE_QUARTER_LEFT",
+            "THREE_QUARTER_RIGHT",
+        }
+    )
+    _FACE_FORBIDDEN_TERMS: ClassVar[tuple[str, ...]] = (
+        "full body",
+        "upper body",
+        "complete outfit",
+        "jacket construction",
+        "combat trousers",
+        "knee pads",
+        "boots",
+        "katana",
+        "two-handed grip",
+        "feet visible",
+    )
+    _UPPER_FORBIDDEN_TERMS: ClassVar[tuple[str, ...]] = (
+        "full body",
+        "combat trousers",
+        "knee pads",
+        "boots",
+        "feet visible",
+    )
 
     def __init__(
         self,
@@ -140,6 +169,9 @@ class CharacterLoraDatasetService:
             if path.is_file() and path.suffix.casefold() in self._IMAGE_SUFFIXES
         )
         for path in candidates:
+            if "quarantine" in {part.casefold() for part in path.parts}:
+                rejected.append({"file": path.name, "reason": "quarantined_asset"})
+                continue
             if self._is_training_excluded(path):
                 continue
             view = self._view_for(path)
@@ -184,6 +216,12 @@ class CharacterLoraDatasetService:
             image_path.parent.mkdir(parents=True, exist_ok=True)
             normalized.save(image_path, format="PNG", optimize=True)
             caption = self._caption(trigger_token, view, character_bible)
+            violations = self.caption_scope_violations(view, caption)
+            if violations:
+                joined = ", ".join(violations)
+                raise ValueError(
+                    f"Caption for view '{view}' contradicts its framing: {joined}."
+                )
             caption_path.write_text(caption + "\n", encoding="utf-8")
             samples.append(
                 CharacterLoraDatasetSample(
@@ -307,7 +345,7 @@ class CharacterLoraDatasetService:
         character_bible: CharacterBible | None,
     ) -> str:
         identity = (
-            character_bible.prompt_fragments()
+            character_bible.prompt_fragments_for_view(view)
             if character_bible
             else ("original anime character",)
         )
@@ -320,3 +358,15 @@ class CharacterLoraDatasetService:
                 )
             )
         )
+
+    @classmethod
+    def caption_scope_violations(cls, view: str, caption: str) -> tuple[str, ...]:
+        """Return phrases that cannot truthfully be visible in the given view."""
+        normalized = caption.casefold()
+        if view in cls._FACE_ONLY_VIEWS:
+            forbidden = cls._FACE_FORBIDDEN_TERMS
+        elif "UPPER_BODY" in view or view == "FRONT":
+            forbidden = cls._UPPER_FORBIDDEN_TERMS
+        else:
+            forbidden = ()
+        return tuple(term for term in forbidden if term in normalized)
