@@ -682,3 +682,86 @@ def test_non_head_dominant_view_skips_streak_pre_gate(tmp_path):
     assert pack.candidates[0].filename == "back-neutral-01.png"
     assert pack.candidates[0].gate_note is None
     assert evaluator.calls == 1
+
+
+# --- ACTION pose conditioning (Faz 1.4) ----------------------------------
+
+
+def test_action_recipe_attaches_openpose_reference(tmp_path):
+    storage = LocalFsStorage(str(tmp_path))
+    anchor_key = "approved/akira-anchor-v2.png"
+    pose_key = "approved/poses/action-running.png"
+    asyncio.run(storage.save(anchor_key, _akira_anchor_bytes(), "image/png"))
+    asyncio.run(storage.save(pose_key, FakeKeyframeGenerationProvider._PNG, "image/png"))
+    provider = FakeKeyframeGenerationProvider()
+    service = CharacterOnboardingService(provider, storage, _PassEvaluator())
+
+    plan = CharacterOnboardingService.plan(CharacterBible.akira())
+    running_index = next(
+        index
+        for index, recipe in enumerate(plan.recipes)
+        if recipe.view == "ACTION_RUNNING"
+    )
+    pack = asyncio.run(
+        service.generate_reference_pack(
+            CharacterBible.akira(),
+            anchor_storage_key=anchor_key,
+            recipe_offset=running_index,
+            recipe_limit=1,
+            pose_references={"ACTION_RUNNING": pose_key},
+        )
+    )
+
+    constraints = provider.requests[0].visual_constraints
+    assert constraints["pose_storage_key"] == pose_key
+    assert constraints["controlnet_type"] == "openpose"
+    assert constraints["pose_strength"] == 0.8
+    assert len(pack.candidates) == 1
+    assert pack.candidates[0].filename == "action-running-01.png"
+
+
+def test_action_batch_without_pose_for_every_view_fails_closed(tmp_path):
+    storage = LocalFsStorage(str(tmp_path))
+    anchor_key = "approved/akira-anchor-v2.png"
+    pose_key = "approved/poses/action-running.png"
+    asyncio.run(storage.save(anchor_key, _akira_anchor_bytes(), "image/png"))
+    asyncio.run(storage.save(pose_key, FakeKeyframeGenerationProvider._PNG, "image/png"))
+    service = CharacterOnboardingService(
+        FakeKeyframeGenerationProvider(), storage, _PassEvaluator()
+    )
+
+    plan = CharacterOnboardingService.plan(CharacterBible.akira())
+    walking_index = next(
+        index
+        for index, recipe in enumerate(plan.recipes)
+        if recipe.view == "ACTION_WALKING"
+    )
+    with pytest.raises(ValueError, match="ACTION_WALKING"):
+        asyncio.run(
+            service.generate_reference_pack(
+                CharacterBible.akira(),
+                anchor_storage_key=anchor_key,
+                recipe_offset=walking_index,
+                recipe_limit=1,
+                pose_references={"ACTION_RUNNING": pose_key},
+            )
+        )
+
+
+def test_pose_references_reject_non_action_views(tmp_path):
+    storage = LocalFsStorage(str(tmp_path))
+    anchor_key = "approved/akira-anchor-v2.png"
+    asyncio.run(storage.save(anchor_key, _akira_anchor_bytes(), "image/png"))
+    service = CharacterOnboardingService(
+        FakeKeyframeGenerationProvider(), storage, _PassEvaluator()
+    )
+    with pytest.raises(ValueError, match="ACTION_"):
+        asyncio.run(
+            service.generate_reference_pack(
+                CharacterBible.akira(),
+                anchor_storage_key=anchor_key,
+                recipe_offset=0,
+                recipe_limit=1,
+                pose_references={"FACE_CLOSEUP": "approved/pose.png"},
+            )
+        )

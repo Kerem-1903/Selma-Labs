@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import io
+from collections.abc import Mapping
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import PurePosixPath
@@ -326,6 +327,7 @@ class CharacterOnboardingService:
         automatic_review: bool = True,
         pilot_approval: CharacterPilotApproval | None = None,
         seed_offset: int = 0,
+        pose_references: Mapping[str, str] | None = None,
     ) -> CharacterCandidatePack:
         if seed_offset < 0 or seed_offset % 10_000 != 0:
             raise ValueError(
@@ -357,6 +359,9 @@ class CharacterOnboardingService:
                 recipe_offset + recipe_limit if recipe_limit is not None else None
             )
         ]
+        pose_references = await self._verified_pose_references(
+            recipes=recipes, pose_references=pose_references
+        )
         candidates = []
         quarantined = []
         anchor_bytes = await self._storage.load(anchor_key)
@@ -412,6 +417,11 @@ class CharacterOnboardingService:
                         ),
                         anchor_storage_key=conditioning_key,
                         view=recipe.view,
+                        pose_storage_key=(
+                            pose_references.get(recipe.view)
+                            if pose_references is not None
+                            else None
+                        ),
                     )
                 )
                 pre_gate_note = None
@@ -571,6 +581,7 @@ class CharacterOnboardingService:
         negatives: tuple[str, ...],
         anchor_storage_key: str | None = None,
         view: str = "FULL_BODY",
+        pose_storage_key: str | None = None,
     ) -> KeyframeGenerationRequest:
         references = []
         asset_ids: tuple[str, ...] = ()
@@ -637,6 +648,15 @@ class CharacterOnboardingService:
                 "identity_embeds_scaling": "K+V w/ C penalty",
                 "reference_denoise": CharacterOnboardingService._denoise_for_view(
                     view
+                ),
+                **(
+                    {
+                        "pose_storage_key": pose_storage_key,
+                        "controlnet_type": "openpose",
+                        "pose_strength": 0.8,
+                    }
+                    if pose_storage_key
+                    else {}
                 ),
             },
             character_conditioning=(
@@ -828,6 +848,48 @@ class CharacterOnboardingService:
             quality=quality,
             gate_note=gate_note,
         )
+
+    async def _verified_pose_references(
+        self,
+        *,
+        recipes: tuple[CharacterReferenceRecipe, ...],
+        pose_references: Mapping[str, str] | None,
+    ) -> Mapping[str, str] | None:
+        """Resolve ACTION_* pose maps against the storage, fail-closed."""
+        if pose_references is None:
+            return None
+        unknown = sorted(
+            view for view in pose_references if not view.startswith("ACTION_")
+        )
+        if unknown:
+            raise ValueError(
+                "Pose references may only target ACTION_* views: "
+                + ", ".join(unknown)
+            )
+        action_views = {
+            recipe.view
+            for recipe in recipes
+            if recipe.view.startswith("ACTION_")
+        }
+        missing = sorted(action_views - set(pose_references))
+        if missing:
+            raise ValueError(
+                "Guarded action generation requires an OpenPose reference for "
+                "every action view in the batch; missing: " + ", ".join(missing)
+            )
+        png_magic = bytes((0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A))
+        resolved: dict[str, str] = {}
+        for view, raw_key in pose_references.items():
+            storage_key = self._portable_key(raw_key)
+            if not await self._storage.exists(storage_key):
+                raise StorageError(f"Pose reference '{storage_key}' was not found.")
+            data = await self._storage.load(storage_key)
+            if not data.startswith(png_magic):
+                raise StorageError(
+                    f"Pose reference '{storage_key}' must be a PNG image."
+                )
+            resolved[view] = storage_key
+        return resolved
 
     @staticmethod
     def _portable_key(value: str) -> str:
