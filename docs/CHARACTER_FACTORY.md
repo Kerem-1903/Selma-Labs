@@ -116,8 +116,12 @@ IPAdapter Plus custom nodes. FaceID is an identity aid, not human approval: a
 pilot with a misplaced hair mark or invented costume detail must still fail.
 Do not use FaceID for anime characters: `NO_HEAD` is a model-domain mismatch,
 not evidence that the anime drawing lacks a face. Anime candidates instead pass
-the configured vision/QA evaluator and later the structured-mark Golden Set
-gate. The visual workflow accepts a reviewed OpenPose image through
+the configured vision/QA evaluator and later a human-reviewed Golden Set. The
+structured-mark seal derives its head region from InsightFace, so anime golden
+runs disable it with `GOLDEN_MARKER_GATE_ENABLED=false`; when a head region
+cannot be detected the gate reports `marker_gate_passed: false` with a note
+rather than aborting the run, and only a human-locked, passing set may seal a
+model. The visual workflow accepts a reviewed OpenPose image through
 `pose_storage_key`, allowing facial identity and acting pose to be controlled
 in one render.
 

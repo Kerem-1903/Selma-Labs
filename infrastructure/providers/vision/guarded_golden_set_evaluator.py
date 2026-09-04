@@ -15,7 +15,6 @@ from core.domain.entities.character_golden_set import (
     GoldenTestCase,
 )
 from core.domain.entities.direction_bible import VisualStyleBible
-from core.domain.exceptions import GoldenSetValidationError
 from core.domain.ports.golden_set_evaluator_port import GoldenSetEvaluatorPort
 from core.domain.ports.head_region_port import HeadRegionPort
 from core.domain.ports.storage_port import StoragePort
@@ -63,9 +62,19 @@ class GuardedGoldenSetEvaluator(GoldenSetEvaluatorPort):
         image_bytes = await self._storage.load(storage_key)
         head = await self._head.detect(image_bytes)
         if head is None:
-            raise GoldenSetValidationError(
-                f"No head region detected for {storage_key}; "
-                "structured-mark gate is fail-closed."
+            # Anime faces and undetectable framings must not abort the whole
+            # golden run: record a visible blocked gate so the case cannot pass
+            # or lock, while the generated frame remains available for review.
+            note = (
+                "marker gate blocked: no head region detected; automatic "
+                "streak verification unavailable"
+            )
+            return replace(
+                result,
+                critical=test_case.critical,
+                marker_gate_passed=False,
+                structured_mark_reports=(),
+                notes=f"{result.notes} {note}".strip() if result.notes else note,
             )
         with Image.open(io.BytesIO(image_bytes)) as source:
             image = source.convert("RGB").copy()

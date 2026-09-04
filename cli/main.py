@@ -62,6 +62,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--limit", type=int, help="Generate only the first N recipes for a pilot run"
     )
     character_references.add_argument(
+        "--recipe-offset",
+        type=int,
+        default=0,
+        help="Zero-based recipe index to start from; lets staged runs skip already-covered views",
+    )
+    character_references.add_argument(
         "--defer-visual-review",
         action="store_true",
         help="Keep candidates pending when no trustworthy vision model is available",
@@ -595,6 +601,7 @@ async def _run_character_generation(
             anchor_storage_key=arguments.approved_anchor_key,
             output_prefix=arguments.output_prefix,
             recipe_limit=arguments.limit,
+            recipe_offset=arguments.recipe_offset,
             automatic_review=not arguments.defer_visual_review,
             pilot_approval=pilot_approval,
             seed_offset=arguments.seed_offset,

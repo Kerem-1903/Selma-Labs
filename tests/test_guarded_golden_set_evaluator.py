@@ -182,14 +182,49 @@ async def test_collateral_red_outside_head_ignored():
 
 
 @pytest.mark.asyncio
-async def test_no_head_fails_closed():
-    with pytest.raises(GoldenSetValidationError):
-        await _guard(_img(173), None).evaluate(
-            character=CharacterBible.akira(),
-            style=_style(),
-            test_case=_tc(),
-            storage_key="g.png",
+async def test_no_head_blocks_marker_gate_without_aborting():
+    # Anime faces (InsightFace NO_HEAD) must not abort the golden run: the
+    # case is recorded as blocked and can never pass, but stays reviewable.
+    result = await _guard(_img(173), None).evaluate(
+        character=CharacterBible.akira(),
+        style=_style(),
+        test_case=_tc(),
+        storage_key="g.png",
+    )
+    assert result.marker_gate_passed is False
+    assert result.passed is False
+    assert result.human_approved is True
+    assert result.critical is True
+    assert result.structured_mark_reports == ()
+    assert "no head region detected" in result.notes
+
+
+@pytest.mark.asyncio
+async def test_blocked_marker_prevents_golden_set_lock():
+    passing = []
+    for test_case in default_akira_golden_cases():
+        blocked = test_case.scenario == GoldenScenario.FACE_FRONT
+        passing.append(
+            GoldenCandidateResult(
+                scenario=test_case.scenario,
+                storage_key=f"g-{test_case.scenario.value.lower()}.png",
+                identity_score=0.95,
+                style_score=0.9,
+                anatomy_score=0.9,
+                human_approved=True,
+                critical=test_case.critical,
+                marker_gate_passed=not blocked,
+            )
         )
+    golden_set = CharacterGoldenSet.create(
+        character_id="akira",
+        model_id="selma-akira-v2",
+        model_revision="abc123",
+        results=tuple(passing),
+    )
+    assert golden_set.passed is False
+    with pytest.raises(GoldenSetValidationError, match="failing"):
+        golden_set.lock("Kerem")
 
 
 @pytest.mark.asyncio

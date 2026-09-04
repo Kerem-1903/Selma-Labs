@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -304,6 +305,57 @@ def test_bulk_reference_generation_requires_approved_pilot(tmp_path):
         )
 
     assert provider.requests == []
+
+
+def test_reference_pack_supports_staged_recipe_offset(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    service = CharacterOnboardingService(provider, storage, _PassEvaluator())
+    anchor_key = "approved/nova-anchor.png"
+    asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
+    approval = _generate_and_approve_pilot(service, _nova(), anchor_key)
+    before = len(provider.requests)
+
+    pack = asyncio.run(
+        service.generate_reference_pack(
+            _nova(),
+            anchor_storage_key=anchor_key,
+            recipe_offset=20,
+            recipe_limit=3,
+            pilot_approval=approval,
+        )
+    )
+
+    # Pilot verified from the source run is appended; only the three
+    # profile-right holdout recipes are newly generated at the offset.
+    assert len(pack.candidates) == 4
+    assert len(provider.requests) == before + 3
+    names = [Path(candidate.storage_key).name for candidate in pack.candidates]
+    assert "face-closeup-neutral-01.png" in names
+    assert "profile-right-neutral-01.png" in names
+    assert "profile-right-soft-light-03.png" in names
+    assert "action-running-01.png" not in names
+    assert "face-closeup-determined-02.png" not in names
+
+
+def test_reference_pack_rejects_out_of_range_recipe_offset(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    service = CharacterOnboardingService(provider, storage, _PassEvaluator())
+    anchor_key = "approved/nova-anchor.png"
+    asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
+    approval = _generate_and_approve_pilot(service, _nova(), anchor_key)
+
+    with pytest.raises(ValueError, match="recipe offset"):
+        asyncio.run(
+            service.generate_reference_pack(
+                _nova(),
+                anchor_storage_key=anchor_key,
+                recipe_offset=30,
+                recipe_limit=1,
+                pilot_approval=approval,
+            )
+        )
 
 
 def test_bulk_gate_detects_pilot_tampering(tmp_path):

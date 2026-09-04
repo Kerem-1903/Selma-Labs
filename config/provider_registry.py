@@ -400,7 +400,7 @@ def get_vision_provider(settings: Settings) -> VisionAnalysisPort:
         base_provider = SelmaGPTVisionProvider(
             api_url=settings.selmagpt_vision_url,
             model=settings.selmagpt_vision_model,
-            timeout_seconds=settings.provider_timeout_seconds,
+            timeout_seconds=settings.selmagpt_vision_timeout_seconds,
         )
     else:
         raise ValueError(

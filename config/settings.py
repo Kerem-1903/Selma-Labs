@@ -181,6 +181,8 @@ class Settings(BaseSettings):
     openai_vision_model: str = "gpt-5.6-luna"
     selmagpt_vision_model: str = "llava"
     selmagpt_vision_url: str = "http://localhost:11434/api/generate"
+    # Local Ollama/llava is slower than cloud vision APIs; allow generous time.
+    selmagpt_vision_timeout_seconds: float = 180.0
     vision_frames_per_asset: int = 3
     vision_top_candidates: int = 5
     vision_max_concurrency: int = 2

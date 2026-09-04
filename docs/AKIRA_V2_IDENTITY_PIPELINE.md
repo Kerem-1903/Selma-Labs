@@ -132,6 +132,15 @@ Finally run `python -m cli.main preproduction golden-set --character-id akira
 --model-id selma-akira-v2 --model-revision <sha256-prefix>`. A human may lock the
 model only after all ten cases pass. Scene generation remains blocked until then.
 
+Anime and the golden marker gate: the automatic single-streak seal derives the
+head region through InsightFace, which cannot detect anime faces (`NO_HEAD`).
+When no head region is detected the gate now records `marker_gate_passed:
+false` with a visible note instead of aborting the run, so the frame stays
+reviewable and can never pass silently. Anime golden runs therefore execute
+with `GOLDEN_MARKER_GATE_ENABLED=false`; the filled human review manifest and
+the human model lock are the binding gate for anime. Re-enable the marker gate
+only when an anime-capable head region source is configured.
+
 Anime generation must use `assets/comfyui_keyframe_workflow.json`, never the
 FaceID workflow. The standard workflow combines the V2 visual reference,
 moderate IP-Adapter (`0.55-0.65`), real img2img initialization, and OpenPose.
