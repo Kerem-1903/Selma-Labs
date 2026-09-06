@@ -1,8 +1,13 @@
+import traceback
 import asyncio
 import os
 import re
 import time
 import uuid
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 from pathlib import Path
 
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
@@ -310,6 +315,11 @@ async def analyze_vision(
         return JSONResponse(status_code=400, content={"error": "No image provided."})
 
     try:
+        await check_upload_file(image, allowed_mimes=["image/jpeg", "image/png", "image/webp"])
+    except ValueError as e:
+        return JSONResponse(status_code=400, content={"error": str(e)})
+
+    try:
         from config.provider_registry import get_vision_asset_scoring_service
         settings = get_settings().model_copy()
 
@@ -333,7 +343,9 @@ async def analyze_vision(
         })
 
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        error_id = str(uuid.uuid4())
+        logger.error(f"Error {error_id} in analyze_vision: {str(e)}\n{traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": "An internal error occurred", "error_id": error_id})
 
 
 
@@ -376,6 +388,14 @@ async def workspace(request: Request, job_id: str):
 
 @app.post("/api/publish/{job_id}")
 async def api_publish(job_id: str, platform: str = Form(...)):
+    allow_publish = os.environ.get("SELMA_ALLOW_PUBLISH", "false").lower() == "true"
+    if not allow_publish:
+        return JSONResponse({"error": "Publishing is disabled by default. Set SELMA_ALLOW_PUBLISH=true in .env"}, status_code=403)
+
+    allowed_platforms = {"youtube", "tiktok", "twitter", "instagram"}
+    if platform not in allowed_platforms:
+        return JSONResponse({"error": f"Invalid platform. Allowed: {', '.join(allowed_platforms)}"}, status_code=400)
+
     try:
         from infrastructure.repositories.local_json_run_repository import LocalJsonRunRepository
         repo = LocalJsonRunRepository(PROJECT_ROOT / ".selma_runs")
@@ -395,6 +415,14 @@ async def api_publish(job_id: str, platform: str = Form(...)):
              raise ValueError("Could not find video file path in artifacts.")
 
         video_path = PROJECT_ROOT / video_path_str
+
+        # Security checks: prevent path traversal and symlinks
+        resolved_path = video_path.resolve()
+        if not resolved_path.is_relative_to(PROJECT_ROOT.resolve()):
+            raise ValueError("Path traversal attempt detected.")
+        if video_path.is_symlink():
+            raise ValueError("Symlinks are not allowed for artifacts.")
+
         if not video_path.exists():
              raise FileNotFoundError(f"Video missing at {video_path}")
 
@@ -411,10 +439,34 @@ async def api_publish(job_id: str, platform: str = Form(...)):
 
         return JSONResponse({"status": "success", "platform": platform, "platform_id": result_id})
     except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+        error_id = str(uuid.uuid4())
+        logger.error(f"Error {error_id} in api_publish: {str(e)}\n{traceback.format_exc()}")
+        return JSONResponse({"error": "An internal error occurred", "error_id": error_id}, status_code=500)
+
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024 # 10MB limit
+
+async def check_upload_file(file: UploadFile, allowed_mimes: list, max_size: int = MAX_UPLOAD_SIZE):
+    if not file or not file.filename:
+        return None
+
+    if file.content_type not in allowed_mimes:
+        raise ValueError(f"Invalid file type {file.content_type}. Allowed: {', '.join(allowed_mimes)}")
+
+    # Check size if available, otherwise fallback
+    if getattr(file, "size", None) is not None:
+        if file.size > max_size:
+            raise ValueError(f"File too large. Max size is {max_size} bytes.")
+    else:
+        # Fallback to reading
+        contents = await file.read()
+        if len(contents) > max_size:
+            raise ValueError(f"File too large. Max size is {max_size} bytes.")
+        await file.seek(0)
+    return True
 
 @app.post("/api/generate")
 async def generate(
+    request: Request,
     background_tasks: BackgroundTasks,
     prompt: str = Form(...),
     duration: int = Form(20),
@@ -428,53 +480,73 @@ async def generate(
     voice_provider: str | None = Form(None),
     voice_file: UploadFile | None = File(None),
 ):
-    job_id = str(uuid.uuid4())
-    image_path = None
-    voice_file_path = None
+    try:
+        # Provider whitelist
+        allowed_script_providers = ["nvidia", "claude", "selmagpt", None]
+        allowed_voice_providers = ["elevenlabs", "local_xtts", None]
 
-    upload_dir_base = PROJECT_ROOT / "output" / "user_uploads"
+        if script_provider not in allowed_script_providers:
+            return JSONResponse({"error": "Invalid script provider"}, status_code=400)
+        if voice_provider not in allowed_voice_providers:
+            return JSONResponse({"error": "Invalid voice provider"}, status_code=400)
 
-    if image and image.filename:
-        upload_dir_img = upload_dir_base / "images"
-        os.makedirs(upload_dir_img, exist_ok=True)
-        safe_filename = "".join(c for c in image.filename if c.isalnum() or c in "._-")
-        if not safe_filename:
-            safe_filename = "upload.jpg"
-        image_path = str(upload_dir_img / f"{job_id}_{safe_filename}")
-        with open(image_path, "wb") as buffer:
-            import shutil
-            shutil.copyfileobj(image.file, buffer)
+        job_id = str(uuid.uuid4())
+        image_path = None
+        voice_file_path = None
 
-    if voice_file and voice_file.filename:
-        upload_dir_voice = upload_dir_base / "voices"
-        os.makedirs(upload_dir_voice, exist_ok=True)
-        safe_voice_name = "".join(c for c in voice_file.filename if c.isalnum() or c in "._-")
-        if not safe_voice_name:
-            safe_voice_name = "voice.wav"
-        voice_file_path = str(upload_dir_voice / f"{job_id}_{safe_voice_name}")
-        with open(voice_file_path, "wb") as buffer:
-            import shutil
-            shutil.copyfileobj(voice_file.file, buffer)
+        upload_dir_base = PROJECT_ROOT / "output" / "user_uploads"
 
-    # Arka planda Luma (ComfyUI) motorunu tetikle
-    JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None, "timestamp": time.time()}
-    background_tasks.add_task(
-        run_pipeline,
-        job_id,
-        prompt,
-        duration,
-        image_path,
-        script_provider,
-        voice_provider,
-        voice_file_path,
-        style,
-        subtitle_style,
-        storyboard,
-        character_id,
-        character_seed,
-    )
+        if image and image.filename:
+            await check_upload_file(image, allowed_mimes=["image/jpeg", "image/png", "image/webp"])
+            upload_dir_img = upload_dir_base / "images"
+            os.makedirs(upload_dir_img, exist_ok=True)
+            safe_filename = "".join(c for c in image.filename if c.isalnum() or c in "._-")
+            if not safe_filename:
+                safe_filename = "upload.jpg"
+            image_path = str(upload_dir_img / f"{job_id}_{safe_filename}")
+            with open(image_path, "wb") as buffer:
+                import shutil
+                shutil.copyfileobj(image.file, buffer)
 
-    return JSONResponse({"job_id": job_id})
+        if voice_file and voice_file.filename:
+            await check_upload_file(voice_file, allowed_mimes=["audio/wav", "audio/mpeg", "audio/mp3", "audio/ogg"], max_size=20 * 1024 * 1024)
+            upload_dir_voice = upload_dir_base / "voices"
+            os.makedirs(upload_dir_voice, exist_ok=True)
+            safe_voice_name = "".join(c for c in voice_file.filename if c.isalnum() or c in "._-")
+            if not safe_voice_name:
+                safe_voice_name = "voice.wav"
+            voice_file_path = str(upload_dir_voice / f"{job_id}_{safe_voice_name}")
+            with open(voice_file_path, "wb") as buffer:
+                import shutil
+                shutil.copyfileobj(voice_file.file, buffer)
+        elif voice_provider == "local_xtts" and not voice_file_path:
+            raise ValueError("voice_file is required when using local_xtts")
+
+        # Arka planda Luma (ComfyUI) motorunu tetikle
+        JOB_STATUS[job_id] = {"status": "starting", "message": "Görev sıraya alındı...", "video_url": None, "timestamp": time.time()}
+        background_tasks.add_task(
+            run_pipeline,
+            job_id,
+            prompt,
+            duration,
+            image_path,
+            script_provider,
+            voice_provider,
+            voice_file_path,
+            style,
+            subtitle_style,
+            storyboard,
+            character_id,
+            character_seed,
+        )
+
+        return JSONResponse({"job_id": job_id})
+    except ValueError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+    except Exception as e:
+        error_id = str(uuid.uuid4())
+        logger.error(f"Error {error_id} in generate: {str(e)}\n{traceback.format_exc()}")
+        return JSONResponse({"error": "An internal error occurred", "error_id": error_id}, status_code=500)
 
 
 @app.get("/api/system-metrics")
