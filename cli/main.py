@@ -57,6 +57,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=0.35,
         help="IP-Adapter weight for the style seed (0 < weight <= 1; default 0.35)",
     )
+    character_benchmark = character_commands.add_parser(
+        "benchmark-validate",
+        help="Validate a versioned character quality benchmark and its image",
+    )
+    character_benchmark.add_argument("--benchmark", required=True)
     character_approve_design = character_commands.add_parser(
         "approve-design", help="Lock one generated design as the canonical character"
     )
@@ -657,6 +662,26 @@ async def _run_character_generation(
     arguments: argparse.Namespace,
     container: AnimationContainer,
 ) -> int:
+    if arguments.character_command == "benchmark-validate":
+        from core.application.services.character_quality_benchmark_service import (
+            CharacterQualityBenchmarkService,
+        )
+
+        workspace_root = Path(__file__).resolve().parents[1]
+        benchmark = CharacterQualityBenchmarkService(workspace_root).validate(
+            arguments.benchmark
+        )
+        print(
+            json.dumps(
+                {
+                    "status": "VALID",
+                    "benchmark": benchmark.to_dict(),
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
     if arguments.character_command == "create":
         brief = _load_character_creation_brief(arguments.brief)
         pack = await container.character_design_service.generate_candidates(

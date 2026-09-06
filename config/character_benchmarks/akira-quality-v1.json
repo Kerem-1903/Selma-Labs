@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "akira-quality-v1",
+  "reference_asset": "assets/quality_benchmarks/akira-v1/akira-quality-reference.png",
+  "reference_sha256": "49276adbe5fa3d09a3727694cc4c664185cad29b6e35a94c216ac48a78dd6459",
+  "width": 1024,
+  "height": 1024,
+  "usage": "quality_and_style_evaluation_only",
+  "visual_targets": [
+    "single centered full-body anime character",
+    "complete head-to-boots silhouette with comfortable margins",
+    "balanced adult anatomy and symmetrical neutral stance",
+    "clean precise line art with restrained cel shading",
+    "clear garment construction and readable material layers",
+    "muted charcoal palette with sparse controlled accent colour",
+    "soft neutral studio background without scenery or text"
+  ],
+  "human_criteria": [
+    {
+      "id": "professional_anime_finish",
+      "label": "Professional anime illustration finish comparable to the reference",
+      "weight": 0.25
+    },
+    {
+      "id": "clean_full_body_presentation",
+      "label": "Centered full-body presentation with clean silhouette and margins",
+      "weight": 0.20
+    },
+    {
+      "id": "anatomy_and_face_quality",
+      "label": "Stable adult anatomy, hands, face and eye construction",
+      "weight": 0.20
+    },
+    {
+      "id": "outfit_readability",
+      "label": "Outfit layers, seams, accessories and materials remain readable",
+      "weight": 0.20
+    },
+    {
+      "id": "controlled_palette_and_shading",
+      "label": "Restrained palette, crisp shadows and controlled accent colours",
+      "weight": 0.15
+    }
+  ],
+  "prohibited_transfer": [
+    "copying Akira's face into a different character",
+    "copying Akira's exact hair silhouette into a different character",
+    "copying Akira's exact outfit or insignia into a different character",
+    "using the benchmark as an identity reference"
+  ]
+}
