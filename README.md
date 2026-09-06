@@ -301,3 +301,7 @@ Rendering accepts only a shot plan whose keyframe matches the candidate stored
 as `COMMITTED` by the A7 human-review workflow. Its image, background, and audio
 must use portable storage keys. ComfyUI/model locations come from environment
 settings rather than code.
+
+## Security
+
+Publishing is disabled by default for security reasons. To enable publishing, set `SELMA_ALLOW_PUBLISH=true` in your `.env` file.
