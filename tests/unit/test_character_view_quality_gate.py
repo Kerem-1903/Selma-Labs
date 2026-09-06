@@ -129,7 +129,10 @@ async def test_design_gate_accepts_one_signature_mark_on_character_left():
     assert report.passed
 
 
-async def test_design_gate_rejects_duplicated_signature_mark():
+async def test_design_gate_defers_signature_mark_fidelity_to_human_review():
+    # The design-candidate stage is a pre-human selection grid; mark fidelity
+    # (duplicate streak, mirror side) is enforced by the signed human
+    # acceptance list at view-pack approval, not by this structural gate.
     gate = CharacterViewQualityGate(
         Detector(observation(face_bbox=(0.2, 0.05, 0.8, 0.55))),
         framing_gate=Framing(),
@@ -137,6 +140,55 @@ async def test_design_gate_rejects_duplicated_signature_mark():
 
     report = await gate.evaluate_design_candidate(
         image_bytes=marked_image(duplicate=True),
+        seed=10,
+        signature_marks=(
+            CharacterSignatureMark(
+                "single cobalt streak",
+                count=1,
+                character_side="left",
+                colour="#0047AB",
+            ),
+        ),
+    )
+
+    assert report.passed
+    assert not any(
+        reason.startswith("signature_mark_") for reason in report.reasons
+    )
+
+
+async def test_design_gate_rejects_duplicate_faces_as_collage():
+    gate = CharacterViewQualityGate(
+        Detector(observation(face_count=2)),
+        framing_gate=Framing(),
+    )
+
+    report = await gate.evaluate_design_candidate(
+        image_bytes=marked_image(duplicate=True),
+        seed=10,
+        signature_marks=(
+            CharacterSignatureMark(
+                "single cobalt streak",
+                count=1,
+                character_side="left",
+                colour="#0047AB",
+            ),
+        ),
+    )
+
+    assert not report.passed
+    assert "face_count_2" in report.reasons
+
+
+async def test_face_closeup_rejects_duplicated_signature_mark():
+    gate = CharacterViewQualityGate(
+        Detector(observation(face_bbox=(0.2, 0.05, 0.8, 0.55))),
+        framing_gate=Framing(),
+    )
+
+    report = await gate.evaluate(
+        image_bytes=marked_image(duplicate=True),
+        view="FACE_CLOSEUP",
         seed=10,
         signature_marks=(
             CharacterSignatureMark(

@@ -153,6 +153,22 @@ def test_cli_generates_and_approves_canonical_design_from_brief(tmp_path, capsys
     def factory():
         return create_container(settings=settings)
 
+    # Seed canonical pose templates into the keyframe storage so the
+    # fail-closed pose conditioning for directional views can resolve.
+    pose_root = asset_root / "characters" / "_pose_templates"
+    pose_root.mkdir(parents=True, exist_ok=True)
+    for _pose_name in (
+        "pose_front.png",
+        "pose_back.png",
+        "pose_profile_left.png",
+        "pose_profile_right.png",
+        "pose_three_quarter_left.png",
+        "pose_three_quarter_right.png",
+    ):
+        (pose_root / _pose_name).write_bytes(
+            (Path(__file__).parents[2] / "assets" / "pose_templates" / _pose_name).read_bytes()
+        )
+
     assert (
         main(
             [
@@ -235,6 +251,174 @@ def test_cli_generates_and_approves_canonical_design_from_brief(tmp_path, capsys
     assert all("qc_metrics" in item for item in production_manifest["assets"])
     capsys.readouterr()
 
+    acceptance_dir = tmp_path / "acceptance"
+    acceptance_dir.mkdir(parents=True, exist_ok=True)
+    acceptance_path = acceptance_dir / "mira-v1.json"
+    acceptance_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "character_id": "mira",
+                "character_version": 1,
+                "brief_hash": manifest["brief_hash"],
+                "blocking_policy": "All checks must pass before view-pack approval.",
+                "automatic_checks": ["exactly_one_person"],
+                "human_checks": [
+                    {
+                        "id": "same_facial_identity",
+                        "label": "same facial identity in all seven views",
+                    },
+                    {
+                        "id": "bag_character_right_never_mirrored",
+                        "label": "messenger bag stays on character-right hip",
+                    },
+                ],
+                "required_evidence": [
+                    "canonical-approval.json",
+                    "face_anchor.png",
+                    "fullbody_anchor.png",
+                    "view-pack.json",
+                    "contact-sheets/views.png",
+                    "manifest.json",
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    assert (
+        main(
+            [
+                "character",
+                "approve-view-pack",
+                "--character",
+                "mira",
+                "--version",
+                "v1",
+                "--approved-by",
+                "Kerem",
+                "--acceptance",
+                str(acceptance_path),
+                "--check",
+                "same_facial_identity",
+                "--check",
+                "bag_character_right_never_mirrored",
+            ],
+            container_factory=factory,
+        )
+        == 0
+    )
+    view_approval = json.loads(capsys.readouterr().out)
+    assert view_approval["human_approved"] is True
+    assert len(view_approval["view_hashes"]) == 7
+    assert len(view_approval["human_checks"]) == 2
+    assert len(view_approval["verified_evidence"]) >= 5
+    assert len(view_approval["acceptance_sha256"]) == 64
+    assert (asset_root / "characters/mira/v1/view-pack-approval.json").is_file()
+
+
+def test_cli_approve_view_pack_fails_closed_without_signed_acceptance(
+    tmp_path, capsys
+):
+    brief_path = tmp_path / "brief.json"
+    manifest_path = tmp_path / "designs.json"
+    approval_path = tmp_path / "canonical-approval.json"
+    turnaround_path = tmp_path / "turnaround.json"
+    asset_root = tmp_path / "assets"
+    brief_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "name": "Mira",
+                "concept": "Underground courier who manipulates sound",
+                "hair": "black bob with one red lock",
+                "outfit": "cropped courier jacket",
+            }
+        ),
+        encoding="utf-8",
+    )
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path / "runtime"),
+        keyframe_storage_root_dir=str(asset_root),
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+    )
+
+    def factory():
+        return create_container(settings=settings)
+
+    # Seed canonical pose templates into the keyframe storage so the
+    # fail-closed pose conditioning for directional views can resolve.
+    pose_root = asset_root / "characters" / "_pose_templates"
+    pose_root.mkdir(parents=True, exist_ok=True)
+    for _pose_name in (
+        "pose_front.png",
+        "pose_back.png",
+        "pose_profile_left.png",
+        "pose_profile_right.png",
+        "pose_three_quarter_left.png",
+        "pose_three_quarter_right.png",
+    ):
+        (pose_root / _pose_name).write_bytes(
+            (Path(__file__).parents[2] / "assets" / "pose_templates" / _pose_name).read_bytes()
+        )
+
+    assert (
+        main(
+            [
+                "character",
+                "create",
+                "--brief",
+                str(brief_path),
+                "--manifest",
+                str(manifest_path),
+            ],
+            container_factory=factory,
+        )
+        == 0
+    )
+    capsys.readouterr()
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    selected_key = manifest["candidates"][0]["storage_key"]
+    assert (
+        main(
+            [
+                "character",
+                "approve-design",
+                "--brief",
+                str(brief_path),
+                "--manifest",
+                str(manifest_path),
+                "--candidate-key",
+                selected_key,
+                "--approved-by",
+                "Kerem",
+                "--output",
+                str(approval_path),
+            ],
+            container_factory=factory,
+        )
+        == 0
+    )
+    capsys.readouterr()
+    assert (
+        main(
+            [
+                "character",
+                "turnaround",
+                "--brief",
+                str(brief_path),
+                "--approval",
+                str(approval_path),
+                "--manifest",
+                str(turnaround_path),
+            ],
+            container_factory=factory,
+        )
+        == 0
+    )
+    capsys.readouterr()
+
     assert (
         main(
             [
@@ -249,12 +433,9 @@ def test_cli_generates_and_approves_canonical_design_from_brief(tmp_path, capsys
             ],
             container_factory=factory,
         )
-        == 0
+        != 0
     )
-    view_approval = json.loads(capsys.readouterr().out)
-    assert view_approval["human_approved"] is True
-    assert len(view_approval["view_hashes"]) == 7
-    assert (asset_root / "characters/mira/v1/view-pack-approval.json").is_file()
+    assert not (asset_root / "characters/mira/v1/view-pack-approval.json").is_file()
 
 
 def test_cli_breakdown_writes_unapproved_shot_plan(tmp_path):

@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Any
 
 from core.domain.exceptions import PreProductionValidationError
+from core.domain.value_objects.character_acceptance import CharacterHumanCheck
 
 
 def _text(value: object, field_name: str) -> str:
@@ -549,6 +550,10 @@ class CharacterViewPackApproval:
     contact_sheet_storage_key: str
     contact_sheet_content_hash: str
     view_hashes: Mapping[str, str]
+    acceptance_sha256: str = ""
+    human_checks: tuple[CharacterHumanCheck, ...] = ()
+    verified_evidence: tuple[str, ...] = ()
+    automatic_checks_verified: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         expected = {
@@ -577,6 +582,10 @@ class CharacterViewPackApproval:
             "contact_sheet_storage_key": self.contact_sheet_storage_key,
             "contact_sheet_content_hash": self.contact_sheet_content_hash,
             "view_hashes": dict(self.view_hashes),
+            "acceptance_sha256": self.acceptance_sha256,
+            "human_checks": [check.to_dict() for check in self.human_checks],
+            "verified_evidence": list(self.verified_evidence),
+            "automatic_checks_verified": list(self.automatic_checks_verified),
             "next_gate": "POSE_PRODUCTION",
         }
 
@@ -599,4 +608,16 @@ class CharacterViewPackApproval:
                 data.get("contact_sheet_content_hash", "")
             ),
             view_hashes={str(key): str(value) for key, value in raw_hashes.items()},
+            acceptance_sha256=str(data.get("acceptance_sha256", "")),
+            human_checks=tuple(
+                CharacterHumanCheck.from_dict(item)
+                for item in data.get("human_checks", ())
+                if isinstance(item, Mapping)
+            ),
+            verified_evidence=tuple(
+                str(item) for item in data.get("verified_evidence", ())
+            ),
+            automatic_checks_verified=tuple(
+                str(item) for item in data.get("automatic_checks_verified", ())
+            ),
         )

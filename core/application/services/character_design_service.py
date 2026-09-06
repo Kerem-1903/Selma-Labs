@@ -6,8 +6,10 @@ import hashlib
 import io
 import json
 import uuid
+from collections.abc import Collection
 from datetime import datetime, timezone
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
+from typing import ClassVar
 
 from PIL import Image, UnidentifiedImageError
 
@@ -17,6 +19,9 @@ from core.application.services.production_manifest_service import (
 from core.domain.exceptions import KeyframeGenerationError, StorageError
 from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
 from core.domain.ports.storage_port import StoragePort
+from core.domain.value_objects.character_acceptance import (
+    CharacterAcceptanceList,
+)
 from core.domain.value_objects.character_creation_brief import CharacterCreationBrief
 from core.domain.value_objects.character_design import (
     CharacterAnchorArtifact,
@@ -48,9 +53,9 @@ class _OfflineFakeViewQualityGate:
     """Deterministic QC evidence used only with the explicit fake generator."""
 
     async def evaluate(
-        self, *, image_bytes: bytes, view: str, seed: int
+        self, *, image_bytes: bytes, view: str, seed: int, signature_marks=()
     ) -> CharacterViewQcReport:
-        del image_bytes
+        del image_bytes, signature_marks
         orientation = {
             "FACE_CLOSEUP": "front",
             "FRONT": "front",
@@ -75,6 +80,15 @@ class _OfflineFakeViewQualityGate:
                 provider="fake:character-view-qc",
             ),
             framing_metrics={},
+            checks={
+                "exactly_one_person": True,
+                "head_inside_frame": True,
+                "feet_inside_frame": True,
+                "expected_orientation": True,
+                "back_view_no_face": True,
+                "signature_mark_face_closeup": True,
+                "framing": True,
+            },
         )
 
     async def evaluate_design_candidate(
@@ -86,6 +100,10 @@ class _OfflineFakeViewQualityGate:
 
 class CharacterDesignService:
     """Provider-neutral first stage of the no-LoRA character engine."""
+
+    _DEFAULT_ACCEPTANCE_DIR = (
+        Path(__file__).resolve().parents[3] / "config" / "character_acceptance"
+    )
 
     _NEGATIVES = (
         "multiple characters",
@@ -178,6 +196,7 @@ class CharacterDesignService:
         *,
         max_view_attempts: int = 3,
         production_manifest: ProductionManifestService | None = None,
+        acceptance_dir: Path | str | None = None,
     ) -> None:
         if not 1 <= max_view_attempts <= 10:
             raise ValueError("View generation attempts must be between 1 and 10.")
@@ -188,6 +207,7 @@ class CharacterDesignService:
             self._quality_gate = _OfflineFakeViewQualityGate()
         self._max_view_attempts = max_view_attempts
         self._production_manifest = production_manifest
+        self._acceptance_dir = Path(acceptance_dir) if acceptance_dir is not None else None
 
     async def generate_candidates(
         self,
@@ -196,11 +216,15 @@ class CharacterDesignService:
         count: int = 5,
         output_prefix: str = "characters",
         run_id: str | None = None,
+        style_reference_path: str | Path | None = None,
+        style_weight: float = 0.35,
     ) -> CharacterDesignCandidatePack:
         if not 1 <= count <= 8:
             raise ValueError(
                 "Character design candidate count must be between 1 and 8."
             )
+        if style_reference_path is not None and not 0.0 < style_weight <= 1.0:
+            raise ValueError("style_weight must be between 0 and 1.")
         prefix = self._portable_key(output_prefix)
         selected_run_id = (run_id or uuid.uuid4().hex[:12]).strip()
         if (
@@ -225,6 +249,27 @@ class CharacterDesignService:
             raise ValueError(
                 f"Character design run_id '{selected_run_id}' already exists."
             )
+        style_reference: dict[str, object] | None = None
+        if style_reference_path is not None:
+            raw_style_bytes = Path(style_reference_path).read_bytes()
+            style_bytes, _style_width, _style_height = self._normalized_png(
+                raw_style_bytes
+            )
+            style_digest = hashlib.sha256(style_bytes).hexdigest()
+            style_key = f"{design_root}/style/{style_digest[:12]}.png"
+            if not await self._storage.exists(style_key):
+                stored_style = await self._storage.save(
+                    style_key, style_bytes, "image/png"
+                )
+                if stored_style.key != style_key:
+                    raise StorageError(
+                        "Storage adapter returned a different style-seed key."
+                    )
+            style_reference = {
+                "content_hash": style_digest,
+                "storage_key": style_key,
+                "weight": style_weight,
+            }
         await self._persist_design_run_manifest(
             root=design_root,
             brief=brief,
@@ -232,12 +277,27 @@ class CharacterDesignService:
             candidates=candidates,
             attempts=attempts,
             status="IN_PROGRESS",
+            style_reference=style_reference,
+        )
+        style_conditioning = (
+            None
+            if style_reference is None
+            else (
+                str(style_reference["storage_key"]),
+                str(style_reference["content_hash"]),
+                float(style_reference["weight"]),
+            )
         )
         for index in range(count):
             accepted = None
             for attempt in range(1, self._max_view_attempts + 1):
                 seed = base_seed + index * 10_000 + (attempt - 1) * 1_000
-                request = self._request(brief, seed=seed, variant=index + 1)
+                request = self._request(
+                    brief,
+                    seed=seed,
+                    variant=index + 1,
+                    style_reference=style_conditioning,
+                )
                 prompt_hash = self._request_hash(request)
                 generated = await self._generator.generate_keyframe(request)
                 image_bytes, width, height = self._normalized_png(
@@ -328,6 +388,7 @@ class CharacterDesignService:
                         f"Design candidate {index + 1} failed QC after "
                         f"{self._max_view_attempts} attempts."
                     ),
+                    style_reference=style_reference,
                 )
                 raise KeyframeGenerationError(
                     f"Design candidate {index + 1} failed QC after "
@@ -347,6 +408,7 @@ class CharacterDesignService:
             candidates=candidates,
             attempts=attempts,
             status="PENDING_HUMAN_REVIEW",
+            style_reference=style_reference,
         )
         return pack
 
@@ -656,6 +718,7 @@ class CharacterDesignService:
             raise RuntimeError(
                 "Character view QC is not configured; refusing to persist generated views."
             )
+        await self._ensure_pose_templates()
 
         prefix = self._portable_key(output_prefix)
         root = f"{prefix}/{brief.character_id}/v{approval.character_version}"
@@ -705,12 +768,18 @@ class CharacterDesignService:
                         "workflow_hash": face.workflow_hash,
                     }
                 else:
+                    pose_key = self._POSE_TEMPLATE_KEYS.get(view, "")
+                    if pose_key and not await self._storage.exists(pose_key):
+                        raise StorageError(
+                            f"Pose template '{pose_key}' for view {view} is missing."
+                        )
                     request = self._reference_request(
                         brief,
                         view=view,
                         direction=directions[view],
                         seed=seed,
                         references=references,
+                        pose_storage_key=pose_key,
                     )
                     generated = await self._generator.generate_keyframe(request)
                     raw_bytes = generated.image_bytes
@@ -725,7 +794,10 @@ class CharacterDesignService:
                     )
                 image_bytes, width, height = self._normalized_png(raw_bytes)
                 report = await self._quality_gate.evaluate(
-                    image_bytes=image_bytes, view=view, seed=seed
+                    image_bytes=image_bytes,
+                    view=view,
+                    seed=seed,
+                    signature_marks=brief.signature_marks,
                 )
                 digest = hashlib.sha256(image_bytes).hexdigest()
                 if not report.passed:
@@ -900,6 +972,7 @@ class CharacterDesignService:
         attempts: list[dict[str, object]],
         status: str,
         failure: str = "",
+        style_reference: dict[str, object] | None = None,
     ) -> None:
         payload = {
             "schema_version": 1,
@@ -908,6 +981,7 @@ class CharacterDesignService:
             "run_id": run_id,
             "status": status,
             "failure": failure or None,
+            "style_reference": style_reference,
             "candidates": [candidate.to_dict() for candidate in candidates],
             "attempts": attempts,
             "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -997,6 +1071,8 @@ class CharacterDesignService:
         character_version: int,
         approved_by: str,
         output_prefix: str = "characters",
+        acceptance_path: str | Path | None = None,
+        confirmed_checks: Collection[str] = (),
     ) -> CharacterViewPackApproval:
         if character_version < 1:
             raise ValueError("Character version must be positive.")
@@ -1025,6 +1101,54 @@ class CharacterDesignService:
         if hashlib.sha256(contact_bytes).hexdigest() != pack.contact_sheet_content_hash:
             raise ValueError("Contact sheet changed before human approval.")
 
+        source = Path(acceptance_path) if acceptance_path is not None else (
+            self._acceptance_dir or self._DEFAULT_ACCEPTANCE_DIR
+        ) / f"{self._portable_key(character_id)}-v{character_version}.json"
+        if not source.is_file():
+            raise ValueError(
+                f"Acceptance list '{source}' is required before view-pack approval."
+            )
+        acceptance_bytes = source.read_bytes()
+        raw_acceptance = json.loads(acceptance_bytes.decode("utf-8"))
+        if not isinstance(raw_acceptance, dict):
+            raise TypeError("Acceptance list must contain an object.")
+        acceptance = CharacterAcceptanceList.from_dict(raw_acceptance)
+        if (
+            acceptance.character_id != character_id
+            or acceptance.character_version != character_version
+        ):
+            raise ValueError(
+                "Acceptance list belongs to another character version."
+            )
+        if acceptance.brief_hash != pack.brief_hash:
+            raise ValueError(
+                "Acceptance list is bound to another brief; review the acceptance file."
+            )
+        automatic_checks_verified = await self._verify_automatic_acceptance(
+            root=root,
+            pack=pack,
+            acceptance=acceptance,
+        )
+        confirmed = {str(check) for check in confirmed_checks}
+        missing = [
+            check.id for check in acceptance.human_checks if check.id not in confirmed
+        ]
+        if missing:
+            raise ValueError(
+                "View-pack approval requires signed human checks: "
+                + ", ".join(missing)
+            )
+        verified_evidence: list[str] = []
+        for evidence in acceptance.required_evidence:
+            if PurePosixPath(evidence).name == "view-pack-approval.json":
+                continue
+            evidence_key = f"{root}/{evidence}"
+            if not await self._storage.exists(evidence_key):
+                raise ValueError(
+                    f"Acceptance evidence '{evidence_key}' is missing."
+                )
+            verified_evidence.append(evidence)
+
         approval = CharacterViewPackApproval(
             schema_version=1,
             character_id=character_id,
@@ -1035,6 +1159,10 @@ class CharacterDesignService:
             contact_sheet_storage_key=pack.contact_sheet_storage_key,
             contact_sheet_content_hash=pack.contact_sheet_content_hash,
             view_hashes={draft.view: draft.content_hash for draft in pack.drafts},
+            acceptance_sha256=hashlib.sha256(acceptance_bytes).hexdigest(),
+            human_checks=acceptance.human_checks,
+            verified_evidence=tuple(verified_evidence),
+            automatic_checks_verified=automatic_checks_verified,
         )
         approval_key = f"{root}/view-pack-approval.json"
         if await self._storage.exists(approval_key):
@@ -1046,14 +1174,110 @@ class CharacterDesignService:
                 dict(existing.view_hashes) != dict(approval.view_hashes)
                 or existing.contact_sheet_content_hash
                 != approval.contact_sheet_content_hash
+                or existing.acceptance_sha256 != approval.acceptance_sha256
             ):
-                raise ValueError("View-pack approval is already locked to other assets.")
+                raise ValueError(
+                    "View-pack approval is already locked to other assets or "
+                    "an earlier acceptance list."
+                )
             return existing
         payload = (json.dumps(approval.to_dict(), indent=2, sort_keys=True) + "\n").encode()
         await self._storage.save_stream(
             approval_key, _single_chunk(payload), "application/json"
         )
         return approval
+
+    async def _verify_automatic_acceptance(
+        self,
+        *,
+        root: str,
+        pack: CharacterReferenceDraftPack,
+        acceptance: CharacterAcceptanceList,
+    ) -> tuple[str, ...]:
+        supported = {
+            "exactly_one_person",
+            "head_inside_frame",
+            "feet_inside_frame",
+            "expected_orientation",
+            "back_view_no_face",
+            "signature_mark_face_closeup",
+            "provenance_hashes",
+        }
+        unknown = [check for check in acceptance.automatic_checks if check not in supported]
+        if unknown:
+            raise ValueError(
+                "Acceptance list contains unsupported automatic checks: "
+                + ", ".join(unknown)
+            )
+
+        reports = {draft.view: dict(draft.qc_report or {}) for draft in pack.drafts}
+
+        def all_views(check_id: str, *, exclude: frozenset[str] = frozenset()) -> bool:
+            return all(
+                bool(dict(report.get("checks", {})).get(check_id))
+                for view, report in reports.items()
+                if view not in exclude
+            )
+
+        results = {
+            "exactly_one_person": all_views("exactly_one_person"),
+            "head_inside_frame": all_views("head_inside_frame"),
+            "feet_inside_frame": all_views(
+                "feet_inside_frame", exclude=frozenset({"FACE_CLOSEUP"})
+            ),
+            "expected_orientation": all_views("expected_orientation"),
+            "back_view_no_face": bool(
+                dict(reports.get("BACK", {}).get("checks", {})).get(
+                    "back_view_no_face"
+                )
+            ),
+            "signature_mark_face_closeup": bool(
+                dict(reports.get("FACE_CLOSEUP", {}).get("checks", {})).get(
+                    "signature_mark_face_closeup"
+                )
+            ),
+            "provenance_hashes": await self._verify_view_provenance(
+                root=root, pack=pack
+            ),
+        }
+        failed = [
+            check for check in acceptance.automatic_checks if not results.get(check)
+        ]
+        if failed:
+            raise ValueError(
+                "View-pack automatic acceptance checks failed: "
+                + ", ".join(failed)
+            )
+        return tuple(acceptance.automatic_checks)
+
+    async def _verify_view_provenance(
+        self, *, root: str, pack: CharacterReferenceDraftPack
+    ) -> bool:
+        manifest_key = f"{root}/manifest.json"
+        if not await self._storage.exists(manifest_key):
+            return False
+        raw = json.loads((await self._storage.load(manifest_key)).decode("utf-8"))
+        if not isinstance(raw, dict) or not isinstance(raw.get("assets"), list):
+            return False
+        by_storage_key = {
+            str(entry.get("storage_key")): entry
+            for entry in raw["assets"]
+            if isinstance(entry, dict)
+        }
+        for draft in pack.drafts:
+            entry = by_storage_key.get(draft.storage_key)
+            if entry is None:
+                return False
+            if (
+                entry.get("content_hash") != draft.content_hash
+                or not draft.prompt_hash
+                or not draft.workflow_hash
+                or entry.get("prompt_hash") != draft.prompt_hash
+                or entry.get("workflow_hash") != draft.workflow_hash
+                or not entry.get("model_hashes")
+            ):
+                return False
+        return True
 
     async def require_view_pack_approval(
         self,
@@ -1125,7 +1349,12 @@ class CharacterDesignService:
 
     @classmethod
     def _request(
-        cls, brief: CharacterCreationBrief, *, seed: int, variant: int
+        cls,
+        brief: CharacterCreationBrief,
+        *,
+        seed: int,
+        variant: int,
+        style_reference: tuple[str, str, float] | None = None,
     ) -> KeyframeGenerationRequest:
         identity = ", ".join(
             value
@@ -1165,6 +1394,38 @@ class CharacterDesignService:
             )
             if value
         )
+        visual_constraints: dict[str, object] = {
+            "prompt": prompt,
+            "composition_contract": "one centered character; full silhouette visible",
+            "environment_style": "soft gradient studio background",
+            "latent_mode": "empty",
+            "extra_tags": "solo",
+        }
+        conditioning: tuple[dict[str, object], ...] = ()
+        reference_asset_ids: tuple[str, ...] = ()
+        reference_storage_keys: tuple[str, ...] = ()
+        if style_reference is not None:
+            storage_key, content_hash, weight = style_reference
+            style_id = f"style:{content_hash[:12]}"
+            visual_constraints["identity_reference_weights"] = [weight]
+            visual_constraints["style_seed_weight"] = weight
+            visual_constraints["identity_mode"] = "style_only"
+            conditioning = (
+                {
+                    "character_id": brief.character_id,
+                    "identity_constraints": {"description": identity},
+                    "active_outfit": {"description": brief.outfit},
+                    "references": [
+                        {
+                            "view": "STYLE_SEED",
+                            "asset_id": style_id,
+                            "storage_key": storage_key,
+                        }
+                    ],
+                },
+            )
+            reference_asset_ids = (style_id,)
+            reference_storage_keys = (storage_key,)
         return KeyframeGenerationRequest(
             shot_contract_id=f"character-design-{brief.character_id}-{seed}",
             camera_constraints={
@@ -1173,13 +1434,10 @@ class CharacterDesignService:
                 "movement": "locked",
             },
             action_constraints={"primary_action": "neutral standing pose"},
-            visual_constraints={
-                "prompt": prompt,
-                "composition_contract": "one centered character; full silhouette visible",
-                "environment_style": "soft gradient studio background",
-                "latent_mode": "empty",
-                "extra_tags": "solo",
-            },
+            visual_constraints=visual_constraints,
+            character_conditioning=conditioning,
+            reference_asset_ids=reference_asset_ids,
+            reference_storage_keys=reference_storage_keys,
             negative_prompts=tuple(dict.fromkeys((*brief.avoid, *cls._NEGATIVES))),
             width=1024,
             height=1024,
@@ -1271,6 +1529,67 @@ class CharacterDesignService:
             seed=seed,
         )
 
+    _POSE_TEMPLATE_KEYS: ClassVar[dict[str, str]] = {
+        "PROFILE_LEFT": "characters/_pose_templates/pose_profile_left.png",
+        "PROFILE_RIGHT": "characters/_pose_templates/pose_profile_right.png",
+        "THREE_QUARTER_LEFT": "characters/_pose_templates/pose_three_quarter_left.png",
+        "THREE_QUARTER_RIGHT": "characters/_pose_templates/pose_three_quarter_right.png",
+        "BACK": "characters/_pose_templates/pose_back.png",
+    }
+    _POSE_TEMPLATE_SOURCE_DIR = (
+        Path(__file__).resolve().parents[3] / "assets" / "pose_templates"
+    )
+
+    async def _ensure_pose_templates(self) -> None:
+        """Install and verify version-controlled OpenPose templates."""
+        catalog_path = self._POSE_TEMPLATE_SOURCE_DIR / "catalog.json"
+        if not catalog_path.is_file():
+            raise StorageError(f"Pose template catalog is missing: {catalog_path}")
+        raw_catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+        if not isinstance(raw_catalog, dict) or raw_catalog.get("schema_version") != 1:
+            raise StorageError("Pose template catalog is malformed.")
+        entries = raw_catalog.get("templates")
+        if not isinstance(entries, list):
+            raise StorageError("Pose template catalog has no template list.")
+        by_view = {
+            str(entry.get("view")): entry
+            for entry in entries
+            if isinstance(entry, dict)
+        }
+        for view, storage_key in self._POSE_TEMPLATE_KEYS.items():
+            entry = by_view.get(view)
+            if entry is None:
+                raise StorageError(f"Pose template catalog has no {view} entry.")
+            filename = str(entry.get("filename", ""))
+            source = self._POSE_TEMPLATE_SOURCE_DIR / filename
+            if not source.is_file():
+                raise StorageError(f"Pose template source is missing: {source}")
+            source_bytes = source.read_bytes()
+            try:
+                with Image.open(io.BytesIO(source_bytes)) as opened:
+                    dimensions = opened.size
+                    opened.verify()
+            except (UnidentifiedImageError, OSError) as error:
+                raise StorageError(f"Pose template is not a valid image: {source}") from error
+            digest = hashlib.sha256(source_bytes).hexdigest()
+            if digest != str(entry.get("sha256", "")):
+                raise StorageError(f"Pose template hash mismatch: {filename}")
+            if dimensions != (
+                int(entry.get("width", 0)),
+                int(entry.get("height", 0)),
+            ):
+                raise StorageError(f"Pose template dimensions mismatch: {filename}")
+            if await self._storage.exists(storage_key):
+                stored = await self._storage.load(storage_key)
+                if hashlib.sha256(stored).hexdigest() != digest:
+                    raise StorageError(
+                        f"Installed pose template changed unexpectedly: {storage_key}"
+                    )
+                continue
+            saved = await self._storage.save(storage_key, source_bytes, "image/png")
+            if saved.key != storage_key:
+                raise StorageError("Storage adapter returned a different pose template key.")
+
     @classmethod
     def _reference_request(
         cls,
@@ -1280,6 +1599,7 @@ class CharacterDesignService:
         direction: str,
         seed: int,
         references: tuple[ConditioningReference, ...],
+        pose_storage_key: str = "",
     ) -> KeyframeGenerationRequest:
         identity = cls._identity_description(brief)
         subject_tag = cls._subject_tag(brief.gender_presentation)
@@ -1319,6 +1639,12 @@ class CharacterDesignService:
                 "identity_end_at": 0.65 if view == "BACK" else 0.85,
                 "extra_tags": f"{subject_tag}, solo, one person, single image",
                 "workflow_version": cls._VIEW_WORKFLOW_VERSION,
+                **({"pose_storage_key": pose_storage_key} if pose_storage_key else {}),
+                **(
+                    {"pose_strength": 0.85}
+                    if pose_storage_key
+                    else {}
+                ),
             },
             character_conditioning=tuple(
                 {

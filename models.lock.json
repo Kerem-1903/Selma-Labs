@@ -4,12 +4,12 @@
   "models": [
     {
       "role": "checkpoint",
-      "filename": "Illustrious-XL-v2.0.safetensors",
-      "relative_path": "models/checkpoints/Illustrious-XL-v2.0.safetensors",
-      "sha256": "c2a1a3eaa13d4c107dc7e00c3fe830cab427aa026362740ea094745b3422a331",
-      "size_bytes": 6938040674,
+      "filename": "animagine-xl-4.0-opt.safetensors",
+      "relative_path": "models/checkpoints/animagine-xl-4.0-opt.safetensors",
+      "sha256": "6327eca98bfb6538dd7a4edce22484a1bbc57a8cff6b11d075d40da1afb847ac",
+      "size_bytes": 6938350040,
       "required": true,
-      "note": "Installed from Hugging Face: OnomaAIResearch/Illustrious-XL-v2.0."
+      "note": "Studio-wide base matching the approved Akira anchors (animagine render dialect)."
     },
     {
       "role": "ip_adapter",

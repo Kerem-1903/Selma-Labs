@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "templates": [
+    {
+      "view": "PROFILE_LEFT",
+      "filename": "pose_profile_left.png",
+      "sha256": "7a57691680491dd921fae5df752056061bf4d2881492cf8d94b35ae9f5030743",
+      "width": 768,
+      "height": 1152
+    },
+    {
+      "view": "PROFILE_RIGHT",
+      "filename": "pose_profile_right.png",
+      "sha256": "cdaab5ccd86aa6a84b0439b046ee215db3eb3a0c6c5a330de916eed40fba8b96",
+      "width": 768,
+      "height": 1152
+    },
+    {
+      "view": "THREE_QUARTER_LEFT",
+      "filename": "pose_three_quarter_left.png",
+      "sha256": "5aeee784ce45b222b9f3d4dfc4a48a9e859c0b5a59a99516ea7febb420528564",
+      "width": 768,
+      "height": 1152
+    },
+    {
+      "view": "THREE_QUARTER_RIGHT",
+      "filename": "pose_three_quarter_right.png",
+      "sha256": "5d3a7d0876ce4aebefe0dc43bf85a7ee8b8b4f8ebcf763fc1e7910f5367946f0",
+      "width": 768,
+      "height": 1152
+    },
+    {
+      "view": "BACK",
+      "filename": "pose_back.png",
+      "sha256": "55f79b33b73ca4b674cb6d6df0fd89b7e1ec039600981bd0850b52b085279f6b",
+      "width": 768,
+      "height": 1152
+    }
+  ]
+}

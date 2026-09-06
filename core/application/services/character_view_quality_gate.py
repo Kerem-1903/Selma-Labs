@@ -33,7 +33,12 @@ class CharacterViewQualityGate:
         )
 
     async def evaluate(
-        self, *, image_bytes: bytes, view: str, seed: int
+        self,
+        *,
+        image_bytes: bytes,
+        view: str,
+        seed: int,
+        signature_marks: tuple[CharacterSignatureMark, ...] = (),
     ) -> CharacterViewQcReport:
         observation = await self._detector.inspect(
             image_bytes=image_bytes, expected_view=view
@@ -65,6 +70,14 @@ class CharacterViewQualityGate:
         framing = self._framing_gate.evaluate(image_bytes=image_bytes, view=view)
         if not framing.passed:
             reasons.append(f"framing_{self._reason_key(framing.reason)}")
+        signature_reasons: list[str] = []
+        if view == "FACE_CLOSEUP":
+            signature_reasons = self._signature_mark_reasons(
+                image_bytes=image_bytes,
+                face_bbox=observation.face_bbox,
+                marks=signature_marks,
+            )
+            reasons.extend(signature_reasons)
         return CharacterViewQcReport(
             view=view,
             seed=seed,
@@ -72,6 +85,20 @@ class CharacterViewQualityGate:
             reasons=tuple(dict.fromkeys(reasons)),
             observation=observation,
             framing_metrics=framing.metrics,
+            checks={
+                "exactly_one_person": observation.person_count == 1,
+                "head_inside_frame": observation.head_inside_frame,
+                "feet_inside_frame": (
+                    view == "FACE_CLOSEUP" or observation.feet_inside_frame
+                ),
+                "expected_orientation": observation.orientation
+                == expected_orientation,
+                "back_view_no_face": view != "BACK" or observation.face_count == 0,
+                "signature_mark_face_closeup": (
+                    view != "FACE_CLOSEUP" or not signature_reasons
+                ),
+                "framing": framing.passed,
+            },
         )
 
     async def evaluate_design_candidate(
@@ -81,34 +108,42 @@ class CharacterViewQualityGate:
         seed: int,
         signature_marks: tuple[CharacterSignatureMark, ...] = (),
     ) -> CharacterViewQcReport:
-        """Reject collages and cropped figures before human design review."""
+        """Reject gross structural failures only; leave design judgment to humans.
+
+        The design-candidate stage is a pre-human selection grid: the operator
+        chooses the canonical source among a few candidates, so this gate only
+        filters duplicates/collages and unusable crops. Per-pixel fidelity
+        checks (signature marks, leg separation, mirror side) are deliberately
+        NOT enforced here — they belong to the seven-view QC stage and to the
+        signed human acceptance list (view-pack approval), which is where the
+        character's identity rules are locked.
+        """
+        del signature_marks
         observation = await self._detector.inspect(
             image_bytes=image_bytes, expected_view="FRONT"
         )
         reasons: list[str] = []
         if observation.person_count != 1:
             reasons.append(f"person_count_{observation.person_count}")
+        if observation.face_count != 1:
+            reasons.append(f"face_count_{observation.face_count}")
         if not observation.head_inside_frame:
             reasons.append("head_outside_frame")
         if not observation.feet_inside_frame:
             reasons.append("feet_outside_frame")
-        framing = self._framing_gate.evaluate(image_bytes=image_bytes, view="FRONT")
-        if not framing.passed:
-            reasons.append(f"framing_{self._reason_key(framing.reason)}")
-        reasons.extend(
-            self._signature_mark_reasons(
-                image_bytes=image_bytes,
-                face_bbox=observation.face_bbox,
-                marks=signature_marks,
-            )
-        )
         return CharacterViewQcReport(
             view="DESIGN_CANDIDATE",
             seed=seed,
             passed=not reasons,
             reasons=tuple(dict.fromkeys(reasons)),
             observation=observation,
-            framing_metrics=framing.metrics,
+            framing_metrics={},
+            checks={
+                "exactly_one_person": observation.person_count == 1,
+                "exactly_one_face": observation.face_count == 1,
+                "head_inside_frame": observation.head_inside_frame,
+                "feet_inside_frame": observation.feet_inside_frame,
+            },
         )
 
     def _signature_mark_reasons(

@@ -43,6 +43,20 @@ def build_parser() -> argparse.ArgumentParser:
         "--run-id",
         help="Optional unique run label; generated automatically when omitted",
     )
+    character_create.add_argument(
+        "--style-reference",
+        help=(
+            "Optional local image (e.g. an approved Akira frame) used ONLY as a "
+            "low-weight visual style seed; the new character's identity comes "
+            "from the brief text"
+        ),
+    )
+    character_create.add_argument(
+        "--style-weight",
+        type=float,
+        default=0.35,
+        help="IP-Adapter weight for the style seed (0 < weight <= 1; default 0.35)",
+    )
     character_approve_design = character_commands.add_parser(
         "approve-design", help="Lock one generated design as the canonical character"
     )
@@ -70,6 +84,23 @@ def build_parser() -> argparse.ArgumentParser:
     character_approve_views.add_argument("--approved-by", default="local-operator")
     character_approve_views.add_argument("--output")
     character_approve_views.add_argument("--output-prefix", default="characters")
+    character_approve_views.add_argument(
+        "--acceptance",
+        help=(
+            "Path to the character acceptance list JSON; defaults to "
+            "config/character_acceptance/<character>-v<version>.json"
+        ),
+    )
+    character_approve_views.add_argument(
+        "--check",
+        action="append",
+        dest="checks",
+        default=[],
+        help=(
+            "Confirm one human acceptance check id; repeat for every item "
+            "in the acceptance list"
+        ),
+    )
     character_plan = character_commands.add_parser(
         "plan", help="Create a reusable 20+3 character reference recipe"
     )
@@ -633,6 +664,8 @@ async def _run_character_generation(
             count=arguments.count,
             output_prefix=arguments.output_prefix,
             run_id=arguments.run_id,
+            style_reference_path=arguments.style_reference,
+            style_weight=arguments.style_weight,
         )
         print(_write_json(arguments.manifest, pack.to_dict()))
         return 0
@@ -696,6 +729,8 @@ async def _run_character_generation(
             character_version=int(raw_version),
             approved_by=arguments.approved_by,
             output_prefix=arguments.output_prefix,
+            acceptance_path=arguments.acceptance,
+            confirmed_checks=list(arguments.checks or []),
         )
         payload = approval.to_dict()
         if arguments.output:

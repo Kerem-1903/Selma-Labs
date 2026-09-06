@@ -657,6 +657,37 @@ async def test_provider_identity_only_mode_reduces_composition_transfer():
 
 
 @pytest.mark.asyncio
+async def test_provider_style_only_mode_uses_style_transfer_weights():
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=MemoryStorage(
+            {
+                "characters/akira/face.png": PNG_BYTES,
+                "characters/akira/front.png": PNG_BYTES,
+            }
+        ),
+        session_factory=lambda **kwargs: session,
+    )
+    request = replace(
+        _request(),
+        visual_constraints={
+            **_request().visual_constraints,
+            "identity_mode": "style_only",
+        },
+    )
+
+    await provider.generate_keyframe(request)
+
+    adapter = session.queued_workflow["20"]["inputs"]
+    assert adapter["weight_type"] == "style transfer"
+    assert adapter["combine_embeds"] == "average"
+    assert adapter["end_at"] == 0.70
+    assert adapter["embeds_scaling"] == "K+V w/ C penalty"
+
+
+@pytest.mark.asyncio
 async def test_provider_supports_faceid_loader_and_strength_override():
     session = FakeSession()
     provider = ComfyUIKeyframeProvider(

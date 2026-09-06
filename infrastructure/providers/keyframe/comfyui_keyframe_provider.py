@@ -1021,6 +1021,16 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                     "embeds_scaling": "K+V w/ C penalty",
                 }
             )
+        elif mode == "style_only":
+            inputs.update(
+                {
+                    "weight_type": "style transfer",
+                    "combine_embeds": "average",
+                    "start_at": 0.0,
+                    "end_at": 0.70,
+                    "embeds_scaling": "K+V w/ C penalty",
+                }
+            )
         elif mode != "balanced":
             raise ProviderError(f"Unknown identity conditioning mode: {mode!r}.")
 

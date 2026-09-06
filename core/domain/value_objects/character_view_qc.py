@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -26,6 +27,7 @@ class CharacterViewQcReport:
     reasons: tuple[str, ...]
     observation: CharacterViewObservation
     framing_metrics: dict[str, float | int]
+    checks: Mapping[str, bool] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -46,4 +48,5 @@ class CharacterViewQcReport:
                 else None
             ),
             "framing_metrics": dict(self.framing_metrics),
+            "checks": dict(self.checks or {}),
         }

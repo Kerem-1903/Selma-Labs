@@ -51,7 +51,7 @@ def test_repository_model_lock_records_real_hashes_for_required_models():
     assert lock.entry("clip_vision").sha256 != "NOT_INSTALLED"
     assert lock.entry("controlnet_openpose").sha256 != "NOT_INSTALLED"
     assert lock.entry("checkpoint").sha256 == (
-        "c2a1a3eaa13d4c107dc7e00c3fe830cab427aa026362740ea094745b3422a331"
+        "6327eca98bfb6538dd7a4edce22484a1bbc57a8cff6b11d075d40da1afb847ac"
     )
     assert lock.entry("face_detector").sha256 == (
         "717923c19b3f4bbf5250b728f1fa6b2cb72a33aed1d236ea9caf0e21ad943e5f"
