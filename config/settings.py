@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     preproduction_character_dir: str = "assets/character_bibles"
     preproduction_approval_dir: str = "output/preproduction/story-approvals"
     preproduction_asset_root: str = "assets"
+    active_series_path: str = "config/series/selma-anime-v1.json"
     golden_review_manifest: str = "assets/preproduction/golden-set-review.example.json"
     golden_set_output_prefix: str = "preproduction/golden-set/generated"
     golden_marker_gate_enabled: bool = True

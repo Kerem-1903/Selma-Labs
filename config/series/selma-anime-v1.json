@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "series_id": "selma-anime-v1",
+  "title": "SELMA Anime",
+  "style_bible": {
+    "style_id": "selma-production-anime-v1",
+    "reference_asset": "assets/series/selma-anime-v1/style/approved-style-reference.png",
+    "reference_sha256": "f2af7fe8f57d035c75c07bd739ad26f0982346b9900890f4ad218b1c91931774",
+    "width": 1024,
+    "height": 1024,
+    "status": "APPROVED",
+    "rendering_rules": [
+      "professional modern anime concept-art finish",
+      "clean controlled line art with restrained cel shading",
+      "readable garment construction and material separation",
+      "controlled dark palette with sparse character-specific accents",
+      "stable adult anatomy with carefully constructed face and hands"
+    ],
+    "composition_rules": [
+      "single-character references use a centered complete silhouette",
+      "head and feet remain inside frame with comfortable margins",
+      "reference backgrounds remain neutral and subordinate to the subject"
+    ],
+    "identity_policy": [
+      "the depicted person is a non-canon style-discovery test character",
+      "never copy the reference face hair outfit accessories or colour placement",
+      "apply the reference only as a series-level finish and rendering target",
+      "every production character owns independent anchors views outfits and marks"
+    ]
+  },
+  "character_registry": "config/series/selma-anime-v1.cast.json",
+  "model_lock": "models.lock.json",
+  "production_root": "output/production/series/selma-anime-v1"
+}

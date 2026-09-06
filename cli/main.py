@@ -22,6 +22,27 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="SELMA Labs anime production CLI")
     commands = parser.add_subparsers(dest="command", required=True)
 
+    series = commands.add_parser("series", help="Inspect a multi-character anime series")
+    series_commands = series.add_subparsers(dest="series_command", required=True)
+    series_status = series_commands.add_parser(
+        "status", help="Validate the series style lock and character registry"
+    )
+    series_status.add_argument(
+        "--project", default="config/series/selma-anime-v1.json"
+    )
+    series_register = series_commands.add_parser(
+        "register-character", help="Add one Character Bible to the series cast"
+    )
+    series_register.add_argument(
+        "--project", default="config/series/selma-anime-v1.json"
+    )
+    series_register.add_argument("--bible", required=True)
+    series_register.add_argument("--role", required=True)
+    series_register.add_argument("--version", type=int, default=1)
+    series_register.add_argument(
+        "--status", choices=("DRAFT", "CANONICAL", "RETIRED"), default="DRAFT"
+    )
+
     character = commands.add_parser("character", help="Inspect canonical characters")
     character_commands = character.add_subparsers(
         dest="character_command", required=True
@@ -381,6 +402,8 @@ def main(
 ) -> int:
     arguments = build_parser().parse_args(argv)
     try:
+        if arguments.command == "series":
+            return _run_series_command(arguments)
         if arguments.command == "character":
             if arguments.character_command == "show":
                 _show_character(
@@ -433,6 +456,42 @@ def main(
     except Exception as error:  # noqa: BLE001 - CLI boundary
         print(f"SELMA command failed: {error}", file=sys.stderr)
         return 1
+
+
+def _run_series_command(arguments: argparse.Namespace) -> int:
+    from core.application.services.series_project_service import SeriesProjectService
+
+    workspace_root = Path(__file__).resolve().parents[1]
+    service = SeriesProjectService(workspace_root)
+    if arguments.series_command == "register-character":
+        registry = service.register_character(
+            project_path=arguments.project,
+            bible_path=arguments.bible,
+            role=arguments.role,
+            version=arguments.version,
+            status=arguments.status,
+        )
+        print(json.dumps(registry.to_dict(), ensure_ascii=False, indent=2))
+        return 0
+    project, registry = service.load(arguments.project)
+    print(
+        json.dumps(
+            {
+                "status": "VALID",
+                "series": project.to_dict(),
+                "cast": registry.to_dict(),
+                "cast_size": len(registry.members),
+                "next_gate": (
+                    "REGISTER_FIRST_CHARACTER"
+                    if not registry.members
+                    else "VALIDATE_CAST_DISTINCTIVENESS"
+                ),
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+    )
+    return 0
 
 
 def _show_character(bible: CharacterBible) -> None:
