@@ -14,11 +14,13 @@ from core.application.services.character_golden_set_service import (
 from core.application.services.hierarchical_shot_planning_service import (
     HierarchicalShotPlanningService,
 )
+from core.application.services.script_breakdown_service import ScriptBreakdownService
 from core.domain.entities.animatic_project import AnimaticProject
 from core.domain.entities.animation_ready_package import (
     AnimationReadyPackage,
     ShotPackageSources,
 )
+from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.character_golden_set import (
     CharacterGoldenSet,
     GoldenCandidateResult,
@@ -160,7 +162,9 @@ async def test_golden_adapter_threads_openpose_into_generation_request(tmp_path)
 @pytest.mark.asyncio
 async def test_locked_story_reaches_animatic_and_animation_ready_packages(tmp_path):
     storage = LocalFsStorage(str(tmp_path / "storage"))
-    plan = HierarchicalShotPlanningService().plan(_episode())
+    plan = HierarchicalShotPlanningService(
+        ScriptBreakdownService(CharacterBible.akira())
+    ).plan(_episode())
     storyboards = {}
     audio_keys = {}
     for index, directed in enumerate(plan.shots):
@@ -244,7 +248,9 @@ async def test_locked_story_reaches_animatic_and_animation_ready_packages(tmp_pa
 @pytest.mark.asyncio
 async def test_packaging_fails_closed_before_animatic_and_golden_locks(tmp_path):
     storage = LocalFsStorage(str(tmp_path / "storage"))
-    plan = HierarchicalShotPlanningService().plan(_episode())
+    plan = HierarchicalShotPlanningService(
+        ScriptBreakdownService(CharacterBible.akira())
+    ).plan(_episode())
     # A deliberately empty clip map cannot be used to build an animatic; package
     # validation is independently covered with a plan-mismatched object above.
     with pytest.raises(AnimationPackageError, match="locked animatic"):

@@ -40,7 +40,7 @@ def test_container_wires_canonical_character_and_services(tmp_path):
     )
 
     assert isinstance(container, AnimationContainer)
-    assert container.character_bible.trigger_prompt == "akira_girl"
+    assert container.character_bible is None
     assert container["script_breakdown_service"] is container.script_breakdown_service
     assert (
         container["animation_orchestrator_service"]
@@ -94,7 +94,12 @@ def test_cli_shows_character_without_constructing_provider_container(capsys):
         raise AssertionError("character show must not construct provider adapters")
 
     exit_code = main(
-        ["character", "show"],
+        [
+            "character",
+            "show",
+            "--input",
+            str(Path(__file__).parents[2] / "assets/character_bibles/akira.json"),
+        ],
         container_factory=forbidden_container,
     )
 
@@ -451,6 +456,8 @@ def test_cli_breakdown_writes_unapproved_shot_plan(tmp_path):
             "breakdown",
             "--input",
             str(source),
+            "--character-bible",
+            str(Path(__file__).parents[2] / "assets/character_bibles/akira.json"),
             "--script-id",
             "broken-record",
             "--output",
@@ -476,6 +483,7 @@ def test_preproduction_status_and_locked_episode_plan_commands(tmp_path, capsys)
             settings=settings,
             storage=LocalFsStorage(str(tmp_path / "storage")),
             comfyui_client=FakeComfyClient(),
+            character_bible=CharacterBible.akira(),
         )
 
     assert main(["preproduction", "status"], container_factory=factory) == 0

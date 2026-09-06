@@ -98,7 +98,7 @@ from infrastructure.storage.local_fs_storage import LocalFsStorage
 
 @dataclass(frozen=True)
 class AnimationContainer:
-    character_bible: CharacterBible
+    character_bible: CharacterBible | None
     storage: StoragePort
     script_breakdown_service: ScriptBreakdownService
     animation_orchestrator_service: AnimationOrchestratorService
@@ -127,12 +127,12 @@ def create_container(
     storage: StoragePort | None = None,
     comfyui_client: ComfyUIWsClient | None = None,
     human_review_required: bool = True,
+    character_bible: CharacterBible | None = None,
 ) -> AnimationContainer:
     resolved = settings or get_settings()
     asset_storage = storage or LocalFsStorage(resolved.storage_root_dir)
     preproduction_storage = LocalFsStorage(resolved.preproduction_asset_root)
     keyframe_storage = LocalFsStorage(resolved.keyframe_storage_root_dir)
-    character_bible = CharacterBible.akira()
     render_config = RenderConfig(
         width=resolved.two_pass_motion_width,
         height=resolved.two_pass_motion_height,

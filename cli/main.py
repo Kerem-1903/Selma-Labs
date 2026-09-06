@@ -48,9 +48,9 @@ def build_parser() -> argparse.ArgumentParser:
         dest="character_command", required=True
     )
     character_show = character_commands.add_parser(
-        "show", help="Show a Character Bible (defaults to canonical Akira)"
+        "show", help="Show an explicitly selected Character Bible"
     )
-    character_show.add_argument("--input", help="Optional Character Bible JSON")
+    character_show.add_argument("--input", required=True, help="Character Bible JSON")
     character_init = character_commands.add_parser(
         "init", help="Create a Character Bible from a descriptive brief"
     )
@@ -312,7 +312,8 @@ def build_parser() -> argparse.ArgumentParser:
     script_commands = script.add_subparsers(dest="script_command", required=True)
     breakdown = script_commands.add_parser("breakdown")
     breakdown.add_argument("--input", required=True, help="UTF-8 text script")
-    breakdown.add_argument("--script-id", default="akira-pilot")
+    breakdown.add_argument("--character-bible", required=True)
+    breakdown.add_argument("--script-id", required=True)
     breakdown.add_argument("--output", help="Optional JSON output file")
 
     render = commands.add_parser("render", help="Render approved anime shots")
@@ -406,11 +407,7 @@ def main(
             return _run_series_command(arguments)
         if arguments.command == "character":
             if arguments.character_command == "show":
-                _show_character(
-                    _load_character_bible(arguments.input)
-                    if arguments.input
-                    else CharacterBible.akira()
-                )
+                _show_character(_load_character_bible(arguments.input))
             elif arguments.character_command == "init":
                 _initialize_character(arguments)
             elif arguments.character_command == "plan":
@@ -1023,7 +1020,7 @@ async def _run_character_generation(
 def _break_down_script(arguments: argparse.Namespace) -> None:
     source = Path(arguments.input)
     script_text = source.read_text(encoding="utf-8")
-    service = ScriptBreakdownService(CharacterBible.akira())
+    service = ScriptBreakdownService(_load_character_bible(arguments.character_bible))
     shots = service.parse_script(script_text, script_id=arguments.script_id)
     payload = {
         "schema_version": 1,

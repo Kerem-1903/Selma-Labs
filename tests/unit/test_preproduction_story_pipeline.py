@@ -202,10 +202,10 @@ async def test_story_requires_reviews_then_human_approval_before_breakdown():
     engine, approvals = _engine()
     result = await engine.develop(StoryBrief("Akira hears a signal.", 1, 180))
     with pytest.raises(StoryApprovalError, match="human-approved"):
-        ScriptBreakdownService().parse_episode(result.script)
+        ScriptBreakdownService(CharacterBible.akira()).parse_episode(result.script)
 
     locked = await engine.approve(result, approved_by="Kerem")
-    shots = ScriptBreakdownService().parse_episode(locked)
+    shots = ScriptBreakdownService(CharacterBible.akira()).parse_episode(locked)
 
     assert locked.status is EpisodeScriptStatus.LOCKED
     assert approvals.recorded == [locked]

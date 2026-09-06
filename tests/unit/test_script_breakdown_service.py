@@ -3,10 +3,11 @@ from __future__ import annotations
 import pytest
 
 from core.application.services.script_breakdown_service import ScriptBreakdownService
+from core.domain.entities.character_bible import CharacterBible
 
 
 def test_breakdown_creates_deterministic_unapproved_dialogue_and_action_shots():
-    service = ScriptBreakdownService()
+    service = ScriptBreakdownService(CharacterBible.akira())
     script = """
     INT. ABANDONED HOSPITAL
     AKIRA: I remember this corridor.
@@ -34,7 +35,7 @@ def test_breakdown_creates_deterministic_unapproved_dialogue_and_action_shots():
 
 
 def test_breakdown_rejects_empty_script_and_unsafe_identifier():
-    service = ScriptBreakdownService()
+    service = ScriptBreakdownService(CharacterBible.akira())
 
     with pytest.raises(ValueError, match="must not be empty"):
         service.parse_script("  ", "pilot")

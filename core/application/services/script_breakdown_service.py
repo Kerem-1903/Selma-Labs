@@ -18,11 +18,15 @@ class ScriptBreakdownService:
     _SCENE = re.compile(r"^(?:SCENE\s*:|INT\.|EXT\.)\s*(.+)$", re.IGNORECASE)
 
     def __init__(self, character_bible: CharacterBible | None = None) -> None:
-        self._bible = character_bible or CharacterBible.akira()
-        if not self._bible.trigger_prompt:
+        self._bible = character_bible
+        if self._bible is not None and not self._bible.trigger_prompt:
             raise ValueError("Script breakdown requires a character trigger prompt.")
 
     def parse_script(self, script_text: str, script_id: str) -> list[ShotPlan]:
+        if self._bible is None:
+            raise ValueError(
+                "Script breakdown requires an explicitly selected Character Bible."
+            )
         if not script_text.strip():
             raise ValueError("Script text must not be empty.")
         if not self._SAFE_ID.fullmatch(script_id):
