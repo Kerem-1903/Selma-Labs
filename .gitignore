@@ -19,3 +19,4 @@ motion/remotion-smoke.png
 .mypy_cache/
 .coverage
 htmlcov/
+.freebuff/

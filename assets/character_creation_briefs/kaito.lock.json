@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "character_id": "kaito",
+  "character_version": 1,
+  "brief_hash": "7a398fec879cb66ffe3e77abae918a3f7c519f7e47a7280633adf6b5b0cd8fb8",
+  "status": "LOCKED",
+  "approved_by": "workspace-owner",
+  "approved_at": "2026-09-06",
+  "notes": "Kaito v1 asymmetry is fixed: one #0047AB streak on character-left and one messenger bag on character-right hip."
+}

@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "comfyui_root": "C:/Users/LOQ/Desktop/ComfyUI",
+  "models": [
+    {
+      "role": "checkpoint",
+      "filename": "Illustrious-XL-v2.0.safetensors",
+      "relative_path": "models/checkpoints/Illustrious-XL-v2.0.safetensors",
+      "sha256": "c2a1a3eaa13d4c107dc7e00c3fe830cab427aa026362740ea094745b3422a331",
+      "size_bytes": 6938040674,
+      "required": true,
+      "note": "Installed from Hugging Face: OnomaAIResearch/Illustrious-XL-v2.0."
+    },
+    {
+      "role": "ip_adapter",
+      "filename": "ip-adapter-plus_sdxl_vit-h.safetensors",
+      "relative_path": "models/ipadapter/ip-adapter-plus_sdxl_vit-h.safetensors",
+      "sha256": "3f5062b8400c94b7159665b21ba5c62acdcd7682262743d7f2aefedef00e6581",
+      "size_bytes": 847517512,
+      "required": true
+    },
+    {
+      "role": "clip_vision",
+      "filename": "CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
+      "relative_path": "models/clip_vision/CLIP-ViT-H-14-laion2B-s32B-b79K.safetensors",
+      "sha256": "6ca9667da1ca9e0b0f75e46bb030f7e011f44f86cbfb8d5a36590fcd7507b030",
+      "size_bytes": 2528373448,
+      "required": true
+    },
+    {
+      "role": "controlnet_openpose",
+      "filename": "control-lora-openposeXL2-rank256.safetensors",
+      "relative_path": "models/controlnet/control-lora-openposeXL2-rank256.safetensors",
+      "sha256": "8afa079285bf9384eaf8f6322884cb4f24bbe405da490f91f5540d3bff585e75",
+      "size_bytes": 774423024,
+      "required": true
+    },
+    {
+      "role": "face_detector",
+      "filename": "face_yolov8m.pt",
+      "relative_path": "models/detectors/face_yolov8m.pt",
+      "sha256": "717923c19b3f4bbf5250b728f1fa6b2cb72a33aed1d236ea9caf0e21ad943e5f",
+      "size_bytes": 52026019,
+      "required": true,
+      "note": "Installed from Hugging Face: Bingsu/adetailer (face_yolov8m.pt)."
+    },
+    {
+      "role": "pose_detector",
+      "filename": "yolov8n-pose.pt",
+      "relative_path": "models/detectors/yolov8n-pose.pt",
+      "sha256": "c6fa93dd1ee4a2c18c900a45c1d864a1c6f7aba75d84f91648a30b7fb641d212",
+      "size_bytes": 6832633,
+      "required": true,
+      "note": "Installed from the official Ultralytics assets release v8.2.0."
+    }
+  ]
+}

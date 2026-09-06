@@ -472,8 +472,58 @@ def get_keyframe_generation_provider(
             raise ValueError(
                 "ComfyUI keyframe generation requires the application's StoragePort."
             )
+        from pathlib import Path
+
+        from core.application.services.comfy_watchdog_service import (
+            ComfyJobWatchdog,
+        )
+        from core.application.services.model_lock_service import load_model_lock
+        from core.application.services.production_preflight_service import (
+            PreflightOptions,
+            ProductionPreflightService,
+        )
+        from core.application.services.thermal_guard_service import (
+            ThermalGuardService,
+        )
+        from core.domain.value_objects.production_infra import (
+            ThermalPolicy,
+            WatchdogPolicy,
+        )
         from infrastructure.providers.keyframe.comfyui_keyframe_provider import (
             ComfyUIKeyframeProvider,
+        )
+
+        model_lock = load_model_lock(settings.comfyui_model_lock_path)
+        preflight = ProductionPreflightService(
+            PreflightOptions(
+                comfyui_api_url=settings.comfyui_api_url,
+                output_dir=Path(settings.keyframe_storage_root_dir),
+                min_free_disk_gb=settings.production_preflight_min_free_disk_gb,
+                min_free_ram_gb=settings.production_preflight_min_free_ram_gb,
+                run_test_job=settings.production_preflight_test_job,
+                test_job_timeout_sec=settings.comfyui_keyframe_timeout_seconds,
+            )
+        )
+        watchdog = ComfyJobWatchdog(
+            WatchdogPolicy(
+                no_progress_timeout_sec=(
+                    settings.comfyui_watchdog_no_progress_timeout_sec
+                ),
+                absolute_job_timeout_sec=(
+                    settings.comfyui_watchdog_absolute_timeout_sec
+                ),
+                retry_limit=settings.comfyui_watchdog_retry_limit,
+            )
+        )
+        thermal_guard = ThermalGuardService(
+            ThermalPolicy(
+                minimum_inter_job_delay_sec=(
+                    settings.thermal_minimum_inter_job_delay_sec
+                ),
+                thermal_threshold_celsius=settings.thermal_threshold_celsius,
+                thermal_poll_interval_sec=settings.thermal_poll_interval_sec,
+                thermal_max_wait_sec=settings.thermal_max_wait_sec,
+            )
         )
 
         return ComfyUIKeyframeProvider(
@@ -493,6 +543,10 @@ def get_keyframe_generation_provider(
             ),
             timeout_seconds=settings.comfyui_keyframe_timeout_seconds,
             poll_interval_seconds=settings.comfyui_keyframe_poll_interval_seconds,
+            model_lock=model_lock,
+            preflight_service=preflight,
+            watchdog=watchdog,
+            thermal_guard=thermal_guard,
         )
     raise ValueError(
         "Unknown keyframe_generation_provider configured: "

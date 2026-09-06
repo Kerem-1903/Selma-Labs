@@ -6,6 +6,9 @@ import io
 import json
 import logging
 import re
+import subprocess
+import time
+import uuid
 from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from typing import Any, ClassVar
@@ -13,6 +16,14 @@ from typing import Any, ClassVar
 import aiohttp
 from PIL import Image
 
+from core.application.services.comfy_watchdog_service import (
+    ComfyJobWatchdog,
+    WatchdogError,
+)
+from core.application.services.production_preflight_service import (
+    ProductionPreflightService,
+)
+from core.application.services.thermal_guard_service import ThermalGuardService
 from core.domain.exceptions import (
     ProviderConnectionError,
     ProviderError,
@@ -23,6 +34,10 @@ from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.generated_keyframe import GeneratedKeyframe
 from core.domain.value_objects.keyframe_generation_request import (
     KeyframeGenerationRequest,
+)
+from core.domain.value_objects.production_infra import (
+    BLOCKED_PREFLIGHT,
+    ModelLock,
 )
 
 logger = logging.getLogger(__name__)
@@ -49,7 +64,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         api_url: str,
         workflow_path: str | Path,
         storage: StoragePort,
-        checkpoint_name: str = "sd_xl_base_1.0.safetensors",
+        checkpoint_name: str = "",
         character_lora_name: str = "",
         character_lora_trigger_token: str = "",
         character_lora_strength_model: float = 0.8,
@@ -57,6 +72,11 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         timeout_seconds: float = 300.0,
         poll_interval_seconds: float = 1.0,
         session_factory: Callable[..., Any] = aiohttp.ClientSession,
+        model_lock: ModelLock | None = None,
+        preflight_service: ProductionPreflightService | None = None,
+        watchdog: ComfyJobWatchdog | None = None,
+        thermal_guard: ThermalGuardService | None = None,
+        vram_probe: Callable[[], float | None] | None = None,
     ) -> None:
         if not api_url.strip():
             raise ValueError("ComfyUI api_url must not be empty.")
@@ -73,7 +93,13 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         self._api_url = api_url.rstrip("/")
         self._workflow_path = Path(workflow_path)
         self._storage = storage
-        self._checkpoint_name = checkpoint_name.strip()
+        self._model_lock = model_lock
+        locked_checkpoint = (
+            model_lock.entry("checkpoint").filename if model_lock is not None else ""
+        )
+        if checkpoint_name.strip() and locked_checkpoint and checkpoint_name.strip() != locked_checkpoint:
+            raise ValueError("Configured checkpoint conflicts with models.lock.json.")
+        self._checkpoint_name = locked_checkpoint or checkpoint_name.strip()
         self._character_lora_name = character_lora_name.strip()
         self._character_lora_trigger_token = character_lora_trigger_token.strip()
         self._character_lora_strength_model = character_lora_strength_model
@@ -81,6 +107,12 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         self._timeout_seconds = timeout_seconds
         self._poll_interval_seconds = poll_interval_seconds
         self._session_factory = session_factory
+        self._preflight_service = preflight_service
+        self._preflight_report = None
+        self._preflight_lock = asyncio.Lock()
+        self._watchdog = watchdog
+        self._thermal_guard = thermal_guard
+        self._vram_probe = vram_probe or self._nvidia_smi_memory_used_mb
 
     @property
     def name(self) -> str:
@@ -89,14 +121,36 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
     async def generate_keyframe(
         self, request: KeyframeGenerationRequest
     ) -> GeneratedKeyframe:
+        await self._ensure_preflight()
+        thermal_before = (
+            await asyncio.to_thread(self._thermal_guard.before_job)
+            if self._thermal_guard is not None
+            else None
+        )
+        render_started = time.monotonic()
+        peak_vram_mb = await asyncio.to_thread(self._vram_probe)
         workflow = await self._load_workflow()
+        workflow_hash = hashlib.sha256(
+            json.dumps(workflow, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        self._inject_locked_models(workflow)
         self._inject_typed_constraints(workflow, request)
+        latent_mode = str(
+            request.visual_constraints.get("latent_mode", "reference")
+        ).strip()
+        if latent_mode not in {"reference", "empty"}:
+            raise ProviderError("latent_mode must be 'reference' or 'empty'.")
         selected_references = self._select_character_references(request)
         reference_nodes = self._connected_reference_nodes(workflow)
         if selected_references and len(reference_nodes) < len(selected_references):
             raise ProviderError(
                 "ComfyUI workflow does not contain enough connected SELMA reference nodes."
             )
+        self._inject_reference_weights(
+            workflow,
+            request=request,
+            reference_count=len(selected_references),
+        )
         pose_storage_key = str(
             request.visual_constraints.get("pose_storage_key", "")
         ).strip()
@@ -105,7 +159,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         )
         self._select_identity_conditioning(
             workflow,
-            use_reference=bool(selected_references),
+            reference_count=len(selected_references),
             base_model_source=base_model_source,
         )
         controlnet_type = str(
@@ -124,6 +178,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             )
 
         timeout = aiohttp.ClientTimeout(total=self._timeout_seconds)
+        thermal_after = None
         try:
             async with self._session_factory(timeout=timeout) as session:
                 for node_id, (asset_id, storage_key) in zip(
@@ -141,10 +196,21 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                 self._select_latent_source(
                     workflow,
                     request=request,
-                    use_reference=bool(selected_references),
+                    use_reference=bool(selected_references)
+                    and latent_mode != "empty",
                 )
-                prompt_id = await self._queue_prompt(session, workflow)
-                history = await self._wait_for_completion(session, prompt_id)
+                if self._watchdog is None:
+                    prompt_id = await self._queue_prompt(session, workflow)
+                    history = await self._wait_for_completion(session, prompt_id)
+                    watchdog_metadata = None
+                else:
+                    history, watchdog_outcome, measured_vram = (
+                        await self._wait_with_watchdog(session, workflow)
+                    )
+                    prompt_id = watchdog_outcome.prompt_id
+                    watchdog_metadata = watchdog_outcome.__dict__
+                    if measured_vram is not None:
+                        peak_vram_mb = max(peak_vram_mb or 0.0, measured_vram)
                 filename, subfolder, folder_type = self._find_output_image(
                     workflow, history
                 )
@@ -160,6 +226,14 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             ) from error
         except aiohttp.ClientError as error:
             raise ProviderConnectionError(f"ComfyUI connection failed: {error}") from error
+        finally:
+            thermal_after = (
+                await asyncio.to_thread(self._thermal_guard.after_job)
+                if self._thermal_guard is not None
+                else None
+            )
+        if thermal_after is not None and thermal_after.paused:
+            raise ProviderError("PAUSED_THERMAL: GPU did not cool within the policy window.")
 
         content_type = self._content_type_for(filename, response_content_type)
         width, height = self._image_dimensions(image_bytes)
@@ -175,8 +249,228 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                 "reference_storage_keys": [item[1] for item in selected_references],
                 "pose_storage_key": pose_storage_key or None,
                 "character_lora": lora_metadata,
+                "model_checkpoint": self._checkpoint_name,
+                "workflow_version": request.visual_constraints.get(
+                    "workflow_version"
+                ),
+                "workflow_hash": workflow_hash,
+                "prompt_hash": hashlib.sha256(
+                    json.dumps(
+                        request.to_dict(), sort_keys=True, separators=(",", ":")
+                    ).encode("utf-8")
+                ).hexdigest(),
+                "model_hashes": (
+                    {entry.role: entry.sha256 for entry in self._model_lock.entries}
+                    if self._model_lock is not None
+                    else {}
+                ),
+                "render_duration_sec": time.monotonic() - render_started,
+                "peak_vram_mb": peak_vram_mb,
+                "preflight": (
+                    self._preflight_report.to_dict()
+                    if self._preflight_report is not None
+                    else None
+                ),
+                "watchdog": watchdog_metadata,
+                "thermal_before": thermal_before.to_dict() if thermal_before else None,
+                "thermal_after": thermal_after.to_dict() if thermal_after else None,
             },
         )
+
+    async def _ensure_preflight(self) -> None:
+        if self._preflight_service is None:
+            return
+        if self._model_lock is None:
+            raise ProviderError(
+                f"{BLOCKED_PREFLIGHT}: models.lock.json is not configured."
+            )
+        if self._preflight_report is not None and self._preflight_report.ok:
+            return
+        async with self._preflight_lock:
+            if self._preflight_report is not None and self._preflight_report.ok:
+                return
+            report = await asyncio.to_thread(
+                self._preflight_service.run, self._model_lock, True
+            )
+            self._preflight_report = report
+            if not report.ok:
+                failures = ", ".join(check.name for check in report.failures)
+                raise ProviderError(f"{BLOCKED_PREFLIGHT}: {failures}")
+
+    def _inject_locked_models(self, workflow: dict[str, Any]) -> None:
+        if self._model_lock is None:
+            checkpoint = self._node_for_role(
+                workflow, "checkpoint", "CheckpointLoaderSimple"
+            )
+            if checkpoint is None:
+                raise ProviderError("ComfyUI workflow has no checkpoint node.")
+            if self._checkpoint_name:
+                checkpoint[1]["inputs"]["ckpt_name"] = self._checkpoint_name
+            else:
+                self._checkpoint_name = str(
+                    checkpoint[1]["inputs"].get("ckpt_name", "")
+                ).strip()
+            return
+        checkpoint = self._node_for_role(
+            workflow, "checkpoint", "CheckpointLoaderSimple"
+        )
+        if checkpoint is None:
+            raise ProviderError("ComfyUI workflow has no checkpoint node.")
+        checkpoint[1]["inputs"]["ckpt_name"] = self._model_lock.entry(
+            "checkpoint"
+        ).filename
+        controlnet = self._node_for_role(workflow, "pose_control_model")
+        if controlnet is None:
+            controlnet = self._node_for_role_by_class(workflow, "ControlNetLoader")
+        if controlnet is not None:
+            controlnet[1]["inputs"]["control_net_name"] = self._model_lock.entry(
+                "controlnet_openpose"
+            ).filename
+        # Unified IP-Adapter selects these two files by preset. Requiring both
+        # roles in the lock makes that implicit selection reproducible.
+        self._model_lock.entry("ip_adapter")
+        self._model_lock.entry("clip_vision")
+
+    async def _wait_with_watchdog(
+        self, session: Any, workflow: dict[str, Any]
+    ) -> tuple[dict[str, Any], Any, float | None]:
+        if self._watchdog is None:
+            raise RuntimeError("Watchdog is not configured.")
+        client_id = uuid.uuid4().hex
+        socket_url = (
+            f"{self._api_url.replace('http://', 'ws://').replace('https://', 'wss://')}"
+            f"/ws?clientId={client_id}"
+        )
+        state: dict[str, Any] = {
+            "socket": None,
+            "signature": "",
+            "owned": set(),
+            "peak_vram_mb": None,
+        }
+        sampler = self._node_for_role(workflow, "sampler", "KSampler")
+        original_seed = int(sampler[1]["inputs"]["seed"]) if sampler else 0
+
+        async def submit(attempt: int) -> str:
+            active = state["socket"]
+            if active is not None:
+                await active.close()
+            state["socket"] = await session.ws_connect(socket_url)
+            if sampler is not None:
+                sampler[1]["inputs"]["seed"] = original_seed + attempt * 10_000
+            prompt_id = await self._queue_prompt(
+                session, workflow, client_id=client_id
+            )
+            state["owned"].add(prompt_id)
+            return prompt_id
+
+        async def poll(prompt_id: str) -> str:
+            measured = await asyncio.to_thread(self._vram_probe)
+            if measured is not None:
+                previous = state["peak_vram_mb"] or 0.0
+                state["peak_vram_mb"] = max(previous, measured)
+            socket = state["socket"]
+            try:
+                message = await asyncio.wait_for(
+                    socket.receive(), timeout=self._poll_interval_seconds
+                )
+            except asyncio.TimeoutError:
+                return str(state["signature"])
+            if message.type == aiohttp.WSMsgType.TEXT:
+                try:
+                    payload = json.loads(message.data)
+                except json.JSONDecodeError:
+                    return str(state["signature"])
+                event_type = str(payload.get("type", ""))
+                data = payload.get("data", {})
+                event_prompt = data.get("prompt_id") if isinstance(data, dict) else None
+                if event_type in {
+                    "progress",
+                    "executing",
+                    "executed",
+                    "execution_start",
+                    "execution_cached",
+                } and event_prompt in {None, prompt_id}:
+                    state["signature"] = json.dumps(payload, sort_keys=True)
+            return str(state["signature"])
+
+        async def finished(prompt_id: str) -> dict[str, Any] | None:
+            async with session.get(
+                f"{self._api_url}/history/{prompt_id}"
+            ) as response:
+                if response.status != 200:
+                    raise ProviderError(
+                        f"ComfyUI history failed ({response.status}): "
+                        f"{await response.text()}"
+                    )
+                payload = await response.json()
+            history = payload.get(prompt_id)
+            if not isinstance(history, dict):
+                return None
+            status = history.get("status", {})
+            if isinstance(status, dict) and status.get("status_str") == "error":
+                raise ProviderError(
+                    f"ComfyUI execution failed for prompt '{prompt_id}'."
+                )
+            return history if history.get("outputs") else None
+
+        async def interrupt(prompt_id: str) -> None:
+            del prompt_id
+            async with session.post(f"{self._api_url}/interrupt") as response:
+                if response.status not in {200, 204}:
+                    raise ProviderError(
+                        f"ComfyUI interrupt failed ({response.status}): "
+                        f"{await response.text()}"
+                    )
+
+        async def queue_has_foreign_jobs() -> bool:
+            async with session.get(f"{self._api_url}/queue") as response:
+                if response.status != 200:
+                    raise ProviderError(
+                        f"ComfyUI queue inspection failed ({response.status})."
+                    )
+                payload = await response.json()
+            queued_ids: set[str] = set()
+            if isinstance(payload, dict):
+                for key in ("queue_running", "queue_pending"):
+                    for item in payload.get(key, []):
+                        if isinstance(item, list) and len(item) > 1:
+                            queued_ids.add(str(item[1]))
+            return bool(queued_ids - state["owned"])
+
+        try:
+            history, outcome = await self._watchdog.run_async(
+                submit=submit,
+                poll=poll,
+                finished=finished,
+                interrupt=interrupt,
+                queue_has_foreign_jobs=queue_has_foreign_jobs,
+            )
+        except WatchdogError as error:
+            raise ProviderTimeoutError(str(error)) from error
+        finally:
+            if state["socket"] is not None:
+                await state["socket"].close()
+        return history, outcome, state["peak_vram_mb"]
+
+    @staticmethod
+    def _nvidia_smi_memory_used_mb() -> float | None:
+        try:
+            result = subprocess.run(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=memory.used",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            )
+            if result.returncode != 0:
+                return None
+            return max(float(line) for line in result.stdout.splitlines() if line.strip())
+        except (OSError, ValueError, subprocess.SubprocessError):
+            return None
 
     async def _load_workflow(self) -> dict[str, Any]:
         try:
@@ -252,13 +546,6 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             node["inputs"]["width"] = request.width
             node["inputs"]["height"] = request.height
 
-        identity_adapter = self._node_for_role(workflow, "identity_adapter")
-        identity_strength = request.visual_constraints.get("identity_strength")
-        if identity_adapter is not None and identity_strength is not None:
-            identity_adapter[1]["inputs"]["weight"] = float(identity_strength)
-        if identity_adapter is not None:
-            self._inject_identity_mode(identity_adapter[1], request)
-
         pose_control = self._node_for_role(workflow, "pose_control")
         pose_strength = request.visual_constraints.get("pose_strength")
         if pose_control is not None and pose_strength is not None:
@@ -306,11 +593,18 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                 values.append(f"character {character_id}")
             identity = condition.get("identity_constraints", {})
             if isinstance(identity, dict):
-                values.extend(
-                    str(value).strip()
-                    for value in identity.values()
-                    if isinstance(value, str) and value.strip()
-                )
+                for value in identity.values():
+                    if isinstance(value, str) and value.strip():
+                        values.append(value.strip())
+                    elif isinstance(value, list):
+                        values.extend(
+                            str(entry).strip()
+                            for entry in value
+                            if isinstance(entry, str) and entry.strip()
+                        )
+            active_outfit = condition.get("active_outfit")
+            if isinstance(active_outfit, dict) and active_outfit.get("description"):
+                values.append(str(active_outfit["description"]).strip())
             style = condition.get("style_profile", {})
             if isinstance(style, dict) and style.get("base_style"):
                 values.append(str(style["base_style"]).strip())
@@ -324,6 +618,9 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                     if isinstance(entries, list):
                         values.extend(str(entry).strip() for entry in entries if str(entry).strip())
 
+        extra_tags = request.visual_constraints.get("extra_tags")
+        if isinstance(extra_tags, str) and extra_tags.strip():
+            values.append(str(extra_tags).strip())
         prompt = ", ".join(dict.fromkeys(value for value in values if value))
         if not prompt:
             raise ProviderError("Keyframe request contains no usable visual constraints.")
@@ -410,9 +707,18 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         subfolder = str(payload.get("subfolder", "")).strip().strip("/\\")
         return f"{subfolder}/{name}" if subfolder else name
 
-    async def _queue_prompt(self, session: Any, workflow: dict[str, Any]) -> str:
+    async def _queue_prompt(
+        self,
+        session: Any,
+        workflow: dict[str, Any],
+        *,
+        client_id: str | None = None,
+    ) -> str:
+        payload: dict[str, Any] = {"prompt": workflow}
+        if client_id:
+            payload["client_id"] = client_id
         async with session.post(
-            f"{self._api_url}/prompt", json={"prompt": workflow}
+            f"{self._api_url}/prompt", json=payload
         ) as response:
             if response.status != 200:
                 raise ProviderError(
@@ -488,6 +794,37 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
     def _connected_reference_nodes(self, workflow: dict[str, Any]) -> list[str]:
         return self._connected_nodes_for_role(workflow, "reference_image")
 
+    def _inject_reference_weights(
+        self,
+        workflow: dict[str, Any],
+        *,
+        request: KeyframeGenerationRequest,
+        reference_count: int,
+    ) -> None:
+        adapters = self._nodes_for_role(workflow, "identity_adapter")
+        if reference_count > len(adapters):
+            raise ProviderError(
+                "ComfyUI workflow does not contain enough identity-adapter nodes."
+            )
+        raw_weights = request.visual_constraints.get("identity_reference_weights")
+        if raw_weights is None:
+            scalar = request.visual_constraints.get("identity_strength")
+            weights = [float(scalar)] * reference_count if scalar is not None else []
+        else:
+            if not isinstance(raw_weights, (list, tuple)):
+                raise ProviderError("identity_reference_weights must be a list.")
+            if len(raw_weights) != reference_count:
+                raise ProviderError(
+                    "identity_reference_weights must match the selected reference count."
+                )
+            weights = [float(value) for value in raw_weights]
+        if any(not 0.0 <= weight <= 2.0 for weight in weights):
+            raise ProviderError("Identity reference weights must be between 0 and 2.")
+        for index, (_node_id, adapter) in enumerate(adapters[:reference_count]):
+            if weights:
+                adapter["inputs"]["weight"] = weights[index]
+            self._inject_identity_mode(adapter, request)
+
     def _connected_nodes_for_role(
         self, workflow: dict[str, Any], role: str
     ) -> list[str]:
@@ -524,22 +861,25 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         self,
         workflow: dict[str, Any],
         *,
-        use_reference: bool,
+        reference_count: int,
         base_model_source: list[Any],
     ) -> None:
         sampler = self._node_for_role(workflow, "sampler", "KSampler")
         checkpoint = self._node_for_role(
             workflow, "checkpoint", "CheckpointLoaderSimple"
         )
-        identity_adapter = self._node_for_role(workflow, "identity_adapter")
+        identity_adapters = self._nodes_for_role(workflow, "identity_adapter")
         if sampler is None or checkpoint is None:
             raise ProviderError(
                 "ComfyUI identity workflow requires sampler and checkpoint nodes."
             )
-        if use_reference:
-            if identity_adapter is None:
+        if reference_count:
+            if len(identity_adapters) < reference_count:
                 raise ProviderError("ComfyUI workflow has no identity-adapter node.")
-            sampler[1]["inputs"]["model"] = [identity_adapter[0], 0]
+            sampler[1]["inputs"]["model"] = [
+                identity_adapters[reference_count - 1][0],
+                0,
+            ]
         else:
             sampler[1]["inputs"]["model"] = list(base_model_source)
 

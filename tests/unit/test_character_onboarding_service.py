@@ -103,6 +103,19 @@ def _generate_and_approve_pilot(service, character, anchor_key):
     )
 
 
+def _save_action_pose_references(storage, character) -> dict[str, str]:
+    references = {}
+    for recipe in CharacterOnboardingService.plan(character).recipes:
+        if not recipe.view.startswith("ACTION_"):
+            continue
+        key = f"poses/{recipe.view.casefold()}.png"
+        asyncio.run(
+            storage.save(key, FakeKeyframeGenerationProvider._PNG, "image/png")
+        )
+        references[recipe.view] = key
+    return references
+
+
 def test_plan_is_generic_complete_and_deterministic():
     first = CharacterOnboardingService.plan(_nova())
     second = CharacterOnboardingService.plan(_nova())
@@ -191,10 +204,14 @@ def test_generate_reference_pack_uses_anchor_for_all_23_candidates(tmp_path):
     anchor_key = "approved/nova-anchor.png"
     asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
     approval = _generate_and_approve_pilot(service, _nova(), anchor_key)
+    pose_references = _save_action_pose_references(storage, _nova())
 
     pack = asyncio.run(
         service.generate_reference_pack(
-            _nova(), anchor_storage_key=anchor_key, pilot_approval=approval
+            _nova(),
+            anchor_storage_key=anchor_key,
+            pilot_approval=approval,
+            pose_references=pose_references,
         )
     )
 
@@ -515,9 +532,13 @@ def test_approve_reference_pack_registers_selected_required_views(tmp_path):
     anchor_key = "approved/nova-anchor.png"
     asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
     approval = _generate_and_approve_pilot(service, _nova(), anchor_key)
+    pose_references = _save_action_pose_references(storage, _nova())
     pack = asyncio.run(
         service.generate_reference_pack(
-            _nova(), anchor_storage_key=anchor_key, pilot_approval=approval
+            _nova(),
+            anchor_storage_key=anchor_key,
+            pilot_approval=approval,
+            pose_references=pose_references,
         )
     )
     by_name = {
@@ -546,19 +567,20 @@ def test_approve_reference_pack_registers_selected_required_views(tmp_path):
 
 # --- Streak pre-gate integration (Faz 1.2) -------------------------------
 
-_AKIRA_ANCHOR = (
-    Path(__file__).parents[2]
-    / "assets"
-    / "characters"
-    / "akira"
-    / "identity_lock"
-    / "v2"
-    / "akira-canonical-anchor-v2.png"
-)
-
-
 def _akira_anchor_bytes() -> bytes:
-    return _AKIRA_ANCHOR.read_bytes()
+    mark = CharacterBible.akira().identity_constraints.structured_marks[0]
+    size = 1024
+    image = Image.new("RGB", (size, size), (20, 20, 20))
+    left, top, right, bottom = (value * size for value in mark.head_bbox)
+    root_x = left + mark.anchor.x_center * (right - left)
+    root_y = top + mark.anchor.y_root * (bottom - top)
+    ImageDraw.Draw(image).rectangle(
+        (root_x - 12, root_y, root_x + 12, root_y + 240),
+        fill=mark.color_hex,
+    )
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
 
 
 def _akira_mirrored_bytes() -> bytes:
@@ -720,6 +742,32 @@ def test_action_recipe_attaches_openpose_reference(tmp_path):
     assert pack.candidates[0].filename == "action-running-01.png"
 
 
+def test_action_recipe_rejects_completely_omitted_pose_map(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    anchor_key = "approved/akira-anchor-v2.png"
+    asyncio.run(storage.save(anchor_key, _akira_anchor_bytes(), "image/png"))
+    service = CharacterOnboardingService(provider, storage, _PassEvaluator())
+    plan = CharacterOnboardingService.plan(CharacterBible.akira())
+    running_index = next(
+        index
+        for index, recipe in enumerate(plan.recipes)
+        if recipe.view == "ACTION_RUNNING"
+    )
+
+    with pytest.raises(ValueError, match="ACTION_RUNNING"):
+        asyncio.run(
+            service.generate_reference_pack(
+                CharacterBible.akira(),
+                anchor_storage_key=anchor_key,
+                recipe_offset=running_index,
+                recipe_limit=1,
+            )
+        )
+
+    assert provider.requests == []
+
+
 def test_action_batch_without_pose_for_every_view_fails_closed(tmp_path):
     storage = LocalFsStorage(str(tmp_path))
     anchor_key = "approved/akira-anchor-v2.png"
@@ -765,3 +813,161 @@ def test_pose_references_reject_non_action_views(tmp_path):
                 pose_references={"FACE_CLOSEUP": "approved/pose.png"},
             )
         )
+
+
+def _request_for(view: str):
+    return CharacterOnboardingService._request(
+        character=_nova(),
+        prompt="recipe prompt",
+        seed=42,
+        negatives=("bad hands",),
+        anchor_storage_key="approved/akira-anchor-v2.png",
+        view=view,
+    )
+
+
+def test_full_body_request_uses_txt2img_composition_mode():
+    request = _request_for("FULL_BODY")
+    constraints = request.visual_constraints
+    assert constraints["latent_mode"] == "empty"
+    assert constraints["identity_strength"] == 0.85
+    assert "1girl, solo" in constraints["extra_tags"]
+    assert "gradient" in constraints["extra_tags"]
+    assert request.reference_storage_keys == ("approved/akira-anchor-v2.png",)
+
+
+def test_three_quarter_request_uses_txt2img_composition_mode():
+    for view in ("THREE_QUARTER_LEFT", "THREE_QUARTER_RIGHT"):
+        request = _request_for(view)
+        constraints = request.visual_constraints
+        assert constraints["latent_mode"] == "empty"
+        assert constraints["identity_strength"] == 0.85
+        assert "1girl, solo" in constraints["extra_tags"]
+        assert "gradient" in constraints["extra_tags"]
+
+
+def test_face_closeup_keeps_reference_img2img_mode():
+    request = _request_for("FACE_CLOSEUP")
+    constraints = request.visual_constraints
+    assert constraints["latent_mode"] == "reference"
+    assert constraints["extra_tags"] == ""
+    # default close-up identity strength, not the 0.85 txt2img override
+    assert constraints["identity_strength"] == 0.6
+
+
+
+def test_framing_gate_quarantines_full_body_crop_before_vision(tmp_path):
+    from core.application.services.view_framing_gate import ViewFramingGate
+
+    provider = FakeKeyframeGenerationProvider()
+    evaluator = _CountingEvaluator()
+    storage = LocalFsStorage(str(tmp_path))
+    service = CharacterOnboardingService(
+        provider,
+        storage,
+        evaluator,
+        max_attempts=3,
+        framing_gate=ViewFramingGate(),
+    )
+    anchor_key = "approved/nova-anchor.png"
+    asyncio.run(storage.save(anchor_key, provider._PNG, "image/png"))
+
+    # recipe index 11 is full-body-neutral-01 (FULL_BODY view). The fake
+    # provider's 1x1 frame has no subject, so the deterministic framing gate
+    # must reject every attempt before the vision model is ever called.
+    pack = asyncio.run(
+        service.generate_reference_pack(
+            _nova(),
+            anchor_storage_key=anchor_key,
+            recipe_offset=11,
+            recipe_limit=1,
+        )
+    )
+
+    assert len(pack.candidates) == 0
+    assert len(pack.quarantined) == 3
+    assert evaluator.calls == 0
+    assert all(
+        "framing gate reject" in candidate.gate_note
+        for candidate in pack.quarantined
+    )
+    # three retries with escalating seeds
+    assert len(provider.requests) == 3
+    assert provider.requests[1].seed == provider.requests[0].seed + 10_000
+    assert provider.requests[2].seed == provider.requests[1].seed + 10_000
+
+
+
+def _full_body_png_bytes() -> bytes:
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGB", (120, 200), (245, 245, 245))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle([50, 10, 70, 30], fill=(30, 30, 32))  # head
+    draw.rectangle([44, 28, 76, 110], fill=(30, 30, 32))  # torso
+    draw.rectangle([46, 108, 58, 195], fill=(30, 30, 32))  # left leg
+    draw.rectangle([62, 108, 74, 195], fill=(30, 30, 32))  # right leg
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+class _RecordingPngProvider:
+    def __init__(self, png_bytes: bytes) -> None:
+        self._png = png_bytes
+        self.requests = []
+
+    @property
+    def name(self) -> str:
+        return "fake:recording-png"
+
+    async def generate_keyframe(self, request):
+        self.requests.append(request)
+        with Image.open(io.BytesIO(self._png)) as opened:
+            width, height = opened.size
+        return GeneratedKeyframe(
+            image_bytes=self._png,
+            content_type="image/png",
+            width=width,
+            height=height,
+            provider_asset_id=f"rec-{len(self.requests)}",
+            metadata={"offline": True},
+        )
+
+
+def test_style_refine_runs_second_img2img_pass_on_full_body(tmp_path):
+    from core.application.services.view_framing_gate import ViewFramingGate
+
+    provider = _RecordingPngProvider(_full_body_png_bytes())
+    storage = LocalFsStorage(str(tmp_path))
+    service = CharacterOnboardingService(
+        provider,
+        storage,
+        _PassEvaluator(),
+        framing_gate=ViewFramingGate(),
+        style_refine=True,
+    )
+    anchor_key = "approved/nova-anchor.png"
+    asyncio.run(storage.save(anchor_key, _full_body_png_bytes(), "image/png"))
+
+    pack = asyncio.run(
+        service.generate_reference_pack(
+            _nova(),
+            anchor_storage_key=anchor_key,
+            recipe_offset=11,
+            recipe_limit=1,
+        )
+    )
+
+    # composition pass + self-refinement pass
+    assert len(provider.requests) == 2
+    base = provider.requests[0].visual_constraints
+    refined = provider.requests[1]
+    assert base["latent_mode"] == "empty"
+    assert refined.visual_constraints["latent_mode"] == "reference"
+    assert refined.visual_constraints["reference_denoise"] == 0.45
+    assert refined.visual_constraints["identity_strength"] == 0.7
+    assert refined.reference_storage_keys and "/refine/" in refined.reference_storage_keys[0]
+    assert len(pack.candidates) == 1
+    assert "style refine applied" in (pack.candidates[0].gate_note or "")
+    assert len(pack.quarantined) == 0

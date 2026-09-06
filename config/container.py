@@ -22,11 +22,15 @@ from core.application.services.background_factory_service import (
 from core.application.services.candidate.candidate_evaluation_service import (
     CandidateEvaluationService,
 )
+from core.application.services.character_design_service import CharacterDesignService
 from core.application.services.character_golden_set_service import (
     CharacterGoldenSetService,
 )
 from core.application.services.character_onboarding_service import (
     CharacterOnboardingService,
+)
+from core.application.services.character_view_quality_gate import (
+    CharacterViewQualityGate,
 )
 from core.application.services.hierarchical_shot_planning_service import (
     HierarchicalShotPlanningService,
@@ -34,12 +38,17 @@ from core.application.services.hierarchical_shot_planning_service import (
 from core.application.services.keyframe_generation_service import (
     KeyframeGenerationService,
 )
+from core.application.services.model_lock_service import load_model_lock
+from core.application.services.production_manifest_service import (
+    ProductionManifestService,
+)
 from core.application.services.script_breakdown_service import ScriptBreakdownService
 from core.application.services.story_engine_service import StoryEngineService
 from core.application.services.streak_pre_gate import StreakPreGate
 from core.application.services.structured_mark_validation_service import (
     StructuredMarkValidationService,
 )
+from core.application.services.view_framing_gate import ViewFramingGate
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.ports.canon_repository_port import CanonRepositoryPort
 from core.domain.ports.storage_port import StoragePort
@@ -62,6 +71,9 @@ from infrastructure.providers.vision.insightface_head_region_provider import (
 )
 from infrastructure.providers.vision.local_golden_review_evaluator import (
     LocalGoldenReviewEvaluator,
+)
+from infrastructure.providers.vision.ultralytics_character_view_detector import (
+    UltralyticsCharacterViewDetector,
 )
 from infrastructure.providers.vision.vision_preproduction_image_evaluator import (
     VisionPreproductionImageEvaluator,
@@ -92,6 +104,7 @@ class AnimationContainer:
     animation_orchestrator_service: AnimationOrchestratorService
     story_engine_service: StoryEngineService
     character_golden_set_service: CharacterGoldenSetService
+    character_design_service: CharacterDesignService
     character_onboarding_service: CharacterOnboardingService
     background_factory_service: BackgroundFactoryService
     hierarchical_shot_planning_service: HierarchicalShotPlanningService
@@ -221,9 +234,36 @@ def create_container(
     keyframe_generator = get_keyframe_generation_provider(
         resolved, storage=keyframe_storage
     )
+    character_view_quality_gate = None
+    if not keyframe_generator.name.startswith("fake:"):
+        model_lock = load_model_lock(resolved.comfyui_model_lock_path)
+        model_root = Path(model_lock.comfyui_root).expanduser()
+        character_view_quality_gate = CharacterViewQualityGate(
+            UltralyticsCharacterViewDetector(
+                face_model=str(model_root / model_lock.entry("face_detector").relative_path),
+                pose_model=str(model_root / model_lock.entry("pose_detector").relative_path),
+                confidence=resolved.character_qc_confidence,
+            )
+        )
     preproduction_evaluator = VisionPreproductionImageEvaluator(
         get_vision_provider(resolved)
     )
+    character_design_service = CharacterDesignService(
+        keyframe_generator,
+        keyframe_storage,
+        quality_gate=character_view_quality_gate,
+        max_view_attempts=resolved.character_view_max_attempts,
+        production_manifest=ProductionManifestService(
+            resolved.keyframe_storage_root_dir
+        ),
+    )
+
+    async def require_view_pack(character_id: str, character_version: int) -> object:
+        return await character_design_service.load_approved_view_pack(
+            character_id=character_id,
+            character_version=character_version,
+        )
+
     keyframe_service = KeyframeGenerationService(
         generator=keyframe_generator,
         storage=keyframe_storage,
@@ -236,6 +276,7 @@ def create_container(
         candidate_evaluation=candidate_evaluation,
         human_review_required=human_review_required,
         character_lora_active=bool(resolved.comfyui_character_lora_name),
+        view_pack_approval_guard=require_view_pack,
     )
     return AnimationContainer(
         character_bible=character_bible,
@@ -244,6 +285,7 @@ def create_container(
         animation_orchestrator_service=orchestrator,
         story_engine_service=story_engine,
         character_golden_set_service=golden_set,
+        character_design_service=character_design_service,
         character_onboarding_service=CharacterOnboardingService(
             keyframe_generator,
             keyframe_storage,
@@ -251,6 +293,12 @@ def create_container(
             streak_pre_gate=(
                 StreakPreGate() if resolved.streak_pre_gate_enabled else None
             ),
+            framing_gate=(
+                ViewFramingGate()
+                if resolved.character_framing_gate_enabled
+                else None
+            ),
+            style_refine=resolved.character_style_refine_enabled,
         ),
         background_factory_service=BackgroundFactoryService(
             keyframe_generator, keyframe_storage, preproduction_evaluator

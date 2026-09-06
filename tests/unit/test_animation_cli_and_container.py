@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, patch
 from cli.main import main
 from config.container import AnimationContainer, create_container
 from config.settings import Settings
+from core.application.services.view_framing_gate import ViewFramingGate
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.character_rig import RigSpecification
 from core.domain.entities.episode_script import (
@@ -46,6 +47,23 @@ def test_container_wires_canonical_character_and_services(tmp_path):
         is container.animation_orchestrator_service
     )
     assert container.keyframe_generation_service._human_review_required is True
+    assert isinstance(
+        container.character_onboarding_service._framing_gate, ViewFramingGate
+    )
+    assert container.character_onboarding_service._style_refine is False
+
+
+def test_container_can_enable_character_style_refinement(tmp_path):
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path),
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+        character_style_refine_enabled=True,
+    )
+
+    container = create_container(settings=settings)
+
+    assert container.character_onboarding_service._style_refine is True
 
 
 def test_container_allows_explicit_legacy_keyframe_flow(tmp_path):
@@ -105,6 +123,138 @@ def test_cli_creates_generic_character_onboarding_plan(tmp_path, capsys):
     assert payload["trigger_token"] == "selma_akira_v1"
     assert len(payload["recipes"]) == 23
     assert Path(capsys.readouterr().out.strip()) == output.resolve()
+
+
+def test_cli_generates_and_approves_canonical_design_from_brief(tmp_path, capsys):
+    brief_path = tmp_path / "brief.json"
+    manifest_path = tmp_path / "designs.json"
+    approval_path = tmp_path / "canonical-approval.json"
+    turnaround_path = tmp_path / "turnaround.json"
+    asset_root = tmp_path / "assets"
+    brief_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "name": "Mira",
+                "concept": "Underground courier who manipulates sound",
+                "hair": "black bob with one red lock",
+                "outfit": "cropped courier jacket",
+            }
+        ),
+        encoding="utf-8",
+    )
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path / "runtime"),
+        keyframe_storage_root_dir=str(asset_root),
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+    )
+
+    def factory():
+        return create_container(settings=settings)
+
+    assert (
+        main(
+            [
+                "character",
+                "create",
+                "--brief",
+                str(brief_path),
+                "--manifest",
+                str(manifest_path),
+            ],
+            container_factory=factory,
+        )
+        == 0
+    )
+    capsys.readouterr()
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    selected_key = manifest["candidates"][0]["storage_key"]
+
+    assert (
+        main(
+            [
+                "character",
+                "approve-design",
+                "--brief",
+                str(brief_path),
+                "--manifest",
+                str(manifest_path),
+                "--candidate-key",
+                selected_key,
+                "--approved-by",
+                "Kerem",
+                "--output",
+                str(approval_path),
+            ],
+            container_factory=factory,
+        )
+        == 0
+    )
+
+    approval = json.loads(approval_path.read_text(encoding="utf-8"))
+    assert approval["approved_by"] == "Kerem"
+    assert (asset_root / "characters/mira/v1/canonical_source.png").is_file()
+    assert (asset_root / "characters/mira/v1/face_anchor.png").is_file()
+    assert (asset_root / "characters/mira/v1/fullbody_anchor.png").is_file()
+    assert (asset_root / "characters/mira/v1/canonical-approval.json").is_file()
+
+    assert (
+        main(
+            [
+                "character",
+                "turnaround",
+                "--brief",
+                str(brief_path),
+                "--approval",
+                str(approval_path),
+                "--manifest",
+                str(turnaround_path),
+            ],
+            container_factory=factory,
+        )
+        == 0
+    )
+    turnaround = json.loads(turnaround_path.read_text(encoding="utf-8"))
+    assert [view["view"] for view in turnaround["views"]] == [
+        "FACE_CLOSEUP",
+        "FRONT",
+        "PROFILE_LEFT",
+        "PROFILE_RIGHT",
+        "THREE_QUARTER_LEFT",
+        "THREE_QUARTER_RIGHT",
+        "BACK",
+    ]
+    assert turnaround["next_gate"] == "PENDING_HUMAN_REVIEW"
+    assert (asset_root / "characters/mira/v1/contact-sheets/views.png").is_file()
+    production_manifest = json.loads(
+        (asset_root / "characters/mira/v1/manifest.json").read_text(encoding="utf-8")
+    )
+    assert production_manifest["status"] == "PENDING_HUMAN_REVIEW"
+    assert len(production_manifest["assets"]) == 10
+    assert all("qc_metrics" in item for item in production_manifest["assets"])
+    capsys.readouterr()
+
+    assert (
+        main(
+            [
+                "character",
+                "approve-view-pack",
+                "--character",
+                "mira",
+                "--version",
+                "v1",
+                "--approved-by",
+                "Kerem",
+            ],
+            container_factory=factory,
+        )
+        == 0
+    )
+    view_approval = json.loads(capsys.readouterr().out)
+    assert view_approval["human_approved"] is True
+    assert len(view_approval["view_hashes"]) == 7
+    assert (asset_root / "characters/mira/v1/view-pack-approval.json").is_file()
 
 
 def test_cli_breakdown_writes_unapproved_shot_plan(tmp_path):
@@ -189,7 +339,9 @@ def test_preproduction_status_and_locked_episode_plan_commands(tmp_path, capsys)
     )
 
 
-def test_preproduction_golden_set_runs_through_selma_pipeline(tmp_path, capsys):
+def test_preproduction_golden_set_blocks_without_approved_reference_pack(
+    tmp_path, capsys
+):
     output = tmp_path / "akira-golden-set.json"
     settings = Settings(
         _env_file=None,
@@ -217,16 +369,11 @@ def test_preproduction_golden_set_runs_through_selma_pipeline(tmp_path, capsys):
             ],
             container_factory=factory,
         )
-        == 0
+        == 1
     )
-
-    assert Path(capsys.readouterr().out.strip()) == output.resolve()
-    payload = json.loads(output.read_text(encoding="utf-8"))["golden_set"]
-    assert len(payload["results"]) == 10
-    assert payload["model_id"] == "offline-smoke"
-    assert payload["locked_at"] is None
-    assert all(result["human_approved"] is False for result in payload["results"])
-    assert len(list((tmp_path / "assets").rglob("*.png"))) == 10
+    assert "reference pack is incomplete" in capsys.readouterr().err
+    assert not output.exists()
+    assert list((tmp_path / "assets").rglob("*.png")) == []
 
 
 def test_rig_validate_returns_nonzero_for_invalid_rig(capsys):

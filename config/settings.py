@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     insightface_detection_size: int = 640
     insightface_hair_pad_top: float = 0.35
     insightface_hair_pad_side: float = 0.15
+    character_qc_confidence: float = 0.35
+    character_view_max_attempts: int = 3
 
     selmagpt_api_url: str = "http://localhost:11434/v1/chat/completions"
     selmagpt_model_name: str = "llama3.1:8b"
@@ -131,7 +133,18 @@ class Settings(BaseSettings):
     comfyui_workflow_path: str = "assets/comfyui_workflow.json"
     keyframe_generation_provider: Literal["fake", "comfyui"] = "fake"
     comfyui_keyframe_workflow_path: str = "assets/comfyui_keyframe_workflow.json"
-    comfyui_keyframe_checkpoint: str = "sd_xl_base_1.0.safetensors"
+    comfyui_keyframe_checkpoint: str = ""
+    comfyui_model_lock_path: str = "models.lock.json"
+    production_preflight_min_free_disk_gb: float = 40.0
+    production_preflight_min_free_ram_gb: float = 4.0
+    production_preflight_test_job: bool = True
+    comfyui_watchdog_no_progress_timeout_sec: float = 120.0
+    comfyui_watchdog_absolute_timeout_sec: float = 600.0
+    comfyui_watchdog_retry_limit: int = 3
+    thermal_minimum_inter_job_delay_sec: int = 10
+    thermal_threshold_celsius: float = 75.0
+    thermal_poll_interval_sec: int = 5
+    thermal_max_wait_sec: int = 300
     comfyui_character_lora_name: str = ""
     comfyui_character_lora_trigger_token: str = ""
     comfyui_character_lora_strength_model: float = 0.45
@@ -139,7 +152,7 @@ class Settings(BaseSettings):
     comfyui_keyframe_timeout_seconds: float = 300.0
     comfyui_keyframe_poll_interval_seconds: float = 1.0
     keyframe_candidate_db_path: str = "data/keyframe_candidates.db"
-    keyframe_storage_root_dir: str = "assets"
+    keyframe_storage_root_dir: str = "output/production"
     character_bible_repository_dir: str = "assets/character_bibles"
     storyboard_repository_dir: str = "output/storyboards"
     image_to_video_provider: Literal["fake", "comfyui"] = "fake"
@@ -191,6 +204,8 @@ class Settings(BaseSettings):
     # Deterministic identity pre-gate (cheap structured-mark seal) that runs
     # before the slow vision model so defective frames never cost a review.
     streak_pre_gate_enabled: bool = True
+    character_framing_gate_enabled: bool = True
+    character_style_refine_enabled: bool = False
 
     # Scene planning (Sprint 4). Reuses anthropic_api_key above -- same
     # Anthropic account, a separate model setting because scene planning's

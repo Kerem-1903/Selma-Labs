@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "name": "Akira",
+  "concept": "Yağmur altındaki kontrollü bir şehirde değiştirilmiş anıların kaynağını arayan, sivilleri koruyan disiplinli bir kılıç ustası",
+  "age_band": "young adult",
+  "gender_presentation": "feminine",
+  "body_type": "lean athletic adult woman with balanced proportions",
+  "face": "angular anime face, defined jaw, straight nose",
+  "eyes": "amber eyes",
+  "hair": "long straight black hair with exactly one narrow deep-red front lock on character-left",
+  "signature_marks": [
+    {
+      "label": "single narrow deep-red front hair lock",
+      "count": 1,
+      "character_side": "left",
+      "colour": "#C04838"
+    }
+  ],
+  "outfit": "cropped charcoal combat jacket with deep-red inner lining, fitted black high-neck top, tapered charcoal combat trousers, simple knee pads and flat black combat boots",
+  "props": [
+    "one sheathed katana"
+  ],
+  "personality": [
+    "disciplined",
+    "restrained",
+    "observant"
+  ],
+  "style_preset": "clean cinematic anime character design",
+  "palette": [
+    "charcoal",
+    "black",
+    "muted gray",
+    "deep red",
+    "amber"
+  ],
+  "avoid": [
+    "mask",
+    "visor",
+    "eyewear",
+    "firearm",
+    "extra weapon",
+    "multiple red hair streaks",
+    "red hair on both sides",
+    "cape",
+    "text",
+    "watermark"
+  ],
+  "view_pack": "standard",
+  "requested_actions": [],
+  "additional_notes": "The first stage is a neutral reusable character design, not an action pose."
+}

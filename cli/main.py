@@ -32,6 +32,44 @@ def build_parser() -> argparse.ArgumentParser:
     )
     character_init.add_argument("--brief", required=True)
     character_init.add_argument("--output", required=True)
+    character_create = character_commands.add_parser(
+        "create", help="Generate canonical design choices from a character brief"
+    )
+    character_create.add_argument("--brief", required=True)
+    character_create.add_argument("--manifest", required=True)
+    character_create.add_argument("--output-prefix", default="characters")
+    character_create.add_argument("--count", type=int, default=5)
+    character_create.add_argument(
+        "--run-id",
+        help="Optional unique run label; generated automatically when omitted",
+    )
+    character_approve_design = character_commands.add_parser(
+        "approve-design", help="Lock one generated design as the canonical character"
+    )
+    character_approve_design.add_argument("--brief", required=True)
+    character_approve_design.add_argument("--manifest", required=True)
+    character_approve_design.add_argument("--candidate-key", required=True)
+    character_approve_design.add_argument("--approved-by", required=True)
+    character_approve_design.add_argument("--output", required=True)
+    character_approve_design.add_argument("--output-prefix", default="characters")
+    character_approve_design.add_argument("--version", type=int, default=1)
+    character_turnaround = character_commands.add_parser(
+        "turnaround",
+        help="Generate the seven neutral reference drafts from an approved design",
+    )
+    character_turnaround.add_argument("--brief", required=True)
+    character_turnaround.add_argument("--approval", required=True)
+    character_turnaround.add_argument("--manifest", required=True)
+    character_turnaround.add_argument("--output-prefix", default="characters")
+    character_approve_views = character_commands.add_parser(
+        "approve-view-pack",
+        help="Human-approve a complete QC-passed seven-view pack",
+    )
+    character_approve_views.add_argument("--character", required=True)
+    character_approve_views.add_argument("--version", default="v1")
+    character_approve_views.add_argument("--approved-by", default="local-operator")
+    character_approve_views.add_argument("--output")
+    character_approve_views.add_argument("--output-prefix", default="characters")
     character_plan = character_commands.add_parser(
         "plan", help="Create a reusable 20+3 character reference recipe"
     )
@@ -81,6 +119,13 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         default=0,
         help="Deterministic pilot variation; use 0, 10000, 20000, ...",
+    )
+    character_references.add_argument(
+        "--pose-references",
+        help=(
+            "JSON file mapping every selected ACTION_* view to an OpenPose "
+            "PNG storage key"
+        ),
     )
     character_pilot_approve = character_commands.add_parser(
         "approve-pilot", help="Approve the identity/framing pilot after visual review"
@@ -365,6 +410,31 @@ def _load_character_bible(path: str | Path) -> CharacterBible:
     return CharacterBible.from_dict(bible_payload)
 
 
+def _load_character_creation_brief(path: str | Path):
+    from core.domain.value_objects.character_creation_brief import (
+        CharacterCreationBrief,
+    )
+
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise TypeError("Character creation brief JSON must contain an object.")
+    brief_payload = payload.get("character_creation_brief", payload)
+    if not isinstance(brief_payload, dict):
+        raise TypeError("character_creation_brief must contain an object.")
+    brief = CharacterCreationBrief.from_dict(brief_payload)
+    source = Path(path)
+    lock_path = source.with_name(f"{source.stem}.lock.json")
+    if lock_path.is_file():
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+        if not isinstance(lock, dict) or lock.get("status") != "LOCKED":
+            raise ValueError(f"Character brief lock is malformed: {lock_path}")
+        if lock.get("brief_hash") != brief.content_hash:
+            raise ValueError(
+                "Character brief changed after approval; review and refresh its lock."
+            )
+    return brief
+
+
 def _write_json(path: str | Path, payload: dict[str, Any]) -> Path:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
@@ -556,6 +626,83 @@ async def _run_character_generation(
     arguments: argparse.Namespace,
     container: AnimationContainer,
 ) -> int:
+    if arguments.character_command == "create":
+        brief = _load_character_creation_brief(arguments.brief)
+        pack = await container.character_design_service.generate_candidates(
+            brief,
+            count=arguments.count,
+            output_prefix=arguments.output_prefix,
+            run_id=arguments.run_id,
+        )
+        print(_write_json(arguments.manifest, pack.to_dict()))
+        return 0
+    if arguments.character_command == "approve-design":
+        from core.domain.value_objects.character_design import CharacterDesignCandidate
+
+        brief = _load_character_creation_brief(arguments.brief)
+        manifest = json.loads(Path(arguments.manifest).read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict):
+            raise TypeError("Character design manifest must contain an object.")
+        if (
+            manifest.get("character_id") != brief.character_id
+            or manifest.get("brief_hash") != brief.content_hash
+        ):
+            raise ValueError("Character design manifest belongs to another brief.")
+        raw_candidates = manifest.get("candidates")
+        if not isinstance(raw_candidates, list):
+            raise TypeError("Character design manifest must contain candidates.")
+        selected = next(
+            (
+                item
+                for item in raw_candidates
+                if isinstance(item, dict)
+                and item.get("storage_key") == arguments.candidate_key
+            ),
+            None,
+        )
+        if selected is None:
+            raise ValueError(
+                "Selected design candidate is not present in the manifest."
+            )
+        approval = await container.character_design_service.approve_candidate(
+            brief,
+            CharacterDesignCandidate.from_dict(selected),
+            approved_by=arguments.approved_by,
+            character_version=arguments.version,
+            output_prefix=arguments.output_prefix,
+        )
+        print(_write_json(arguments.output, approval.to_dict()))
+        return 0
+    if arguments.character_command == "turnaround":
+        from core.domain.value_objects.character_design import (
+            CharacterCanonicalApproval,
+        )
+
+        brief = _load_character_creation_brief(arguments.brief)
+        raw_approval = json.loads(Path(arguments.approval).read_text(encoding="utf-8"))
+        if not isinstance(raw_approval, dict):
+            raise TypeError("Canonical approval receipt must contain an object.")
+        pack = await container.character_design_service.generate_reference_drafts(
+            brief,
+            CharacterCanonicalApproval.from_dict(raw_approval),
+            output_prefix=arguments.output_prefix,
+        )
+        print(_write_json(arguments.manifest, pack.to_dict()))
+        return 0
+    if arguments.character_command == "approve-view-pack":
+        raw_version = str(arguments.version).strip().casefold().removeprefix("v")
+        approval = await container.character_design_service.approve_view_pack(
+            character_id=arguments.character,
+            character_version=int(raw_version),
+            approved_by=arguments.approved_by,
+            output_prefix=arguments.output_prefix,
+        )
+        payload = approval.to_dict()
+        if arguments.output:
+            print(_write_json(arguments.output, payload))
+        else:
+            print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
     character = _load_character_bible(arguments.input)
     service = container.character_onboarding_service
     if arguments.character_command == "anchor":
@@ -596,6 +743,19 @@ async def _run_character_generation(
             if not isinstance(raw_approval, dict):
                 raise TypeError("Pilot approval receipt must contain an object.")
             pilot_approval = CharacterPilotApproval.from_dict(raw_approval)
+        pose_references = None
+        if arguments.pose_references:
+            raw_pose_references = json.loads(
+                Path(arguments.pose_references).read_text(encoding="utf-8")
+            )
+            if not isinstance(raw_pose_references, dict) or not all(
+                isinstance(view, str) and isinstance(storage_key, str)
+                for view, storage_key in raw_pose_references.items()
+            ):
+                raise TypeError(
+                    "Pose references must be a JSON object of view-to-storage-key strings."
+                )
+            pose_references = raw_pose_references
         pack = await service.generate_reference_pack(
             character,
             anchor_storage_key=arguments.approved_anchor_key,
@@ -605,6 +765,7 @@ async def _run_character_generation(
             automatic_review=not arguments.defer_visual_review,
             pilot_approval=pilot_approval,
             seed_offset=arguments.seed_offset,
+            pose_references=pose_references,
         )
         payload = {
             **pack.to_dict(),

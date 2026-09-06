@@ -20,7 +20,6 @@ provider defaults, or milestones.
 - [Premium pipeline architecture](architecture/premium-pipeline.md)
 - [Approved keyframe-to-motion workflow](A8_APPROVED_KEYFRAME_MOTION.md)
 - [Pilot production and assembly](A8_1_PILOT_PRODUCTION.md)
-- [Character LoRA dataset safeguards](CHARACTER_LORA_DATASET.md)
 - [Character Factory](CHARACTER_FACTORY.md)
 - [Background Factory](BACKGROUND_FACTORY.md)
 

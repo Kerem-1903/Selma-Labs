@@ -16,7 +16,7 @@
     "_meta": {"title": "SELMA FaceID Sampler", "selma_role": "sampler"}
   },
   "4": {
-    "inputs": {"ckpt_name": "sd_xl_base_1.0.safetensors"},
+    "inputs": {"ckpt_name": "__MODELS_LOCK_CHECKPOINT__"},
     "class_type": "CheckpointLoaderSimple",
     "_meta": {"title": "Load Checkpoint", "selma_role": "checkpoint"}
   },
@@ -97,7 +97,7 @@
   },
   "24": {
     "inputs": {
-      "lora_name": "selma-character.safetensors",
+      "lora_name": "__OPTIONAL_CHARACTER_LORA__",
       "strength_model": 0.8,
       "strength_clip": 0.8,
       "model": ["4", 0],
@@ -107,7 +107,7 @@
     "_meta": {"title": "SELMA Optional Character LoRA", "selma_role": "character_lora"}
   },
   "21": {
-    "inputs": {"control_net_name": "control-lora-openposeXL2-rank256.safetensors"},
+    "inputs": {"control_net_name": "__MODELS_LOCK_CONTROLNET_OPENPOSE__"},
     "class_type": "ControlNetLoader",
     "_meta": {"title": "Load OpenPose ControlNet"}
   },

@@ -1,7 +1,9 @@
 import base64
+from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from PIL import Image
 
 from core.application.services.keyframe_generation_service import (
     KeyframeGenerationService,
@@ -20,12 +22,21 @@ PNG_BYTES = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
 
+
+def _generated_png() -> bytes:
+    buffer = BytesIO()
+    Image.new("RGB", (256, 256), "white").save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+GENERATED_PNG_BYTES = _generated_png()
+
 @pytest.mark.asyncio
 async def test_generate_keyframe_pair_calls_provider_twice(tmp_path):
     generator = AsyncMock()
     generator.generate_keyframe.side_effect = [
-        GeneratedKeyframe(image_bytes=PNG_BYTES, content_type="image/png", width=1024, height=1024),
-        GeneratedKeyframe(image_bytes=PNG_BYTES, content_type="image/png", width=1024, height=1024)
+        GeneratedKeyframe(image_bytes=GENERATED_PNG_BYTES, content_type="image/png", width=256, height=256),
+        GeneratedKeyframe(image_bytes=GENERATED_PNG_BYTES, content_type="image/png", width=256, height=256)
     ]
 
     bibles_repo = AsyncMock()
@@ -50,13 +61,15 @@ async def test_generate_keyframe_pair_calls_provider_twice(tmp_path):
     storage = LocalFsStorage(str(tmp_path))
     await storage.save("poses/start.png", PNG_BYTES, "image/png")
     await storage.save("poses/end.png", PNG_BYTES, "image/png")
+    approval_guard = AsyncMock(return_value=object())
     service = KeyframeGenerationService(
         generator=generator,
         storage=storage,
         character_bibles=bibles_repo,
         storyboards=AsyncMock(),
         human_review_required=False,
-        conditioning_builder=builder
+        conditioning_builder=builder,
+        view_pack_approval_guard=approval_guard,
     )
 
     shot_plan = AnimationShotPlan(
@@ -75,26 +88,44 @@ async def test_generate_keyframe_pair_calls_provider_twice(tmp_path):
     pair = await service.generate_keyframe_pair(shot_plan)
 
     assert isinstance(pair, KeyframePair)
-    assert pair.start_keyframe.image_bytes == PNG_BYTES
-    assert pair.end_keyframe.image_bytes == PNG_BYTES
+    assert pair.start_keyframe.image_bytes == GENERATED_PNG_BYTES
+    assert pair.end_keyframe.image_bytes == GENERATED_PNG_BYTES
     assert await storage.exists(pair.start_storage_key)
     assert await storage.exists(pair.end_storage_key)
     assert pair.human_approved is False
+    approval_guard.assert_awaited_once_with("akira", 1)
 
     assert generator.generate_keyframe.call_count == 2
     requests = [call.args[0] for call in generator.generate_keyframe.call_args_list]
     assert requests[0].visual_constraints["pose_storage_key"] == "poses/start.png"
     assert requests[1].visual_constraints["pose_storage_key"] == "poses/end.png"
+    assert all(
+        request.visual_constraints["latent_mode"] == "empty" for request in requests
+    )
+    assert all(
+        "full body" in request.visual_constraints["extra_tags"]
+        for request in requests
+    )
+    assert all(
+        request.visual_constraints["identity_strength"] == 0.75
+        for request in requests
+    )
+    assert all(
+        request.visual_constraints["identity_end_at"] == 0.72
+        for request in requests
+    )
+    assert all("face mask" in request.negative_prompts for request in requests)
+    assert all("gun" in request.negative_prompts for request in requests)
 
 
 @pytest.mark.asyncio
 async def test_lora_primary_pair_uses_moderate_visual_identity_strength(tmp_path):
     generator = AsyncMock()
     generator.generate_keyframe.return_value = GeneratedKeyframe(
-        image_bytes=PNG_BYTES,
+        image_bytes=GENERATED_PNG_BYTES,
         content_type="image/png",
-        width=1024,
-        height=1024,
+        width=256,
+        height=256,
     )
     storage = LocalFsStorage(str(tmp_path))
     await storage.save("poses/start.png", PNG_BYTES, "image/png")
@@ -122,6 +153,7 @@ async def test_lora_primary_pair_uses_moderate_visual_identity_strength(tmp_path
         human_review_required=False,
         conditioning_builder=builder,
         character_lora_active=True,
+        view_pack_approval_guard=AsyncMock(return_value=object()),
     )
 
     shot_plan = AnimationShotPlan(

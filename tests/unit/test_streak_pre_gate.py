@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-from pathlib import Path
 
 from PIL import Image, ImageDraw
 
@@ -11,19 +10,9 @@ from core.application.services.streak_pre_gate import (
 )
 from core.domain.entities.character_bible import CharacterBible
 
-APPROVED_ANCHOR = (
-    Path(__file__).parents[2]
-    / "assets"
-    / "characters"
-    / "akira"
-    / "identity_lock"
-    / "v2"
-    / "akira-canonical-anchor-v2.png"
-)
-
 
 def _anchor_bytes() -> bytes:
-    return APPROVED_ANCHOR.read_bytes()
+    return _synthetic_streak(1024)
 
 
 def _anchor_with_left_blob() -> bytes:

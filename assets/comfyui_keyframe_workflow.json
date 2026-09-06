@@ -8,7 +8,7 @@
       "scheduler": "normal",
       "denoise": 1.0,
       "model": [
-        "20",
+        "26",
         0
       ],
       "positive": [
@@ -32,7 +32,7 @@
   },
   "4": {
     "inputs": {
-      "ckpt_name": "sd_xl_base_1.0.safetensors"
+      "ckpt_name": "__MODELS_LOCK_CHECKPOINT__"
     },
     "class_type": "CheckpointLoaderSimple",
     "_meta": {
@@ -170,7 +170,7 @@
   },
   "24": {
     "inputs": {
-      "lora_name": "selma-akira-v1.safetensors",
+      "lora_name": "__OPTIONAL_CHARACTER_LORA__",
       "strength_model": 0.8,
       "strength_clip": 0.8,
       "model": [
@@ -215,9 +215,47 @@
       "selma_role": "identity_adapter"
     }
   },
+  "25": {
+    "inputs": {
+      "image": "selma-reference-secondary.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "SELMA Secondary Character Reference",
+      "selma_role": "reference_image"
+    }
+  },
+  "26": {
+    "inputs": {
+      "weight": 0.5,
+      "weight_type": "linear",
+      "combine_embeds": "concat",
+      "start_at": 0.0,
+      "end_at": 0.65,
+      "embeds_scaling": "K+V w/ C penalty",
+      "model": [
+        "20",
+        0
+      ],
+      "ipadapter": [
+        "18",
+        1
+      ],
+      "image": [
+        "25",
+        0
+      ]
+    },
+    "class_type": "IPAdapterAdvanced",
+    "_meta": {
+      "title": "IPAdapter Advanced Secondary",
+      "selma_role": "identity_adapter"
+    }
+  },
   "21": {
     "inputs": {
-      "control_net_name": "control-lora-openposeXL2-rank256.safetensors"
+      "control_net_name": "__MODELS_LOCK_CONTROLNET_OPENPOSE__"
     },
     "class_type": "ControlNetLoader",
     "_meta": {

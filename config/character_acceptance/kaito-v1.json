@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "character_id": "kaito",
+  "character_version": 1,
+  "brief_hash": "7a398fec879cb66ffe3e77abae918a3f7c519f7e47a7280633adf6b5b0cd8fb8",
+  "blocking_policy": "Every automatic check and every human check must pass before view-pack approval.",
+  "automatic_checks": [
+    "exactly one person",
+    "head inside frame",
+    "feet inside frame except face-closeup",
+    "expected camera orientation",
+    "no face in back view",
+    "exactly one #0047AB hair streak on character-left in the front design candidate",
+    "all output, prompt, workflow, model and reference hashes recorded"
+  ],
+  "human_checks": [
+    "same facial identity in all seven views",
+    "short black hair with exactly one narrow cobalt streak",
+    "streak remains on character-left and is never mirrored",
+    "messenger bag remains on character-right hip and is never mirrored",
+    "charcoal jacket, blue trim, black cargo trousers and black boots remain consistent",
+    "body proportions and clothing layers remain consistent",
+    "no extra person, duplicate body, collage, text or watermark",
+    "back view contains no visible face or looking-back pose"
+  ],
+  "required_evidence": [
+    "canonical-approval.json",
+    "face_anchor.png",
+    "fullbody_anchor.png",
+    "view-pack.json",
+    "contact-sheets/views.png",
+    "view-pack-approval.json",
+    "manifest.json"
+  ]
+}

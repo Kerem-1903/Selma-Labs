@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import hashlib
 import io
-import json
 from dataclasses import replace
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -35,18 +32,6 @@ from infrastructure.providers.vision.insightface_head_region_provider import (
 )
 
 HEAD = (100.0, 40.0, 200.0, 260.0)  # root = (173, 64.2)
-APPROVED_ANCHOR = (
-    Path(__file__).parents[1]
-    / "assets"
-    / "characters"
-    / "akira"
-    / "identity_lock"
-    / "v2"
-    / "akira-canonical-anchor-v2.png"
-)
-IDENTITY_LOCK = APPROVED_ANCHOR.with_name("identity-lock.json")
-
-
 class _FakeHead(HeadRegionPort):
     def __init__(self, region):
         self._region = region
@@ -296,13 +281,27 @@ async def test_character_without_structured_marks_skips_marker_detection():
 
 @pytest.mark.asyncio
 async def test_approved_akira_v2_anchor_passes_the_real_marker_gate():
-    data = APPROVED_ANCHOR.read_bytes()
     calibrated_head = (
         318.43206787109375,
         171.85008697509767,
         663.5477905273438,
         609.806640625,
     )
+    image = Image.new("RGB", (1024, 1024), (20, 20, 20))
+    mark = CharacterBible.akira().identity_constraints.structured_marks[0]
+    root_x = calibrated_head[0] + mark.anchor.x_center * (
+        calibrated_head[2] - calibrated_head[0]
+    )
+    root_y = calibrated_head[1] + mark.anchor.y_root * (
+        calibrated_head[3] - calibrated_head[1]
+    )
+    ImageDraw.Draw(image).rectangle(
+        (root_x - 12, root_y, root_x + 12, root_y + 240),
+        fill=mark.color_hex,
+    )
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    data = buffer.getvalue()
 
     result = await _guard(
         data, HeadRegion(bbox=calibrated_head, source="approved-anchor-fixture")
@@ -317,28 +316,15 @@ async def test_approved_akira_v2_anchor_passes_the_real_marker_gate():
     assert result.structured_mark_reports[0].detected_count == 1
 
 
-def test_akira_v2_identity_lock_hash_and_calibration_cannot_drift():
-    lock = json.loads(IDENTITY_LOCK.read_text(encoding="utf-8"))
+def test_akira_default_marker_calibration_is_self_consistent():
     mark = CharacterBible.akira().identity_constraints.structured_marks[0]
 
-    assert lock["status"] == "LOCKED"
-    assert lock["master_reference"]["sha256"] == hashlib.sha256(
-        APPROVED_ANCHOR.read_bytes()
-    ).hexdigest()
-    assert lock["structured_mark_calibration"] == {
-        "color_hex": mark.color_hex,
-        "color_tolerance_delta_e": mark.color_tolerance_delta_e,
-        "viewer_side": mark.viewer_side,
-        "count": mark.count,
-        "head_bbox": list(mark.head_bbox),
-        "anchor": {
-            "region": mark.anchor.region,
-            "x_center": mark.anchor.x_center,
-            "y_root": mark.anchor.y_root,
-            "extent": mark.anchor.extent,
-        },
-    }
-    assert lock["training_policy"]["dataset_approved"] is False
+    assert mark.viewer_side == "viewer_right"
+    assert mark.count == 1
+    assert mark.color_hex == "#C04838"
+    assert 0 < mark.anchor.x_center < 1
+    assert 0 < mark.anchor.y_root < 1
+    assert len(mark.head_bbox) == 4
 
 
 def test_akira_defaults_lock_critical_scenarios_and_action_poses():

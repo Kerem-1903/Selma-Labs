@@ -11,28 +11,36 @@ set through a tracked GitHub issue and lands through a focused pull request.
 - Complete dependency and security automation.
 - Document every public entry point and classify experimental interfaces.
 
-## Now — Akira V2 identity lock
+## Current foundation — reference-driven character creation
 
-- Generate the face pilot and neutral identity-critical views through the
-  standard visual IP-Adapter workflow with automatic QA enabled.
-- Add licensed or self-rendered OpenPose maps for remaining action recipes.
-- Human-approve the pilot, five-view references, and all 23 dataset samples.
-- Reach `training_approved: true`, then train and register Akira V2.
-- Pass and human-lock all ten Golden Set cases.
+- Accept a versioned structured character brief.
+- Generate five design candidates with the configured SELMA image provider.
+- Lock one human-selected design, then atomically record its canonical image,
+  brief, face anchor and full-body anchor hashes.
+- Generate the seven neutral design views—face close-up, front, left/right
+  profile, left/right three-quarter and back—through the ordered reference
+  chain rooted in the two locked anchors.
+- Keep action poses outside this stage; they begin only after the design-view
+  pack is approved.
+- Keep LoRA outside the default production path.
 
-Definition of done: Akira V2 has a recorded model SHA-256, truthful reviewed
-captions, zero dataset-audit blockers, and a fully passing human-locked Golden
-Set. Until then, scene generation cannot treat the LoRA as production identity.
+Definition of done: every production character starts from a confirmed brief,
+has one hash-locked canonical image plus two locked anchors, and exposes only
+approved reference assets to shot generation.
 
-## Next — Akira pilot animation
+## Next — approve the character turnaround
 
-- Produce and approve the pilot keyframe set with the locked V2 model.
-- Run the two-pass motion workflow against approved candidates.
-- Replace the LivePortrait mock with an integration-tested backend.
-- Assemble and review the first reproducible pilot master.
+- Live-generate the QC-gated seven-view pack from a selected canonical design.
+- Review the generated `contact-sheets/views.png` for identity, outfit and
+  silhouette continuity.
+- Lock the accepted pack with `python -m selma.cli approve-view-pack --character
+  <id> --version v1`.
+- Start pose and animation work only after this gate passes.
 
 ## Later — repeatable studio operation
 
+- Install the three missing required model files, regenerate their real hashes
+  in `models.lock.json`, and complete the live preflight dry-run.
 - Publish versioned release notes and sample output packages.
 - Add performance budgets for GPU generation and media composition.
 - Expand character and shot continuity benchmarks.

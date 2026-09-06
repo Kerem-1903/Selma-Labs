@@ -2,14 +2,19 @@ from __future__ import annotations
 
 import re
 import uuid
+from collections.abc import Awaitable, Callable, Sequence
 from datetime import datetime, timezone
+from io import BytesIO
 from typing import ClassVar
+
+from PIL import Image, UnidentifiedImageError
 
 from core.application.services.candidate.candidate_evaluation_service import (
     CandidateEvaluationService,
 )
 from core.domain.entities.candidate.keyframe_candidate import CandidateStatus
 from core.domain.entities.character_bible import CharacterBible
+from core.domain.entities.character_state import CharacterState
 from core.domain.entities.keyframe import KeyframePair
 from core.domain.entities.shot_animation import ShotPlan
 from core.domain.entities.shot_contract import ShotContract
@@ -26,6 +31,9 @@ from core.domain.ports.storage_port import StoragePort
 from core.domain.services.reference_conditioning_builder import (
     ReferenceConditioningBuilder,
 )
+from core.domain.value_objects.character_design import CharacterReferenceDraftPack
+from core.domain.value_objects.character_identity import ReferenceView
+from core.domain.value_objects.character_reference import CharacterReference
 from core.domain.value_objects.storyboard_frame import StoryboardFrame
 
 
@@ -38,6 +46,7 @@ class KeyframeGenerationService:
         "image/webp": ".webp",
     }
     _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+    _PAIR_MIN_DIMENSION = 256
 
     def __init__(
         self,
@@ -50,6 +59,7 @@ class KeyframeGenerationService:
         human_review_required: bool = True,
         conditioning_builder: ReferenceConditioningBuilder | None = None,
         character_lora_active: bool = False,
+        view_pack_approval_guard: Callable[[str, int], Awaitable[object]] | None = None,
     ) -> None:
         self._generator = generator
         self._storage = storage
@@ -63,6 +73,61 @@ class KeyframeGenerationService:
             )
         self._conditioning_builder = conditioning_builder or ReferenceConditioningBuilder()
         self._character_lora_active = character_lora_active
+        self._view_pack_approval_guard = view_pack_approval_guard
+
+    async def _require_approved_characters(
+        self, states: Sequence[CharacterState]
+    ) -> dict[tuple[str, int], object]:
+        """Fail closed before production frames use a canonical character."""
+        if not states:
+            return {}
+        if self._view_pack_approval_guard is None:
+            raise KeyframeGenerationError(
+                "Character keyframe production requires a view-pack approval guard."
+            )
+        checked: set[tuple[str, int]] = set()
+        approved: dict[tuple[str, int], object] = {}
+        for state in states:
+            character_id = state.character_id
+            character_version = state.character_version
+            identity = (character_id, character_version)
+            if identity in checked:
+                continue
+            checked.add(identity)
+            try:
+                approved[identity] = await self._view_pack_approval_guard(
+                    character_id, character_version
+                )
+            except (FileNotFoundError, TypeError, ValueError) as error:
+                raise KeyframeGenerationError(
+                    f"Character '{character_id}' v{character_version} has no valid "
+                    "approved seven-view pack."
+                ) from error
+        return approved
+
+    @staticmethod
+    def _apply_approved_references(
+        bible: CharacterBible, approved_pack: object
+    ) -> CharacterBible:
+        if not isinstance(approved_pack, CharacterReferenceDraftPack):
+            return bible
+        bible.reference_pack = {
+            ReferenceView(draft.view): CharacterReference(
+                id=(
+                    f"{approved_pack.character_id}-v{approved_pack.character_version}-"
+                    f"{draft.view.casefold()}"
+                ),
+                character_id=approved_pack.character_id,
+                view=ReferenceView(draft.view),
+                asset_id=draft.content_hash,
+                storage_key=draft.storage_key,
+                content_type="image/png",
+                content_hash=draft.content_hash,
+                revision=approved_pack.character_version,
+            )
+            for draft in approved_pack.drafts
+        }
+        return bible
 
     async def generate(
         self,
@@ -74,6 +139,9 @@ class KeyframeGenerationService:
         height: int = 1024,
         seed: int | None = None,
     ) -> ShotStoryboard:
+        approved_packs = await self._require_approved_characters(
+            shot_contract.required_character_states
+        )
         if sequence_index < 0:
             raise KeyframeGenerationError("sequence_index cannot be negative.")
         if not self._SAFE_ID.fullmatch(shot_contract.id):
@@ -93,7 +161,13 @@ class KeyframeGenerationService:
             if state.character_id in seen_character_ids:
                 continue
             seen_character_ids.add(state.character_id)
-            bibles.append(await self._character_bibles.load(state.character_id))
+            bible = await self._character_bibles.load(state.character_id)
+            bibles.append(
+                self._apply_approved_references(
+                    bible,
+                    approved_packs[(state.character_id, state.character_version)],
+                )
+            )
 
         request = self._conditioning_builder.build(
             shot_contract=shot_contract,
@@ -256,6 +330,27 @@ class KeyframeGenerationService:
                 "Generator bytes do not match the declared image content type."
             )
 
+    def _validate_pair_image_dimensions(
+        self, data: bytes, *, reported_width: int, reported_height: int
+    ) -> None:
+        try:
+            with Image.open(BytesIO(data)) as image:
+                actual_width, actual_height = image.size
+                image.verify()
+        except (OSError, UnidentifiedImageError) as error:
+            raise KeyframeGenerationError(
+                "Generator returned an unreadable keyframe image."
+            ) from error
+        if (actual_width, actual_height) != (reported_width, reported_height):
+            raise KeyframeGenerationError(
+                "Generator image dimensions do not match its reported dimensions."
+            )
+        if min(actual_width, actual_height) < self._PAIR_MIN_DIMENSION:
+            raise KeyframeGenerationError(
+                f"Keyframe pair images must be at least {self._PAIR_MIN_DIMENSION}px "
+                "on each side."
+            )
+
     async def generate_keyframe_pair(
         self,
         shot_plan: ShotPlan,
@@ -270,6 +365,9 @@ class KeyframeGenerationService:
             VisualConstraints,
         )
 
+        approved_packs = await self._require_approved_characters(
+            (shot_plan.character_state,)
+        )
         if not self._SAFE_ID.fullmatch(shot_plan.id):
             raise KeyframeGenerationError("Shot ID is not storage-key safe.")
         if not shot_plan.prompt_end or not shot_plan.prompt_end.strip():
@@ -287,6 +385,15 @@ class KeyframeGenerationService:
 
         bible = await self._character_bibles.load(
             shot_plan.character_state.character_id
+        )
+        bible = self._apply_approved_references(
+            bible,
+            approved_packs[
+                (
+                    shot_plan.character_state.character_id,
+                    shot_plan.character_state.character_version,
+                )
+            ],
         )
 
         def contract(identifier: str, action: str) -> ShotContract:
@@ -322,10 +429,32 @@ class KeyframeGenerationService:
                 **request.visual_constraints,
                 "pose_storage_key": pose_key,
                 "controlnet_type": shot_plan.controlnet_type or "openpose",
-                "pose_strength": 0.8,
-                "identity_strength": 0.5 if self._character_lora_active else 0.65,
+                "pose_strength": 0.95,
+                "identity_strength": 0.5 if self._character_lora_active else 0.75,
                 "identity_mode": "identity_only",
+                "identity_end_at": 0.72,
+                # Action geometry must come from OpenPose, not from the crop of
+                # the identity reference. Keep the IP-Adapter model path while
+                # freeing composition through the empty latent.
+                "latent_mode": "empty",
+                "extra_tags": "solo, full body, entire head and feet visible",
+                "composition_contract": (
+                    "single complete character; full silhouette inside frame"
+                ),
             }
+            if not self._character_lora_active:
+                request_payload["negative_prompts"] = list(
+                    dict.fromkeys(
+                        (
+                            *request_payload.get("negative_prompts", []),
+                            "face mask",
+                            "visor",
+                            "sunglasses",
+                            "firearm",
+                            "gun",
+                        )
+                    )
+                )
             requests.append(request.from_dict(request_payload))
 
         generated_frames = []
@@ -334,6 +463,11 @@ class KeyframeGenerationService:
             generated = await self._generator.generate_keyframe(request)
             self._validate_generated_image(
                 generated.image_bytes, generated.content_type
+            )
+            self._validate_pair_image_dimensions(
+                generated.image_bytes,
+                reported_width=generated.width,
+                reported_height=generated.height,
             )
             if generated.width <= 0 or generated.height <= 0:
                 raise KeyframeGenerationError(

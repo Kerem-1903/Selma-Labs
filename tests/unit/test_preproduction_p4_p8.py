@@ -35,10 +35,11 @@ from core.domain.entities.episode_script import (
     EpisodeSequence,
 )
 from core.domain.entities.shot_storyboard import ShotStoryboard
-from core.domain.exceptions import AnimationPackageError
+from core.domain.exceptions import AnimationPackageError, GoldenSetValidationError
 from core.domain.ports.golden_image_generator_port import GoldenImageGeneratorPort
 from core.domain.ports.golden_set_evaluator_port import GoldenSetEvaluatorPort
 from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
+from core.domain.value_objects.character_reference import CharacterReference
 from core.domain.value_objects.generated_keyframe import GeneratedKeyframe
 from core.domain.value_objects.storyboard_frame import StoryboardFrame
 from infrastructure.providers.keyframe.golden_set_keyframe_adapter import (
@@ -101,7 +102,7 @@ def _episode() -> EpisodeScript:
 
 
 @pytest.mark.asyncio
-async def test_locked_canon_and_ten_case_golden_set_are_production_ready():
+async def test_locked_story_canon_blocks_golden_set_until_character_pack_is_approved():
     repository = LocalJsonCanonRepository(
         "assets/preproduction", "assets/character_bibles"
     )
@@ -110,21 +111,14 @@ async def test_locked_canon_and_ten_case_golden_set_are_production_ready():
     style = await repository.get_visual_style()
     (akira,) = await repository.get_character_bibles()
 
-    golden = await CharacterGoldenSetService(
-        _GoldenGenerator(), _GoldenEvaluator()
-    ).run(
-        character=akira,
-        style=style,
-        model_id="selma-image-xl",
-        model_revision="sha256:test",
-    )
-
     assert direction.status is world.status is style.status is BibleStatus.LOCKED
-    assert len(golden.results) == len(default_akira_golden_cases()) == 10
-    assert golden.passed
-    locked = golden.lock("Kerem")
-    assert locked.locked
-    assert CharacterGoldenSet.from_dict(locked.to_dict()) == locked
+    with pytest.raises(GoldenSetValidationError, match="reference pack is incomplete"):
+        await CharacterGoldenSetService(_GoldenGenerator(), _GoldenEvaluator()).run(
+            character=akira,
+            style=style,
+            model_id="selma-image-xl",
+            model_revision="sha256:test",
+        )
 
 
 @pytest.mark.asyncio
@@ -140,6 +134,16 @@ async def test_golden_adapter_threads_openpose_into_generation_request(tmp_path)
         if case.scenario is GoldenScenario.RUNNING
     )
     generator = _CapturingKeyframeGenerator()
+    required_view = running.required_views[0]
+    akira.reference_pack[required_view] = CharacterReference(
+        id="fixture-reference",
+        character_id="akira",
+        view=required_view,
+        asset_id="fixture-reference",
+        storage_key="characters/akira/test-reference.png",
+        content_type="image/png",
+        content_hash="a" * 64,
+    )
     adapter = GoldenSetKeyframeAdapter(
         generator, LocalFsStorage(str(tmp_path / "storage"))
     )

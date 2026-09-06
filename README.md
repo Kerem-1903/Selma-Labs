@@ -168,33 +168,20 @@ providers. See [.env.example](.env.example) for provider switches and
 ## Character reference factory
 
 New characters do not require character-specific code. Start with a descriptive
-brief, generate a Character Bible, then let SELMA create the anchor, 20 training
-views, 3 holdouts, LoRA dataset and generic Golden Set. See the
+brief, review design candidates, lock dual anchors and generate the seven-view
+QC pack without training a LoRA. See the
 [Character Factory guide](docs/CHARACTER_FACTORY.md).
 
-Akira remains the calibration pack for the same generic flow.
+Akira and Kaito use the same generic, hash-locked flow. Generated images live
+under `output/production`; `assets` contains only durable source definitions.
 
 Location creation follows the same model: a short brief becomes a strict
 Location Bible and a 12-shot, character-free coverage plan. Automatic vision
 review retries weak candidates and quarantines failures without bypassing human
 art-direction approval. See the [Background Factory guide](docs/BACKGROUND_FACTORY.md).
 
-The approved model sheet is split deterministically into five storage-backed
-assets. Character Bible metadata contains portable storage keys rather than
-machine-specific absolute paths.
-
-```bash
-python scripts/import_akira_reference_pack.py \
-  --source assets/references/akira/akira-multiview-reference-v1.png \
-  --storage-root assets \
-  --bible-root assets/character_bibles
-```
-
-Re-importing identical content is idempotent; a changed view creates a new
-revision without overwriting the previous asset.
-
 Generate the ten-case Akira consistency set through SELMA Labs and the
-configured keyframe provider:
+configured keyframe provider only after its seven-view pack is approved:
 
 ```bash
 python -m cli.main preproduction golden-set \
@@ -204,9 +191,8 @@ python -m cli.main preproduction golden-set \
   --output output/preproduction/akira-golden-set.json
 ```
 
-Set `KEYFRAME_GENERATION_PROVIDER=comfyui` for real local generation. Candidates
-are written below `assets/preproduction/golden-set/generated`; the result stays
-unlocked until every threshold and explicit human approval pass.
+Set `KEYFRAME_GENERATION_PROVIDER=comfyui` for real local generation. The result
+stays unlocked until every threshold and explicit human approval pass.
 
 ## Repository map
 
@@ -241,8 +227,8 @@ remain explicit.
 - [Anime Pre-Production P1–P8](docs/ANIME_PREPRODUCTION_P1_P8.md) — locked story,
   canon, Golden Set, hierarchical shot planning, 24 FPS animatic and
   animation-ready package contracts.
-- [Character Factory](docs/CHARACTER_FACTORY.md) — brief-to-Bible, reference-pack,
-  dataset, LoRA training and Golden Set automation.
+- [Character Factory](docs/CHARACTER_FACTORY.md) — no-LoRA dual-anchor,
+  seven-view QC and approval flow.
 - [Background Factory](docs/BACKGROUND_FACTORY.md) — Location Bible, clean plates,
   multi-angle coverage, automatic quarantine and 2.5D readiness contracts.
 
@@ -254,7 +240,6 @@ Start with the [documentation index](docs/README.md). Key references:
 - [Autonomous studio architecture](docs/architecture/autonomous-studio.md)
 - [Approved keyframe-to-motion workflow](docs/A8_APPROVED_KEYFRAME_MOTION.md)
 - [Pilot production and FFmpeg assembly](docs/A8_1_PILOT_PRODUCTION.md)
-- [Character LoRA dataset safeguards](docs/CHARACTER_LORA_DATASET.md)
 - [Source-control safety](docs/SOURCE_CONTROL_SAFETY.md)
 - [Operational runbook](docs/operations/runbook.md)
 - [Assets and Git LFS policy](docs/operations/assets-and-lfs.md)

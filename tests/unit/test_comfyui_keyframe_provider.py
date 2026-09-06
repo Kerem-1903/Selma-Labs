@@ -10,10 +10,19 @@ import pytest
 
 from config.provider_registry import get_keyframe_generation_provider
 from config.settings import Settings
+from core.application.services.comfy_watchdog_service import ComfyJobWatchdog
 from core.domain.exceptions import ProviderError, StorageError
 from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.keyframe_generation_request import (
     KeyframeGenerationRequest,
+)
+from core.domain.value_objects.production_infra import (
+    ModelLock,
+    ModelLockEntry,
+    PreflightCheck,
+    PreflightReport,
+    ThermalDecision,
+    WatchdogPolicy,
 )
 from core.domain.value_objects.storage_reference import StorageReference
 from infrastructure.providers.keyframe.comfyui_keyframe_provider import (
@@ -140,6 +149,59 @@ class FakeSession:
             return FakeResponse(body=PNG_BYTES, content_type="image/png")
         raise AssertionError(f"Unexpected GET URL: {url}")
 
+    async def ws_connect(self, url: str):
+        del url
+        return FakeWebSocket()
+
+
+class FakeWebSocket:
+    closed = False
+
+    async def receive(self):
+        return type(
+            "Message",
+            (),
+            {
+                "type": __import__("aiohttp").WSMsgType.TEXT,
+                "data": json.dumps(
+                    {"type": "progress", "data": {"prompt_id": "prompt-1", "value": 1}}
+                ),
+            },
+        )()
+
+    async def close(self):
+        self.closed = True
+
+
+class PassingPreflight:
+    calls = 0
+
+    def run(self, model_lock, full_hash):
+        del model_lock, full_hash
+        self.calls += 1
+        return PreflightReport((PreflightCheck(name="ready", passed=True),))
+
+
+class FailingPreflight:
+    def run(self, model_lock, full_hash):
+        del model_lock, full_hash
+        return PreflightReport(
+            (PreflightCheck(name="model:checkpoint", passed=False),)
+        )
+
+
+class RecordingThermalGuard:
+    before_calls = 0
+    after_calls = 0
+
+    def before_job(self):
+        self.before_calls += 1
+        return ThermalDecision()
+
+    def after_job(self):
+        self.after_calls += 1
+        return ThermalDecision(temperature_celsius=65.0)
+
 
 def _request(*, with_reference: bool = True) -> KeyframeGenerationRequest:
     references = (
@@ -225,6 +287,30 @@ def test_positive_prompt_flattens_identity_and_composition_contracts():
     assert "locked immutable_marks: (amber eyes:1.25)" in prompt
 
 
+def test_positive_prompt_includes_identity_lists_and_approved_outfit():
+    request = replace(
+        _request(),
+        character_conditioning=(
+            {
+                **_request().character_conditioning[0],
+                "identity_constraints": {
+                    "hair": "long black hair",
+                    "immutable_marks": ["one red streak", "amber eyes"],
+                },
+                "active_outfit": {
+                    "description": "cropped charcoal combat jacket"
+                },
+            },
+        ),
+    )
+
+    prompt = ComfyUIKeyframeProvider._build_positive_prompt(request)
+
+    assert "one red streak" in prompt
+    assert "amber eyes" in prompt
+    assert "cropped charcoal combat jacket" in prompt
+
+
 @pytest.mark.asyncio
 async def test_provider_uploads_selected_reference_and_injects_typed_contract():
     storage = MemoryStorage(
@@ -256,7 +342,7 @@ async def test_provider_uploads_selected_reference_and_injects_typed_contract():
     assert workflow["20"]["inputs"]["model"] == ["18", 0]
     assert workflow["20"]["inputs"]["ipadapter"] == ["18", 1]
     assert workflow["3"]["inputs"]["seed"] == 1903
-    assert workflow["4"]["inputs"]["ckpt_name"] == "sd_xl_base_1.0.safetensors"
+    assert workflow["4"]["inputs"]["ckpt_name"] == "__MODELS_LOCK_CHECKPOINT__"
     assert workflow["12"]["inputs"]["width"] == 1280
     assert workflow["12"]["inputs"]["height"] == 720
     assert "draw katana" in workflow["6"]["inputs"]["text"]
@@ -266,6 +352,215 @@ async def test_provider_uploads_selected_reference_and_injects_typed_contract():
     assert generated.width == 1
     assert generated.height == 1
     assert generated.metadata["reference_asset_ids"] == ["asset-face"]
+
+
+@pytest.mark.asyncio
+async def test_provider_runs_preflight_watchdog_and_thermal_middleware():
+    storage = MemoryStorage({"characters/akira/face.png": PNG_BYTES})
+    session = FakeSession()
+    entries = tuple(
+        ModelLockEntry(
+            role=role,
+            filename=filename,
+            relative_path=f"models/{filename}",
+            sha256="a" * 64,
+            size_bytes=1,
+        )
+        for role, filename in (
+            ("checkpoint", "locked-checkpoint.safetensors"),
+            ("ip_adapter", "locked-ipadapter.safetensors"),
+            ("clip_vision", "locked-clip.safetensors"),
+            ("controlnet_openpose", "locked-openpose.safetensors"),
+        )
+    )
+    preflight = PassingPreflight()
+    thermal = RecordingThermalGuard()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=storage,
+        session_factory=lambda **kwargs: session,
+        model_lock=ModelLock(1, "C:/ComfyUI", entries),
+        preflight_service=preflight,
+        watchdog=ComfyJobWatchdog(
+            WatchdogPolicy(
+                no_progress_timeout_sec=1,
+                absolute_job_timeout_sec=2,
+                retry_limit=0,
+            )
+        ),
+        thermal_guard=thermal,
+        vram_probe=lambda: 4321.0,
+    )
+
+    generated = await provider.generate_keyframe(_request())
+
+    assert preflight.calls == 1
+    assert thermal.before_calls == 1
+    assert thermal.after_calls == 1
+    assert session.queued_workflow["4"]["inputs"]["ckpt_name"] == (
+        "locked-checkpoint.safetensors"
+    )
+    assert session.queued_workflow["21"]["inputs"]["control_net_name"] == (
+        "locked-openpose.safetensors"
+    )
+    assert generated.metadata["watchdog"]["ok"] is True
+    assert generated.metadata["peak_vram_mb"] == 4321.0
+    assert generated.metadata["model_hashes"]["checkpoint"] == "a" * 64
+
+
+@pytest.mark.asyncio
+async def test_provider_reports_blocked_preflight_before_opening_a_session():
+    lock = ModelLock(
+        1,
+        "C:/ComfyUI",
+        (
+            ModelLockEntry(
+                role="checkpoint",
+                filename="missing.safetensors",
+                relative_path="models/missing.safetensors",
+                sha256="NOT_INSTALLED",
+                size_bytes=0,
+            ),
+        ),
+    )
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=MemoryStorage(),
+        session_factory=lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("session must not open")
+        ),
+        model_lock=lock,
+        preflight_service=FailingPreflight(),
+    )
+
+    with pytest.raises(ProviderError, match="BLOCKED_PREFLIGHT"):
+        await provider.generate_keyframe(_request(with_reference=False))
+
+
+@pytest.mark.asyncio
+async def test_provider_chains_two_identity_references_with_independent_weights():
+    storage = MemoryStorage(
+        {
+            "characters/akira/face.png": PNG_BYTES,
+            "characters/akira/front.png": PNG_BYTES,
+        }
+    )
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=storage,
+        session_factory=lambda **kwargs: session,
+    )
+    base = _request()
+    request = replace(
+        base,
+        character_conditioning=(
+            {
+                "character_id": "akira",
+                "references": [
+                    {
+                        "view": "FACE_CLOSEUP",
+                        "asset_id": "asset-face",
+                        "storage_key": "characters/akira/face.png",
+                    }
+                ],
+            },
+            {
+                "character_id": "akira",
+                "references": [
+                    {
+                        "view": "FRONT",
+                        "asset_id": "asset-front",
+                        "storage_key": "characters/akira/front.png",
+                    }
+                ],
+            },
+        ),
+        visual_constraints={
+            **base.visual_constraints,
+            "latent_mode": "empty",
+            "identity_reference_weights": [0.8, 0.5],
+        },
+    )
+
+    generated = await provider.generate_keyframe(request)
+
+    workflow = session.queued_workflow
+    assert len(session.uploaded_forms) == 2
+    assert workflow["10"]["inputs"]["image"] == "selma/reference.png"
+    assert workflow["25"]["inputs"]["image"] == "selma/reference.png"
+    assert workflow["20"]["inputs"]["weight"] == 0.8
+    assert workflow["26"]["inputs"]["weight"] == 0.5
+    assert workflow["3"]["inputs"]["model"] == ["26", 0]
+    assert generated.metadata["reference_asset_ids"] == [
+        "asset-face",
+        "asset-front",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_provider_empty_latent_with_references_keeps_identity_wiring():
+    """txt2img composition mode: empty latent + denoise 1.0 while the model
+    still routes through the identity adapter fed by the reference image."""
+    storage = MemoryStorage(
+        {
+            "characters/akira/face.png": PNG_BYTES,
+            "characters/akira/front.png": PNG_BYTES,
+        }
+    )
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=storage,
+        session_factory=lambda **kwargs: session,
+    )
+    request = _request()
+    request = replace(
+        request,
+        visual_constraints={
+            **request.visual_constraints,
+            "latent_mode": "empty",
+            "extra_tags": "1girl, solo",
+            "identity_strength": 0.85,
+        },
+    )
+
+    await provider.generate_keyframe(request)
+
+    workflow = session.queued_workflow
+    assert workflow is not None
+    # latent source is the empty latent, full denoise (no img2img lock)
+    assert workflow["3"]["inputs"]["latent_image"] == ["5", 0]
+    assert workflow["3"]["inputs"]["denoise"] == 1.0
+    # identity still wired through the IP-Adapter with the reference image
+    assert workflow["3"]["inputs"]["model"] == ["20", 0]
+    assert workflow["10"]["inputs"]["image"] == "selma/reference.png"
+    assert workflow["20"]["inputs"]["weight"] == 0.85
+    assert workflow["20"]["inputs"]["weight_type"] == "linear"
+    # extra tags reach the positive prompt
+    assert "1girl, solo" in workflow["6"]["inputs"]["text"]
+
+
+@pytest.mark.asyncio
+async def test_provider_rejects_unknown_latent_mode():
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=MemoryStorage(),
+        session_factory=lambda **kwargs: session,
+    )
+    request = _request()
+    request = replace(
+        request,
+        visual_constraints={**request.visual_constraints, "latent_mode": "half"},
+    )
+    with pytest.raises(ProviderError, match="latent_mode"):
+        await provider.generate_keyframe(request)
 
 
 @pytest.mark.asyncio
@@ -595,7 +890,7 @@ def test_registry_requires_shared_storage_for_comfyui():
 
 
 def test_registry_keeps_offline_fake_as_default():
-    provider = get_keyframe_generation_provider(Settings())
+    provider = get_keyframe_generation_provider(Settings(_env_file=None))
     assert isinstance(provider, FakeKeyframeGenerationProvider)
 
 
@@ -606,7 +901,9 @@ async def test_provider_rejects_workflow_with_disconnected_reference_node(tmp_pa
     workflow["3"]["inputs"]["latent_image"] = ["5", 0]
     # Disconnect the reference node for the test
     if "20" in workflow:
-        workflow["20"]["inputs"]["image"] = ["5", 0] # Break the connection to node 12 (ImageScale)
+        workflow["20"]["inputs"]["image"] = ["5", 0]
+    if "26" in workflow:
+        workflow["26"]["inputs"]["image"] = ["5", 0]
     workflow_path.write_text(json.dumps(workflow), encoding="utf-8")
     provider = ComfyUIKeyframeProvider(
         api_url="http://127.0.0.1:8188",

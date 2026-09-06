@@ -5,13 +5,17 @@ import pytest
 from core.application.services.character_reference_asset_service import (
     CharacterReferenceAssetService,
 )
-from core.application.services.keyframe_generation_service import KeyframeGenerationService
+from core.application.services.keyframe_generation_service import (
+    KeyframeGenerationService,
+)
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.character_state import CharacterState
 from core.domain.entities.shot_contract import ShotContract
-from core.domain.exceptions import KeyframeGenerationError
-from core.domain.exceptions import StorageError
-from core.domain.value_objects.character_identity import IdentityConstraints, ReferenceView
+from core.domain.exceptions import KeyframeGenerationError, StorageError
+from core.domain.value_objects.character_identity import (
+    IdentityConstraints,
+    ReferenceView,
+)
 from core.domain.value_objects.generated_keyframe import GeneratedKeyframe
 from core.domain.value_objects.shot_constraints import (
     ActionConstraints,
@@ -58,6 +62,9 @@ async def _service(tmp_path, generator=None):
     for view in (ReferenceView.FRONT, ReferenceView.PROFILE_LEFT, ReferenceView.FACE_CLOSEUP):
         await references.save_reference(bible, view, f"image-{view.value}".encode(), "image/png")
     await bible_repository.save(bible)
+    async def approved(_character_id: str, _character_version: int) -> object:
+        return object()
+
     return (
         KeyframeGenerationService(
             generator=generator or FakeKeyframeGenerationProvider(),
@@ -65,6 +72,7 @@ async def _service(tmp_path, generator=None):
             character_bibles=bible_repository,
             storyboards=storyboard_repository,
             human_review_required=False,
+            view_pack_approval_guard=approved,
         ),
         storage,
         storyboard_repository,
@@ -79,6 +87,22 @@ def test_human_review_is_required_by_default(tmp_path):
             character_bibles=LocalJsonCharacterBibleRepository(tmp_path / "bibles"),
             storyboards=LocalJsonShotStoryboardRepository(tmp_path / "storyboards"),
         )
+
+
+@pytest.mark.asyncio
+async def test_character_keyframe_generation_fails_closed_without_view_pack_guard(
+    tmp_path,
+):
+    service = KeyframeGenerationService(
+        generator=FakeKeyframeGenerationProvider(),
+        storage=LocalFsStorage(str(tmp_path / "assets")),
+        character_bibles=LocalJsonCharacterBibleRepository(tmp_path / "bibles"),
+        storyboards=LocalJsonShotStoryboardRepository(tmp_path / "storyboards"),
+        human_review_required=False,
+    )
+
+    with pytest.raises(KeyframeGenerationError, match="view-pack approval guard"):
+        await service.generate(shot_contract=_contract())
 
 
 @pytest.mark.asyncio
@@ -158,7 +182,7 @@ async def test_service_reports_missing_reference_asset_before_generation(tmp_pat
 @pytest.mark.asyncio
 async def test_duplicate_sequence_is_rejected_before_creating_an_orphan_asset(tmp_path):
     generator = FakeKeyframeGenerationProvider()
-    service, storage, _ = await _service(tmp_path, generator)
+    service, _storage, _ = await _service(tmp_path, generator)
     storyboard = await service.generate(shot_contract=_contract())
     before = set((tmp_path / "assets").rglob("*"))
 

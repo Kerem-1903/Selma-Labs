@@ -163,21 +163,13 @@ Factory, ücretli provider'ları oluşturmadan önce secretsız preflight çalı
 Provider seçenekleri için [.env.example](.env.example), operasyon ayrıntıları
 için [operasyon rehberine](docs/operations/runbook.md) bakın.
 
-## Akira referans paketi
+## Karakter referans paketi
 
-Onaylı model sheet deterministik biçimde beş storage-backed asset'e ayrılır.
-Character Bible metadata'sı makineye özel mutlak yollar yerine portable storage
-key'leri içerir.
-
-```bash
-python scripts/import_akira_reference_pack.py \
-  --source assets/references/akira/akira-multiview-reference-v1.png \
-  --storage-root assets \
-  --bible-root assets/character_bibles
-```
-
-Aynı içerik yeniden içe aktarıldığında işlem idempotent kalır; değişen bir
-görünüş eski asset'in üzerine yazmadan yeni revision oluşturur.
+Akira ve Kaito aynı LoRA'sız üretim hattını kullanır: tasarım adayları, insan
+seçimi, çift anchor, QC'den geçen yedi görünüş ve görünüş paketi onayı. Üretilen
+görseller `output/production` altında kalır; `assets` yalnız kalıcı brief,
+Character Bible ve pre-production tanımlarını içerir. Ayrıntılar için
+[Character Factory rehberine](docs/CHARACTER_FACTORY.md) bakın.
 
 ## Repo haritası
 
@@ -217,7 +209,7 @@ kullanmalıdır.
 - [Otonom stüdyo mimarisi](docs/architecture/autonomous-studio.md)
 - [Onaylı keyframe-to-motion workflow'u](docs/A8_APPROVED_KEYFRAME_MOTION.md)
 - [Pilot üretimi ve FFmpeg montajı](docs/A8_1_PILOT_PRODUCTION.md)
-- [Character LoRA dataset güvenlik kuralları](docs/CHARACTER_LORA_DATASET.md)
+- [LoRA'sız Character Factory](docs/CHARACTER_FACTORY.md)
 - [Source-control güvenliği](docs/SOURCE_CONTROL_SAFETY.md)
 - [Operasyon rehberi](docs/operations/runbook.md)
 - [Varlıklar ve Git LFS politikası](docs/operations/assets-and-lfs.md)

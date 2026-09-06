@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "name": "Kaito",
+  "concept": "A single centered disciplined cyberpunk courier, one person only, protecting a quiet district in a rain-soaked megacity.",
+  "age_band": "adult",
+  "gender_presentation": "masculine",
+  "body_type": "athletic adult with consistent limb proportions",
+  "face": "angular anime face with a defined jaw and straight nose",
+  "eyes": "steel blue eyes",
+  "hair": "short black hair with one narrow cobalt-blue front streak",
+  "signature_marks": [
+    {
+      "label": "single cobalt-blue front hair streak",
+      "count": 1,
+      "character_side": "left",
+      "colour": "#0047AB"
+    }
+  ],
+  "outfit": "charcoal courier jacket with blue trim, fitted black cargo trousers, and black boots",
+  "props": [
+    "one compact messenger bag resting on character-right hip, with its strap crossing from character-left shoulder"
+  ],
+  "personality": [
+    "disciplined",
+    "observant",
+    "protective"
+  ],
+  "style_preset": "selma-anime-v1",
+  "palette": [
+    "charcoal",
+    "black",
+    "cobalt blue",
+    "steel blue"
+  ],
+  "avoid": [
+    "multiple characters",
+    "extra weapons",
+    "blue hair",
+    "multiple blue streaks",
+    "cropped head",
+    "cropped feet",
+    "text",
+    "watermark"
+  ],
+  "view_pack": "standard",
+  "requested_actions": [
+    "walking through rain",
+    "guarding a doorway",
+    "looking over shoulder"
+  ],
+  "additional_notes": "One subject only, one body, one head, centered in frame; no collage, no duplicate, no second figure, no character sheet. Keep exactly one #0047AB cobalt streak on character-left (viewer-right in front views). Keep the messenger bag on character-right hip (viewer-left in front views) and never mirror asymmetric details."
+}
