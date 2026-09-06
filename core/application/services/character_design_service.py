@@ -1356,6 +1356,7 @@ class CharacterDesignService:
         variant: int,
         style_reference: tuple[str, str, float] | None = None,
     ) -> KeyframeGenerationRequest:
+        subject_tag = cls._subject_tag(brief.gender_presentation)
         identity = ", ".join(
             value
             for value in (
@@ -1376,12 +1377,15 @@ class CharacterDesignService:
         prompt = ", ".join(
             value
             for value in (
-                "masterpiece, original single anime character design",
+                (
+                    "masterpiece, best quality, professional anime character "
+                    f"concept art, {subject_tag}, solo"
+                ),
                 brief.concept,
                 identity,
                 personality,
                 f"character palette: {palette}" if palette else "",
-                brief.style_preset,
+                cls._style_prompt(brief.style_preset),
                 (
                     "one isolated figure only, strict neutral front standing pose, "
                     "arms relaxed at sides, feet shoulder-width apart, full body, "
@@ -1399,7 +1403,7 @@ class CharacterDesignService:
             "composition_contract": "one centered character; full silhouette visible",
             "environment_style": "soft gradient studio background",
             "latent_mode": "empty",
-            "extra_tags": "solo",
+            "extra_tags": f"{subject_tag}, solo, one person",
         }
         conditioning: tuple[dict[str, object], ...] = ()
         reference_asset_ids: tuple[str, ...] = ()
@@ -1438,7 +1442,15 @@ class CharacterDesignService:
             character_conditioning=conditioning,
             reference_asset_ids=reference_asset_ids,
             reference_storage_keys=reference_storage_keys,
-            negative_prompts=tuple(dict.fromkeys((*brief.avoid, *cls._NEGATIVES))),
+            negative_prompts=tuple(
+                dict.fromkeys(
+                    (
+                        *brief.avoid,
+                        *cls._NEGATIVES,
+                        *cls._subject_exclusions(brief.gender_presentation),
+                    )
+                )
+            ),
             width=1024,
             height=1024,
             seed=seed,
@@ -1818,6 +1830,31 @@ class CharacterDesignService:
         if any(token in presentation for token in masculine_tokens):
             return "1boy"
         return "one person"
+
+    @staticmethod
+    def _subject_exclusions(gender_presentation: str) -> tuple[str, ...]:
+        presentation = gender_presentation.casefold()
+        if any(
+            token in presentation
+            for token in ("feminine", "female", "woman", "girl")
+        ):
+            return ("1boy", "male", "man", "masculine face")
+        if any(
+            token in presentation
+            for token in ("masculine", "male", "man", "boy")
+        ):
+            return ("1girl", "female", "woman", "feminine face")
+        return ()
+
+    @staticmethod
+    def _style_prompt(style_preset: str) -> str:
+        if style_preset.casefold() == "selma-anime-v1":
+            return (
+                "clean precise anime line art, restrained cel shading, stable adult "
+                "anatomy, readable garment seams and material layers, controlled muted "
+                "palette, sparse accent colour, polished production character design"
+            )
+        return style_preset
 
     @staticmethod
     def _normalized_png(data: bytes) -> tuple[bytes, int, int]:

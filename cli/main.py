@@ -3,8 +3,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 import sys
+import tempfile
 from collections.abc import Callable, Sequence
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -62,6 +65,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Validate a versioned character quality benchmark and its image",
     )
     character_benchmark.add_argument("--benchmark", required=True)
+    character_benchmark_run = character_commands.add_parser(
+        "benchmark-run",
+        help="Run a fair text-only character quality tournament across model locks",
+    )
+    character_benchmark_run.add_argument("--benchmark", required=True)
+    character_benchmark_run.add_argument("--brief", required=True)
+    character_benchmark_run.add_argument(
+        "--model-lock",
+        action="append",
+        dest="model_locks",
+        required=True,
+        help="Model lock to test; repeat for each checkpoint",
+    )
+    character_benchmark_run.add_argument("--output", required=True)
+    character_benchmark_run.add_argument("--count", type=int, default=3)
+    character_benchmark_run.add_argument(
+        "--run-id",
+        help="Stable tournament run id; generated automatically when omitted",
+    )
     character_approve_design = character_commands.add_parser(
         "approve-design", help="Lock one generated design as the canonical character"
     )
@@ -474,10 +496,22 @@ def _load_character_creation_brief(path: str | Path):
 def _write_json(path: str | Path, payload: dict[str, Any]) -> Path:
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(
-        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
+    serialized = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    descriptor, temporary_name = tempfile.mkstemp(
+        dir=target.parent, prefix=f".{target.name}.", suffix=".tmp"
     )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(serialized)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary_name, target)
+    except BaseException:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+        raise
     return target.resolve()
 
 
@@ -662,6 +696,29 @@ async def _run_character_generation(
     arguments: argparse.Namespace,
     container: AnimationContainer,
 ) -> int:
+    if arguments.character_command == "benchmark-run":
+        from config.settings import get_settings
+        from core.application.services.character_model_tournament_service import (
+            CharacterModelTournamentService,
+        )
+
+        workspace_root = Path(__file__).resolve().parents[1]
+        brief = _load_character_creation_brief(arguments.brief)
+        run_id = arguments.run_id or datetime.now(timezone.utc).strftime(
+            "%Y%m%dT%H%M%SZ"
+        )
+        report = await CharacterModelTournamentService(
+            workspace_root, create_container
+        ).run(
+            benchmark_path=arguments.benchmark,
+            brief=brief,
+            model_lock_paths=arguments.model_locks,
+            count=arguments.count,
+            run_id=run_id,
+            base_settings=get_settings(),
+        )
+        print(_write_json(arguments.output, report))
+        return 0
     if arguments.character_command == "benchmark-validate":
         from core.application.services.character_quality_benchmark_service import (
             CharacterQualityBenchmarkService,

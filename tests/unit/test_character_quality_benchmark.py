@@ -39,6 +39,32 @@ def test_character_cli_accepts_benchmark_validation_command():
     assert Path(arguments.benchmark) == BENCHMARK
 
 
+def test_character_cli_accepts_text_only_model_tournament():
+    arguments = build_parser().parse_args(
+        [
+            "character",
+            "benchmark-run",
+            "--benchmark",
+            str(BENCHMARK),
+            "--brief",
+            "assets/character_creation_briefs/kaito.json",
+            "--model-lock",
+            "models.lock.json",
+            "--model-lock",
+            "config/model_profiles/illustrious-xl-v2.lock.json",
+            "--output",
+            "output/production/review/tournament.json",
+        ]
+    )
+
+    assert arguments.character_command == "benchmark-run"
+    assert arguments.count == 3
+    assert arguments.model_locks == [
+        "models.lock.json",
+        "config/model_profiles/illustrious-xl-v2.lock.json",
+    ]
+
+
 def test_benchmark_rejects_weights_that_do_not_total_one():
     payload = json.loads(BENCHMARK.read_text(encoding="utf-8"))
     payload["human_criteria"][0]["weight"] = 0.10

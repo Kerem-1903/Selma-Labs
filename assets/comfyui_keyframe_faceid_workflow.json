@@ -37,7 +37,7 @@
   },
   "7": {
     "inputs": {
-      "text": "lowres, bad anatomy, bad hands, text, logo, emblem, patch, badge, signature, watermark, blurry, multiple characters, duplicate body, duplicate limbs, character sheet, cropped head, blue eyes, extra weapon, multiple weapons, red hair on viewer left, multiple red hair streaks, red hair tips",
+      "text": "lowres, bad anatomy, bad hands, text, logo, signature, watermark, blurry, multiple characters, duplicate body, duplicate limbs, character sheet, cropped head",
       "clip": ["4", 1]
     },
     "class_type": "CLIPTextEncode",

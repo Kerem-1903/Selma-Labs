@@ -89,7 +89,10 @@ def test_generates_five_deterministic_unapproved_design_choices(tmp_path):
     request = provider.requests[0]
     assert request.visual_constraints["latent_mode"] == "empty"
     assert "Underground courier" in request.visual_constraints["prompt"]
+    assert "1girl, solo" in request.visual_constraints["prompt"]
+    assert "clean precise anime line art" in request.visual_constraints["prompt"]
     assert "cape" in request.negative_prompts
+    assert "1boy" in request.negative_prompts
     assert (
         tmp_path
         / "characters/mira/designs"
@@ -325,6 +328,9 @@ def test_reference_prompt_uses_gender_presentation_instead_of_hardcoded_1girl(
         }
     )
     candidate = asyncio.run(service.generate_candidates(masculine, count=1)).candidates[0]
+    design_request = provider.requests[-1]
+    assert "1boy, solo" in design_request.visual_constraints["prompt"]
+    assert "1girl" in design_request.negative_prompts
     approval = asyncio.run(
         service.approve_candidate(masculine, candidate, approved_by="Kerem")
     )
