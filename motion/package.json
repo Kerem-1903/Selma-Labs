@@ -9,16 +9,16 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@remotion/cli": "4.0.518",
-    "@remotion/media": "4.0.518",
-    "@remotion/transitions": "4.0.518",
+    "@remotion/cli": "4.0.520",
+    "@remotion/media": "4.0.520",
+    "@remotion/transitions": "4.0.520",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "remotion": "4.0.518"
+    "remotion": "4.0.520"
   },
   "devDependencies": {
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5",
+    "@types/react-dom": "19.2.7",
     "typescript": "5.9.3"
   }
 }
