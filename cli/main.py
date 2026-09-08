@@ -308,6 +308,43 @@ def build_parser() -> argparse.ArgumentParser:
     background_approve.add_argument("--approved-by", required=True)
     background_approve.add_argument("--output", required=True)
 
+    episode = commands.add_parser(
+        "episode", help="Create an executable screenplay-to-timeline visual plan"
+    )
+    episode_commands = episode.add_subparsers(
+        dest="episode_command", required=True
+    )
+    episode_plan = episode_commands.add_parser(
+        "plan", help="Plan scene purpose, character poses, backgrounds, and a 24 FPS timeline"
+    )
+    episode_plan.add_argument("--input", required=True, help="Screenplay text or EpisodeScript JSON")
+    episode_plan.add_argument("--output", help="Optional JSON output path")
+    episode_plan.add_argument("--episode-id", default="episode-001")
+    episode_plan.add_argument("--title", default="Untitled episode")
+    episode_plan.add_argument(
+        "--character-bible", action="append", dest="character_bibles", default=[],
+        help="Character Bible JSON; repeat for every available character",
+    )
+    episode_plan.add_argument(
+        "--location-bible", action="append", dest="location_bibles", default=[],
+        help="Location Bible JSON; repeat for every available location",
+    )
+    episode_plan.add_argument(
+        "--pose-pack", action="append", dest="pose_packs", default=[],
+        help="Generated five-pose manifest JSON; repeat for every available character",
+    )
+    episode_plan.add_argument(
+        "--background-pack", action="append", dest="background_packs", default=[],
+        help="Generated background candidate pack JSON; repeat for every location",
+    )
+    episode_inspect = episode_commands.add_parser(
+        "inspect", help="Inspect a previously generated Episode Director plan"
+    )
+    episode_inspect.add_argument("--input", required=True)
+    episode_inspect.add_argument(
+        "--full", action="store_true", help="Print the complete plan instead of a summary"
+    )
+
     script = commands.add_parser("script", help="Break a script into executable shots")
     script_commands = script.add_subparsers(dest="script_command", required=True)
     breakdown = script_commands.add_parser("breakdown")
@@ -435,6 +472,8 @@ def main(
                 return asyncio.run(
                     _generate_backgrounds(arguments, container_factory())
                 )
+        elif arguments.command == "episode":
+            return _run_episode_command(arguments)
         elif arguments.command == "script":
             _break_down_script(arguments)
         elif arguments.command == "render":
@@ -1015,6 +1054,119 @@ async def _run_character_generation(
         )
         return 0
     raise ValueError(f"Unsupported character command: {arguments.character_command}")
+
+
+def _load_json_object(path: str | Path) -> dict[str, Any]:
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise TypeError(f"JSON file must contain an object: {path}")
+    return payload
+
+
+def _load_episode_plan_inputs(arguments: argparse.Namespace):
+    from core.domain.value_objects.background_production import (
+        BackgroundCandidate,
+        BackgroundCandidatePack,
+    )
+    from core.domain.value_objects.character_pose_pack import CharacterPosePackManifest
+
+    characters = [_load_character_bible(path) for path in arguments.character_bibles]
+    locations = [_load_location_bible(path) for path in arguments.location_bibles]
+    pose_packs = {}
+    for path in arguments.pose_packs:
+        payload = _load_json_object(path)
+        manifest = CharacterPosePackManifest.from_dict(payload.get("manifest", payload))
+        pose_packs[manifest.character_id] = manifest
+    background_packs = {}
+    for path in arguments.background_packs:
+        payload = _load_json_object(path)
+        raw_candidates = payload.get("candidates", [])
+        if not isinstance(raw_candidates, list):
+            raise TypeError("Background candidate pack candidates must be a list.")
+        candidates = tuple(
+            BackgroundCandidate(
+                recipe_id=str(item.get("recipe_id", "")),
+                storage_key=str(item.get("storage_key", "")),
+                width=int(item.get("width", 0)),
+                height=int(item.get("height", 0)),
+                attempt=int(item.get("attempt", 1)),
+            )
+            for item in raw_candidates
+            if isinstance(item, dict)
+        )
+        pack = BackgroundCandidatePack(
+            location_id=str(payload.get("location_id", "")),
+            candidates=candidates,
+        )
+        background_packs[pack.location_id] = pack
+    return characters, locations, pose_packs, background_packs
+
+
+def _run_episode_command(
+    arguments: argparse.Namespace,
+) -> int:
+    from core.domain.value_objects.episode_director_plan import EpisodeDirectorPlan
+
+    if arguments.episode_command == "inspect":
+        payload = _load_json_object(arguments.input)
+        plan = EpisodeDirectorPlan.from_dict(payload.get("episode_director_plan", payload))
+        summary = {
+            "episode_id": plan.episode_id,
+            "title": plan.title,
+            "decision_mode": plan.decision_mode,
+            "provider": plan.provider,
+            "fps": plan.fps,
+            "total_duration_seconds": plan.total_duration_seconds,
+            "duration_frames": plan.duration_frames,
+            "scene_count": len(plan.scenes),
+            "shot_count": sum(len(scene.shots) for scene in plan.scenes),
+            "character_requirements": [item.to_dict() for item in plan.character_requirements],
+            "background_requirements": [item.to_dict() for item in plan.background_requirements],
+            "warnings": list(plan.warnings),
+        }
+        print(json.dumps(plan.to_dict() if arguments.full else summary, ensure_ascii=False, indent=2))
+        return 0
+
+    if arguments.episode_command != "plan":
+        raise ValueError(f"Unsupported episode command: {arguments.episode_command}")
+
+    from core.application.services.episode_director_service import EpisodeDirectorService
+
+    characters, locations, pose_packs, background_packs = _load_episode_plan_inputs(arguments)
+    source = Path(arguments.input)
+    raw = _load_json_object(source) if source.suffix.lower() == ".json" else None
+    director = EpisodeDirectorService()
+    if isinstance(raw, dict) and ("sequences" in raw or "episode_script" in raw):
+        script_payload = raw.get("episode_script", raw)
+        plan = director.plan_episode(
+            EpisodeScript.from_dict(dict(script_payload)),
+            character_bibles=characters,
+            locations=locations,
+            pose_packs=pose_packs,
+            background_packs=background_packs,
+            episode_id=(
+                arguments.episode_id
+                if arguments.episode_id != "episode-001"
+                else None
+            ),
+        )
+    else:
+        plan = director.plan_text(
+            raw.get("script_text", "") if isinstance(raw, dict) else source.read_text(encoding="utf-8"),
+            episode_id=arguments.episode_id,
+            title=arguments.title,
+            character_bibles=characters,
+            locations=locations,
+            pose_packs=pose_packs,
+            background_packs=background_packs,
+        )
+
+    payload = {"schema_version": 1, "episode_director_plan": plan.to_dict()}
+    if arguments.output:
+        print(_write_json(arguments.output, payload))
+    else:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0
 
 
 def _break_down_script(arguments: argparse.Namespace) -> None:
