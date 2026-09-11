@@ -18,6 +18,12 @@ from core.domain.ports.translation_port import TranslationPort
 from core.domain.ports.video_source_port import VideoSourcePort
 from core.domain.ports.vision_analysis_port import VisionAnalysisPort
 from core.domain.ports.visual_manifest_port import VisualManifestPort
+from core.domain.ports.wan_compute_lifecycle_port import WanComputeLifecyclePort
+from core.domain.ports.wan_job_repository_port import WanJobRepositoryPort
+from core.domain.ports.wan_worker_provider_port import (
+    WanWorkerProviderPort,
+    WanWorkerResult,
+)
 from core.domain.ports.word_alignment_port import WordAlignmentPort
 
 __all__ = [
@@ -42,5 +48,9 @@ __all__ = [
     "VideoSourcePort",
     "VisionAnalysisPort",
     "VisualManifestPort",
+    "WanComputeLifecyclePort",
+    "WanJobRepositoryPort",
+    "WanWorkerProviderPort",
+    "WanWorkerResult",
     "WordAlignmentPort",
 ]

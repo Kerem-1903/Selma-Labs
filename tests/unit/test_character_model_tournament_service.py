@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-from config.settings import Settings
 from core.application.services.character_model_tournament_service import (
     CharacterModelTournamentService,
 )
@@ -44,19 +43,14 @@ class _DesignService:
         )
 
 
-class _Container:
-    def __init__(self, calls: list[dict[str, object]]) -> None:
-        self.character_design_service = _DesignService(calls)
-
-
 @pytest.mark.asyncio
 async def test_tournament_uses_same_text_only_seed_inputs_for_both_models():
     calls: list[dict[str, object]] = []
-    settings_seen = []
+    locks_seen = []
 
-    def factory(*, settings):
-        settings_seen.append(settings)
-        return _Container(calls)
+    def factory(model_lock_path):
+        locks_seen.append(model_lock_path)
+        return _DesignService(calls)
 
     raw_brief = json.loads(
         (ROOT / "assets/character_creation_briefs/kaito.json").read_text(
@@ -64,12 +58,10 @@ async def test_tournament_uses_same_text_only_seed_inputs_for_both_models():
         )
     )
     brief = CharacterCreationBrief.from_dict(raw_brief)
-    service = CharacterModelTournamentService(ROOT, factory)
-
-    async def release(_api_url):
+    async def release():
         return None
 
-    service._release_comfy_memory = release
+    service = CharacterModelTournamentService(ROOT, factory, release)
     report = await service.run(
         benchmark_path=ROOT / "config/character_benchmarks/akira-quality-v1.json",
         brief=brief,
@@ -79,7 +71,6 @@ async def test_tournament_uses_same_text_only_seed_inputs_for_both_models():
         ),
         count=3,
         run_id="test-round",
-        base_settings=Settings(),
     )
 
     assert report["generation_mode"] == "text_only"
@@ -88,7 +79,7 @@ async def test_tournament_uses_same_text_only_seed_inputs_for_both_models():
     assert len(calls) == 2
     assert {call["count"] for call in calls} == {3}
     assert all("style_reference_path" not in call for call in calls)
-    assert len({setting.comfyui_model_lock_path for setting in settings_seen}) == 2
+    assert len(set(locks_seen)) == 2
 
 
 @pytest.mark.asyncio
@@ -99,7 +90,12 @@ async def test_tournament_requires_two_distinct_checkpoints():
         )
     )
     brief = CharacterCreationBrief.from_dict(raw_brief)
-    service = CharacterModelTournamentService(ROOT, lambda **_: _Container([]))
+    async def release():
+        return None
+
+    service = CharacterModelTournamentService(
+        ROOT, lambda _lock: _DesignService([]), release
+    )
 
     with pytest.raises(ValueError, match="duplicate checkpoint"):
         await service.run(
@@ -109,5 +105,4 @@ async def test_tournament_requires_two_distinct_checkpoints():
             model_lock_paths=(ROOT / "models.lock.json", ROOT / "models.lock.json"),
             count=1,
             run_id="duplicate",
-            base_settings=Settings(),
         )

@@ -107,6 +107,7 @@ class CharacterViewQualityGate:
         image_bytes: bytes,
         seed: int,
         signature_marks: tuple[CharacterSignatureMark, ...] = (),
+        face_priority: bool = False,
     ) -> CharacterViewQcReport:
         """Reject gross structural failures only; leave design judgment to humans.
 
@@ -127,10 +128,21 @@ class CharacterViewQualityGate:
             reasons.append(f"person_count_{observation.person_count}")
         if observation.face_count != 1:
             reasons.append(f"face_count_{observation.face_count}")
-        if not observation.head_inside_frame:
+        elif observation.face_bbox is None:
+            reasons.append("face_not_localized")
+        else:
+            face_x1, face_y1, face_x2, face_y2 = observation.face_bbox
+            face_width = face_x2 - face_x1
+            face_height = face_y2 - face_y1
+            face_area = face_width * face_height
+            if face_width < 0.07 or face_height < 0.10 or face_area < 0.008:
+                reasons.append("face_too_small_for_design_review")
+        if not observation.head_inside_frame and not face_priority:
             reasons.append("head_outside_frame")
-        if not observation.feet_inside_frame:
-            reasons.append("feet_outside_frame")
+        if face_priority and observation.face_bbox is not None:
+            x1, y1, x2, y2 = observation.face_bbox
+            if min(x1, y1) < 0.0 or max(x2, y2) > 1.0:
+                reasons.append("face_outside_frame")
         return CharacterViewQcReport(
             view="DESIGN_CANDIDATE",
             seed=seed,
@@ -141,8 +153,8 @@ class CharacterViewQualityGate:
             checks={
                 "exactly_one_person": observation.person_count == 1,
                 "exactly_one_face": observation.face_count == 1,
-                "head_inside_frame": observation.head_inside_frame,
-                "feet_inside_frame": observation.feet_inside_frame,
+                "head_inside_frame": face_priority or observation.head_inside_frame,
+                "feet_inside_frame": face_priority or observation.feet_inside_frame,
             },
         )
 

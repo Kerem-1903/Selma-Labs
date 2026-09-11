@@ -130,9 +130,6 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         render_started = time.monotonic()
         peak_vram_mb = await asyncio.to_thread(self._vram_probe)
         workflow = await self._load_workflow()
-        workflow_hash = hashlib.sha256(
-            json.dumps(workflow, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        ).hexdigest()
         self._inject_locked_models(workflow)
         self._inject_typed_constraints(workflow, request)
         latent_mode = str(
@@ -179,6 +176,9 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
 
         timeout = aiohttp.ClientTimeout(total=self._timeout_seconds)
         thermal_after = None
+        reference_content_hashes: list[str] = []
+        pose_content_hash: str | None = None
+        workflow_hash = ""
         try:
             async with self._session_factory(timeout=timeout) as session:
                 for node_id, (asset_id, storage_key) in zip(
@@ -188,11 +188,19 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                         session, storage_key=storage_key
                     )
                     workflow[node_id]["inputs"]["image"] = uploaded_name
+                    reference_content_hashes.append(
+                        hashlib.sha256(
+                            await self._storage.load(storage_key)
+                        ).hexdigest()
+                    )
                 if pose_storage_key:
                     uploaded_pose = await self._upload_reference(
                         session, storage_key=pose_storage_key
                     )
                     workflow[pose_nodes[0]]["inputs"]["image"] = uploaded_pose
+                    pose_content_hash = hashlib.sha256(
+                        await self._storage.load(pose_storage_key)
+                    ).hexdigest()
                 self._select_latent_source(
                     workflow,
                     request=request,
@@ -200,6 +208,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                     and latent_mode != "empty",
                 )
                 if self._watchdog is None:
+                    workflow_hash = self._workflow_hash(workflow)
                     prompt_id = await self._queue_prompt(session, workflow)
                     history = await self._wait_for_completion(session, prompt_id)
                     watchdog_metadata = None
@@ -207,6 +216,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                     history, watchdog_outcome, measured_vram = (
                         await self._wait_with_watchdog(session, workflow)
                     )
+                    workflow_hash = self._workflow_hash(workflow)
                     prompt_id = watchdog_outcome.prompt_id
                     watchdog_metadata = watchdog_outcome.__dict__
                     if measured_vram is not None:
@@ -247,13 +257,16 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                 "prompt_id": prompt_id,
                 "reference_asset_ids": [item[0] for item in selected_references],
                 "reference_storage_keys": [item[1] for item in selected_references],
+                "reference_content_hashes": reference_content_hashes,
                 "pose_storage_key": pose_storage_key or None,
+                "pose_content_hash": pose_content_hash,
                 "character_lora": lora_metadata,
                 "model_checkpoint": self._checkpoint_name,
                 "workflow_version": request.visual_constraints.get(
                     "workflow_version"
                 ),
                 "workflow_hash": workflow_hash,
+                "output_content_hash": hashlib.sha256(image_bytes).hexdigest(),
                 "prompt_hash": hashlib.sha256(
                     json.dumps(
                         request.to_dict(), sort_keys=True, separators=(",", ":")
@@ -472,6 +485,13 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         except (OSError, ValueError, subprocess.SubprocessError):
             return None
 
+    @staticmethod
+    def _workflow_hash(workflow: dict[str, Any]) -> str:
+        """Hash the fully materialized graph that is sent to ComfyUI."""
+        return hashlib.sha256(
+            json.dumps(workflow, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+
     async def _load_workflow(self) -> dict[str, Any]:
         try:
             raw = await asyncio.to_thread(self._workflow_path.read_text, encoding="utf-8")
@@ -629,9 +649,49 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
     def _select_character_references(
         self, request: KeyframeGenerationRequest
     ) -> list[tuple[str, str]]:
+        if len(set(request.reference_asset_ids)) != len(request.reference_asset_ids):
+            raise ProviderError("Reference asset IDs must be unique.")
         key_by_asset_id = dict(
             zip(request.reference_asset_ids, request.reference_storage_keys)
         )
+        explicit_views = request.visual_constraints.get("reference_views")
+        if explicit_views is not None:
+            if not isinstance(explicit_views, (list, tuple)) or not explicit_views:
+                raise ProviderError("reference_views must be a non-empty list.")
+            requested_views = [str(view).strip().upper() for view in explicit_views]
+            if any(not view for view in requested_views):
+                raise ProviderError("reference_views cannot contain empty values.")
+            if len(set(requested_views)) != len(requested_views):
+                raise ProviderError("reference_views must not contain duplicates.")
+            by_view: dict[str, list[tuple[str, str]]] = {}
+            for condition in request.character_conditioning:
+                references = condition.get("references", [])
+                if not isinstance(references, list):
+                    continue
+                for reference in references:
+                    if not isinstance(reference, dict):
+                        continue
+                    asset_id = reference.get("asset_id")
+                    if asset_id not in key_by_asset_id:
+                        continue
+                    view = str(reference.get("view", "")).strip().upper()
+                    by_view.setdefault(view, []).append(
+                        (str(asset_id), key_by_asset_id[str(asset_id)])
+                    )
+            selected: list[tuple[str, str]] = []
+            for view in requested_views:
+                matches = by_view.get(view, [])
+                if not matches:
+                    raise ProviderError(
+                        f"Requested reference view '{view}' is not available."
+                    )
+                if len(matches) != 1:
+                    raise ProviderError(
+                        f"Requested reference view '{view}' is ambiguous."
+                    )
+                selected.append(matches[0])
+            return selected
+
         preferred_views = self._preferred_views(
             str(request.camera_constraints.get("angle", ""))
         )
@@ -651,7 +711,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                     reference
                     for view in preferred_views
                     for reference in valid
-                    if reference.get("view") == view
+                    if str(reference.get("view", "")).upper() == view
                 ),
                 valid[0] if valid else None,
             )

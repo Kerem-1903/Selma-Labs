@@ -42,6 +42,10 @@ class AnimationShotPlan:
     start_pose_reference_key: str | None = None
     end_pose_reference_key: str | None = None
     controlnet_type: str | None = "openpose"
+    keyframe_pair_manifest_key: str | None = None
+    keyframe_pair_approval_key: str | None = None
+    pose_pack_manifest_key: str | None = None
+    pose_pack_approval_key: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     prompt_end: str | None = None
 
@@ -71,11 +75,23 @@ class AnimationShotPlan:
             ("end_keyframe_key", self.end_keyframe_key),
             ("start_pose_reference_key", self.start_pose_reference_key),
             ("end_pose_reference_key", self.end_pose_reference_key),
+            ("keyframe_pair_manifest_key", self.keyframe_pair_manifest_key),
+            ("keyframe_pair_approval_key", self.keyframe_pair_approval_key),
+            ("pose_pack_manifest_key", self.pose_pack_manifest_key),
+            ("pose_pack_approval_key", self.pose_pack_approval_key),
         ):
             if value:
                 _validate_storage_key(value, name)
         if bool(self.start_pose_reference_key) != bool(self.end_pose_reference_key):
             raise ValueError("Start and end pose references must be supplied together.")
+        if bool(self.keyframe_pair_manifest_key) != bool(self.keyframe_pair_approval_key):
+            raise ValueError(
+                "Keyframe pair manifest and approval keys must be supplied together."
+            )
+        if bool(self.pose_pack_manifest_key) != bool(self.pose_pack_approval_key):
+            raise ValueError(
+                "Pose-pack manifest and approval keys must be supplied together."
+            )
 
     def approve_keyframe(self, storage_key: str) -> AnimationShotPlan:
         _validate_storage_key(storage_key, "source_image_storage_key")
@@ -84,12 +100,22 @@ class AnimationShotPlan:
             script_id=self.script_id,
             scene_plan_id=self.scene_plan_id,
             prompt=self.prompt,
+            prompt_end=self.prompt_end,
             duration_seconds=self.duration_seconds,
             character_state=self.character_state,
             dialogue=self.dialogue,
             source_image_storage_key=storage_key,
             keyframe_approved=True,
             negative_prompt=self.negative_prompt,
+            start_keyframe_key=self.start_keyframe_key,
+            end_keyframe_key=self.end_keyframe_key,
+            start_pose_reference_key=self.start_pose_reference_key,
+            end_pose_reference_key=self.end_pose_reference_key,
+            controlnet_type=self.controlnet_type,
+            keyframe_pair_manifest_key=self.keyframe_pair_manifest_key,
+            keyframe_pair_approval_key=self.keyframe_pair_approval_key,
+            pose_pack_manifest_key=self.pose_pack_manifest_key,
+            pose_pack_approval_key=self.pose_pack_approval_key,
             metadata=dict(self.metadata),
         )
 
@@ -111,6 +137,10 @@ class AnimationShotPlan:
             "start_pose_reference_key": self.start_pose_reference_key,
             "end_pose_reference_key": self.end_pose_reference_key,
             "controlnet_type": self.controlnet_type,
+            "keyframe_pair_manifest_key": self.keyframe_pair_manifest_key,
+            "keyframe_pair_approval_key": self.keyframe_pair_approval_key,
+            "pose_pack_manifest_key": self.pose_pack_manifest_key,
+            "pose_pack_approval_key": self.pose_pack_approval_key,
             "metadata": dict(self.metadata),
         }
 
@@ -133,6 +163,10 @@ class AnimationShotPlan:
             start_pose_reference_key=data.get("start_pose_reference_key"),
             end_pose_reference_key=data.get("end_pose_reference_key"),
             controlnet_type=data.get("controlnet_type", "openpose"),
+            keyframe_pair_manifest_key=data.get("keyframe_pair_manifest_key"),
+            keyframe_pair_approval_key=data.get("keyframe_pair_approval_key"),
+            pose_pack_manifest_key=data.get("pose_pack_manifest_key"),
+            pose_pack_approval_key=data.get("pose_pack_approval_key"),
             metadata=dict(data.get("metadata", {})),
         )
 

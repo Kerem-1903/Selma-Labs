@@ -335,5 +335,15 @@ class UploadPreparationError(SelmaError):
     """Raised when a rendered video cannot become an upload-ready package."""
 
 
+class StyleLockError(PreProductionValidationError):
+    """Production style resolution failed closed with a stable reason."""
+
+    def __init__(self, reason: str, detail: str = "") -> None:
+        self.reason = reason
+        self.detail = detail
+        message = f"{reason}: {detail}" if detail else reason
+        super().__init__(message)
+
+
 class PerformanceDataError(SelmaError):
     """Published-video metrics are corrupt, incompatible, or locked too long."""

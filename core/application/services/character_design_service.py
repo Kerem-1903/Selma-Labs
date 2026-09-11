@@ -92,9 +92,9 @@ class _OfflineFakeViewQualityGate:
         )
 
     async def evaluate_design_candidate(
-        self, *, image_bytes: bytes, seed: int, signature_marks=()
+        self, *, image_bytes: bytes, seed: int, signature_marks=(), face_priority: bool = False
     ) -> CharacterViewQcReport:
-        del signature_marks
+        del signature_marks, face_priority
         return await self.evaluate(image_bytes=image_bytes, view="FRONT", seed=seed)
 
 
@@ -304,11 +304,14 @@ class CharacterDesignService:
                     generated.image_bytes
                 )
                 digest = hashlib.sha256(image_bytes).hexdigest()
-                report = await self._quality_gate.evaluate_design_candidate(
-                    image_bytes=image_bytes,
-                    seed=seed,
-                    signature_marks=brief.signature_marks,
-                )
+                gate_kwargs = {
+                    "image_bytes": image_bytes,
+                    "seed": seed,
+                    "signature_marks": brief.signature_marks,
+                }
+                if brief.style_preset.casefold() == "selma-anime-v3-face":
+                    gate_kwargs["face_priority"] = True
+                report = await self._quality_gate.evaluate_design_candidate(**gate_kwargs)
                 if not report.passed:
                     quarantine = await self._quarantine_view(
                         root=design_root,
@@ -1374,6 +1377,21 @@ class CharacterDesignService:
         )
         palette = ", ".join(brief.palette)
         personality = ", ".join(brief.personality)
+        is_face_design = brief.style_preset.casefold() == "selma-anime-v3-face"
+        composition = (
+            (
+                "one isolated figure only, portrait from chest and shoulders upward, "
+                "large readable head occupying at least one third of the canvas, "
+                "face centered and fully visible, hairline and both eyes clearly visible"
+            )
+            if is_face_design
+            else (
+                "one isolated figure only, strict neutral front standing pose, "
+                "arms relaxed at sides, feet shoulder-width apart, full body, "
+                "entire head and both feet visible, centered and occupying about "
+                "seventy percent of the canvas"
+            )
+        )
         prompt = ", ".join(
             value
             for value in (
@@ -1386,12 +1404,7 @@ class CharacterDesignService:
                 personality,
                 f"character palette: {palette}" if palette else "",
                 cls._style_prompt(brief.style_preset),
-                (
-                    "one isolated figure only, strict neutral front standing pose, "
-                    "arms relaxed at sides, feet shoulder-width apart, full body, "
-                    "entire head and both feet visible, centered and occupying about "
-                    "seventy percent of the canvas"
-                ),
+                composition,
                 "clean softly graded studio background",
                 f"design variation {variant}",
                 brief.additional_notes,
@@ -1400,7 +1413,11 @@ class CharacterDesignService:
         )
         visual_constraints: dict[str, object] = {
             "prompt": prompt,
-            "composition_contract": "one centered character; full silhouette visible",
+            "composition_contract": (
+                "one centered portrait; head and shoulders clearly visible"
+                if is_face_design
+                else "one centered character; full silhouette visible"
+            ),
             "environment_style": "soft gradient studio background",
             "latent_mode": "empty",
             "extra_tags": f"{subject_tag}, solo, one person",
@@ -1433,7 +1450,9 @@ class CharacterDesignService:
         return KeyframeGenerationRequest(
             shot_contract_id=f"character-design-{brief.character_id}-{seed}",
             camera_constraints={
-                "angle": "full body front view",
+                "angle": "front-facing head and shoulders portrait"
+                if is_face_design
+                else "full body front view",
                 "lens": "50mm",
                 "movement": "locked",
             },
@@ -1451,7 +1470,7 @@ class CharacterDesignService:
                     )
                 )
             ),
-            width=1024,
+            width=768 if brief.style_preset.casefold() == "selma-anime-v3-face" else 1024,
             height=1024,
             seed=seed,
         )
@@ -1848,11 +1867,23 @@ class CharacterDesignService:
 
     @staticmethod
     def _style_prompt(style_preset: str) -> str:
-        if style_preset.casefold() == "selma-anime-v1":
+        normalized = style_preset.casefold()
+        if normalized in {"selma-anime-v1", "selma-anime-v2-balanced"}:
             return (
-                "clean precise anime line art, restrained cel shading, stable adult "
-                "anatomy, readable garment seams and material layers, controlled muted "
-                "palette, sparse accent colour, polished production character design"
+                "clean precise anime line art, thin controlled outlines, restrained two-step "
+                "cel shading, natural adult proportions, soft readable facial planes, "
+                "clear garment construction, matte charcoal and muted gray materials, "
+                "limited cobalt-blue accent colour, simplified animation-friendly silhouette, "
+                "polished professional character design, plain light-gray studio background, "
+                "no heavy black shadow blocks, no neon glow, no excessive straps or armor layers"
+            )
+        if normalized == "selma-anime-v3-face":
+            return (
+                "clean precise anime line art, thin controlled outlines, restrained two-step "
+                "cel shading, natural adult facial proportions, softly modeled cheeks and jaw, "
+                "clear expressive steel-blue eyes, short black hair with one narrow cobalt accent, "
+                "matte charcoal clothing only at the shoulder edge, plain light-gray studio "
+                "background, no heavy black shadow blocks, no neon glow, no cyberpunk armor"
             )
         return style_preset
 

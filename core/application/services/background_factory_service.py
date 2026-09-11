@@ -98,6 +98,7 @@ class BackgroundFactoryService:
         location: LocationBible,
         *,
         output_prefix: str = "background-candidates",
+        evaluate: bool = True,
     ) -> BackgroundCandidatePack:
         plan = self.plan(location)
         safe_prefix = self._portable_key(output_prefix)
@@ -134,7 +135,7 @@ class BackgroundFactoryService:
                     )
                 )
                 quality = None
-                if self._evaluator is not None:
+                if evaluate and self._evaluator is not None:
                     quality = await self._evaluator.evaluate(
                         image_bytes=generated.image_bytes,
                         reference_bytes=None,
@@ -195,6 +196,7 @@ class BackgroundFactoryService:
                     attempt=attempt,
                     quality=quality,
                     depth_map_storage_key=depth_key,
+                    content_hash=hashlib.sha256(generated.image_bytes).hexdigest(),
                 )
                 if passed:
                     selected = candidate

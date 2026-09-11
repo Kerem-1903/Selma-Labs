@@ -22,7 +22,7 @@ def test_selected_style_is_series_level_and_cast_starts_empty():
     project, registry = SeriesProjectService(ROOT).load(PROJECT)
 
     assert project.series_id == "selma-anime-v1"
-    assert project.style_bible.status == "APPROVED"
+    assert project.style_bible.status == "PROVISIONAL"
     assert project.style_bible.reference_sha256 == (
         "f2af7fe8f57d035c75c07bd739ad26f0982346b9900890f4ad218b1c91931774"
     )
@@ -44,6 +44,8 @@ def test_series_cli_validates_without_building_generation_container(capsys):
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "VALID"
     assert payload["cast_size"] == 0
+    assert payload["production_ready"] is False
+    assert payload["style_lock"]["blocking_reason"] == "STYLE_LOCK_UNAPPROVED"
     assert payload["next_gate"] == "REGISTER_FIRST_CHARACTER"
 
 

@@ -64,6 +64,7 @@ class SeriesStyleBible:
     rendering_rules: tuple[str, ...]
     composition_rules: tuple[str, ...]
     identity_policy: tuple[str, ...]
+    style_version: int = 1
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "style_id", _identifier(self.style_id, "style_id"))
@@ -81,10 +82,12 @@ class SeriesStyleBible:
             raise PreProductionValidationError(
                 "Style reference dimensions must be positive."
             )
+        if self.style_version < 1:
+            raise PreProductionValidationError("Style version must be positive.")
         status = _text(self.status, "style status").upper()
-        if status != "APPROVED":
+        if status not in {"PROVISIONAL", "APPROVED"}:
             raise PreProductionValidationError(
-                "A production series requires an APPROVED style bible."
+                "Style status must be PROVISIONAL or APPROVED."
             )
         object.__setattr__(self, "status", status)
         for field_name in (
@@ -107,6 +110,7 @@ class SeriesStyleBible:
             "rendering_rules": list(self.rendering_rules),
             "composition_rules": list(self.composition_rules),
             "identity_policy": list(self.identity_policy),
+            "style_version": self.style_version,
         }
 
     @classmethod
@@ -123,6 +127,7 @@ class SeriesStyleBible:
                 data.get("composition_rules", ()), "composition_rules"
             ),
             identity_policy=_items(data.get("identity_policy", ()), "identity_policy"),
+            style_version=int(data.get("style_version", 1)),
         )
 
 
@@ -222,16 +227,26 @@ class SeriesProject:
     character_registry: str
     model_lock: str
     production_root: str
+    style_approval_receipt: str = ""
+    production_style_lock: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "series_id", _identifier(self.series_id, "series_id"))
         object.__setattr__(self, "title", _text(self.title, "series title"))
-        for field_name in ("character_registry", "model_lock", "production_root"):
-            object.__setattr__(
-                self,
-                field_name,
-                _relative_path(getattr(self, field_name), field_name),
-            )
+        for field_name in (
+            "character_registry",
+            "model_lock",
+            "production_root",
+            "style_approval_receipt",
+            "production_style_lock",
+        ):
+            value = getattr(self, field_name)
+            if value:
+                object.__setattr__(
+                    self,
+                    field_name,
+                    _relative_path(value, field_name),
+                )
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> SeriesProject:
@@ -247,6 +262,8 @@ class SeriesProject:
             character_registry=str(data.get("character_registry", "")),
             model_lock=str(data.get("model_lock", "")),
             production_root=str(data.get("production_root", "")),
+            style_approval_receipt=str(data.get("style_approval_receipt", "")),
+            production_style_lock=str(data.get("production_style_lock", "")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -258,4 +275,6 @@ class SeriesProject:
             "character_registry": self.character_registry,
             "model_lock": self.model_lock,
             "production_root": self.production_root,
+            "style_approval_receipt": self.style_approval_receipt,
+            "production_style_lock": self.production_style_lock,
         }

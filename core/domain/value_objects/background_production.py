@@ -66,6 +66,7 @@ class BackgroundCandidate:
     attempt: int
     quality: PreproductionImageQuality | None = None
     depth_map_storage_key: str | None = None
+    content_hash: str = ""
 
     @property
     def parallax_ready(self) -> bool:
@@ -80,6 +81,7 @@ class BackgroundCandidate:
             "attempt": self.attempt,
             "quality": self.quality.to_dict() if self.quality else None,
             "depth_map_storage_key": self.depth_map_storage_key,
+            "content_hash": self.content_hash,
             "parallax_ready": self.parallax_ready,
             "human_approved": False,
         }
@@ -90,7 +92,10 @@ class BackgroundCandidatePack:
     location_id: str
     candidates: tuple[BackgroundCandidate, ...]
     quarantined: tuple[BackgroundCandidate, ...] = ()
+    # Kept only as a serialized compatibility field; readiness is derived from
+    # the shared hash-bound receipt, never from this boolean.
     human_approved: bool = False
+    approval_receipt: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -99,6 +104,7 @@ class BackgroundCandidatePack:
             "candidate_count": len(self.candidates),
             "quarantined_count": len(self.quarantined),
             "human_approved": self.human_approved,
+            "approval_receipt": dict(self.approval_receipt) if self.approval_receipt else None,
             "candidates": [item.to_dict() for item in self.candidates],
             "quarantined": [item.to_dict() for item in self.quarantined],
             "next_gate": "HUMAN_BACKGROUND_APPROVAL",

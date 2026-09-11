@@ -14,8 +14,12 @@ def _plan() -> ShotPlan:
         script_id="pilot",
         scene_plan_id="pilot-scene-001",
         prompt="akira_girl turns toward camera",
+        prompt_end="akira_girl draws the katana",
         duration_seconds=3.0,
         character_state=CharacterState("akira", "akira-default", [], []),
+        start_pose_reference_key="poses/start.png",
+        end_pose_reference_key="poses/end.png",
+        controlnet_type="openpose",
     )
 
 
@@ -49,6 +53,10 @@ def test_animation_shot_starts_unapproved_and_approval_requires_portable_key():
     approved = plan.approve_keyframe("storyboards/pilot-shot-001/approved.png")
     assert approved.keyframe_approved is True
     assert approved.source_image_storage_key.endswith("approved.png")
+    assert approved.prompt_end == plan.prompt_end
+    assert approved.start_pose_reference_key == plan.start_pose_reference_key
+    assert approved.end_pose_reference_key == plan.end_pose_reference_key
+    assert approved.controlnet_type == plan.controlnet_type
 
     with pytest.raises(ValueError, match="portable"):
         plan.approve_keyframe("C:/private/approved.png")
