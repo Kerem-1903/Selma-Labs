@@ -150,7 +150,9 @@ class ViewFramingGate:
                 "likely a chest-up crop",
                 metrics=metrics,
             )
-        if runs_lower < 2:
+        profile_view = view in {"PROFILE_LEFT", "PROFILE_RIGHT"}
+        minimum_leg_runs = 1 if profile_view else 2
+        if runs_lower < minimum_leg_runs:
             return FramingReport(
                 passed=False,
                 reason="no separated leg columns at the bottom; chest-up crop",
@@ -163,8 +165,13 @@ class ViewFramingGate:
                 "or multi-figure sheet",
                 metrics=metrics,
             )
+        framing_reason = (
+            "narrow profile leg silhouette reaches the bottom; full-body framing"
+            if profile_view and runs_lower == 1
+            else "separated legs reach the bottom; full-body framing"
+        )
         return FramingReport(
             passed=True,
-            reason="separated legs reach the bottom; full-body framing",
+            reason=framing_reason,
             metrics=metrics,
         )

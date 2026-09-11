@@ -223,25 +223,14 @@ def test_approved_design_generates_only_seven_neutral_reference_drafts(tmp_path)
     assert pack.to_dict()["next_gate"] == "PENDING_HUMAN_REVIEW"
     assert pack.contact_sheet_storage_key.endswith("contact-sheets/views.png")
     assert asyncio.run(storage.exists(pack.contact_sheet_storage_key))
-    assert len(provider.requests) == 6
+    assert len(provider.requests) == 5
     assert all(
         request.action_constraints["primary_action"] == "neutral reference pose"
         for request in provider.requests
     )
     assert approval.face_anchor is not None
     assert approval.fullbody_anchor is not None
-    front, profile_left, profile_right, quarter_left, quarter_right, back = (
-        provider.requests
-    )
-    assert front.reference_storage_keys == (
-        approval.face_anchor.storage_key,
-        approval.fullbody_anchor.storage_key,
-    )
-    assert len(set(front.reference_asset_ids)) == 2
-    assert tuple(
-        item["references"][0]["asset_id"] for item in front.character_conditioning
-    ) == front.reference_asset_ids
-    assert front.visual_constraints["identity_reference_weights"] == [0.8, 0.5]
+    profile_left, profile_right, quarter_left, quarter_right, back = provider.requests
     generated_front = pack.drafts[1]
     assert profile_left.reference_storage_keys == (
         generated_front.storage_key,
@@ -359,16 +348,40 @@ def test_dual_anchors_are_derived_from_the_same_canonical_source(tmp_path):
     assert approval.anchors_locked
     assert approval.face_anchor is not None
     assert approval.fullbody_anchor is not None
-    assert len(provider.requests) == 2
-    face_request, fullbody_request = provider.requests
-    assert face_request.reference_storage_keys == (approval.canonical_storage_key,)
-    assert fullbody_request.reference_storage_keys == (approval.canonical_storage_key,)
-    assert face_request.width == 1024
-    assert face_request.height == 1024
-    assert fullbody_request.width == 768
-    assert fullbody_request.height == 1152
-    assert approval.face_anchor.workflow_version == "dual-anchor-v1"
-    assert approval.fullbody_anchor.workflow_version == "dual-anchor-v1"
+    assert provider.requests == []
+    assert approval.face_anchor.width == 1024
+    assert approval.face_anchor.height == 1024
+    assert approval.fullbody_anchor.width == 768
+    assert approval.fullbody_anchor.height == 1152
+    assert approval.anchor_provider == "deterministic:canonical-transform"
+    assert approval.face_anchor.workflow_version == "dual-anchor-v2-deterministic"
+    assert approval.fullbody_anchor.workflow_version == "dual-anchor-v2-deterministic"
+    assert approval.face_anchor.model_hashes == {}
+    assert approval.fullbody_anchor.model_hashes == {}
+
+
+def test_canonical_face_and_front_views_reuse_deterministic_anchors(tmp_path):
+    provider = FakeKeyframeGenerationProvider()
+    storage = LocalFsStorage(str(tmp_path))
+    _seed_pose_templates(storage)
+    service = CharacterDesignService(provider, storage)
+    brief = _brief()
+    candidate = asyncio.run(service.generate_candidates(brief, count=1)).candidates[0]
+    approval = asyncio.run(
+        service.approve_candidate(brief, candidate, approved_by="Kerem")
+    )
+    provider.requests.clear()
+
+    pack = asyncio.run(service.generate_reference_drafts(brief, approval))
+
+    by_view = {draft.view: draft for draft in pack.drafts}
+    assert by_view["FACE_CLOSEUP"].content_hash == approval.face_anchor.content_hash
+    assert by_view["FRONT"].content_hash == approval.fullbody_anchor.content_hash
+    assert all(
+        request.shot_contract_id
+        != f"character-reference-{brief.character_id}-FRONT-{approval.fullbody_anchor.seed}"
+        for request in provider.requests
+    )
 
 
 def test_repeated_design_approval_reuses_locked_anchors_without_regeneration(tmp_path):
@@ -572,7 +585,7 @@ def test_view_pack_blocks_after_three_failed_attempts(tmp_path):
     provider = FakeKeyframeGenerationProvider()
     storage = LocalFsStorage(str(tmp_path))
     _seed_pose_templates(storage)
-    gate = ScriptedViewGate({"FRONT": 3})
+    gate = ScriptedViewGate({"PROFILE_LEFT": 3})
     service = CharacterDesignService(provider, storage, quality_gate=gate)
     brief = _brief()
     candidate = asyncio.run(service.generate_candidates(brief, count=1)).candidates[0]
@@ -583,7 +596,7 @@ def test_view_pack_blocks_after_three_failed_attempts(tmp_path):
     pack = asyncio.run(service.generate_canonical_views(brief, approval))
 
     assert pack.status == "BLOCKED"
-    assert [item.view for item in pack.drafts] == ["FACE_CLOSEUP"]
+    assert [item.view for item in pack.drafts] == ["FACE_CLOSEUP", "FRONT"]
     assert len(pack.quarantined) == 3
     assert pack.contact_sheet_storage_key == ""
 
@@ -895,7 +908,7 @@ def test_blocked_view_pack_cannot_be_human_approved(tmp_path):
     storage = LocalFsStorage(str(tmp_path))
     _seed_pose_templates(storage)
     service = CharacterDesignService(
-        provider, storage, quality_gate=ScriptedViewGate({"FRONT": 3})
+        provider, storage, quality_gate=ScriptedViewGate({"PROFILE_LEFT": 3})
     )
     brief = _brief()
     candidate = asyncio.run(service.generate_candidates(brief, count=1)).candidates[0]

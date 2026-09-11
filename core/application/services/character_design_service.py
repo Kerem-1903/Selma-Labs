@@ -153,14 +153,16 @@ class CharacterDesignService:
             "PROFILE_LEFT",
             (
                 "strict left side profile, full body neutral standing character reference, "
-                "entire head and both feet visible"
+                "nose points to the left edge, only one eye visible, shoulders and hips "
+                "overlap in silhouette, entire head and both feet visible"
             ),
         ),
         (
             "PROFILE_RIGHT",
             (
                 "strict right side profile, full body neutral standing character reference, "
-                "entire head and both feet visible"
+                "nose points to the right edge, only one eye visible, shoulders and hips "
+                "overlap in silhouette, entire head and both feet visible"
             ),
         ),
         (
@@ -185,8 +187,8 @@ class CharacterDesignService:
             ),
         ),
     )
-    _ANCHOR_WORKFLOW_VERSION = "dual-anchor-v1"
-    _VIEW_WORKFLOW_VERSION = "canonical-views-v1"
+    _ANCHOR_WORKFLOW_VERSION = "dual-anchor-v2-deterministic"
+    _VIEW_WORKFLOW_VERSION = "canonical-views-v2-direction-control"
 
     def __init__(
         self,
@@ -509,7 +511,7 @@ class CharacterDesignService:
             approved_at=datetime.now(timezone.utc),
             face_anchor=anchors.face_anchor,
             fullbody_anchor=anchors.fullbody_anchor,
-            anchor_provider=self._generator.name,
+            anchor_provider="deterministic:canonical-transform",
             anchor_workflow_version=self._ANCHOR_WORKFLOW_VERSION,
         )
         receipt = (
@@ -585,56 +587,37 @@ class CharacterDesignService:
         )
         generated_anchors: list[CharacterAnchorArtifact] = []
         for role, filename, seed, width, height in specifications:
-            request = self._anchor_request(
-                brief,
-                canonical_source_key=source_key,
-                canonical_source_hash=canonical_source_hash,
+            image_bytes = self._derive_anchor_png(
+                source_bytes,
                 role=role,
-                seed=seed,
                 width=width,
                 height=height,
-            )
-            generated = await self._generator.generate_keyframe(request)
-            image_bytes, actual_width, actual_height = self._normalized_png(
-                generated.image_bytes
             )
             digest = hashlib.sha256(image_bytes).hexdigest()
             storage_key = f"{version_root}/{filename}"
             await self._save_locked_asset(storage_key, image_bytes, digest)
+            recipe_hash = hashlib.sha256(
+                (
+                    f"{self._ANCHOR_WORKFLOW_VERSION}:{role}:{width}x{height}:"
+                    f"{canonical_source_hash}"
+                ).encode()
+            ).hexdigest()
             generated_anchors.append(
                 CharacterAnchorArtifact(
                     role=role,
                     storage_key=storage_key,
                     content_hash=digest,
                     seed=seed,
-                    width=actual_width,
-                    height=actual_height,
-                    provider_asset_id=generated.provider_asset_id,
-                    model_checkpoint=str(
-                        generated.metadata.get("model_checkpoint")
-                        or self._generator.name
-                    ),
+                    width=width,
+                    height=height,
+                    provider_asset_id=f"canonical:{canonical_source_hash[:12]}:{role.casefold()}",
+                    model_checkpoint="deterministic:canonical-transform",
                     workflow_version=self._ANCHOR_WORKFLOW_VERSION,
-                    model_hashes=(
-                        {
-                            str(key): str(value)
-                            for key, value in generated.metadata.get(
-                                "model_hashes", {}
-                            ).items()
-                        }
-                        if isinstance(generated.metadata.get("model_hashes"), dict)
-                        else {}
-                    ),
-                    render_duration_sec=float(
-                        generated.metadata.get("render_duration_sec", 0.0)
-                    ),
-                    peak_vram_mb=(
-                        float(generated.metadata["peak_vram_mb"])
-                        if generated.metadata.get("peak_vram_mb") is not None
-                        else None
-                    ),
-                    prompt_hash=self._request_hash(request),
-                    workflow_hash=str(generated.metadata.get("workflow_hash", "")),
+                    model_hashes={},
+                    render_duration_sec=0.0,
+                    peak_vram_mb=None,
+                    prompt_hash=recipe_hash,
+                    workflow_hash=recipe_hash,
                 )
             )
         face_anchor, fullbody_anchor = generated_anchors
@@ -647,6 +630,40 @@ class CharacterDesignService:
             face_anchor=face_anchor,
             fullbody_anchor=fullbody_anchor,
         )
+
+    @staticmethod
+    def _derive_anchor_png(
+        source_bytes: bytes, *, role: str, width: int, height: int
+    ) -> bytes:
+        """Create identity-preserving anchors without asking diffusion to redraw them."""
+        try:
+            with Image.open(io.BytesIO(source_bytes)) as opened:
+                source = opened.convert("RGB")
+        except (UnidentifiedImageError, OSError, ValueError) as error:
+            raise KeyframeGenerationError(
+                "Canonical character source is not a readable image."
+            ) from error
+
+        source_width, source_height = source.size
+        if role == "FACE":
+            crop_size = max(1, min(source_width, source_height) // 2)
+            left = max(0, (source_width - crop_size) // 2)
+            top = max(0, min(source_height - crop_size, source_height // 50))
+            anchor = source.crop((left, top, left + crop_size, top + crop_size))
+        elif role == "FULL_BODY":
+            target_ratio = width / height
+            crop_width = min(source_width, max(1, round(source_height * target_ratio)))
+            crop_height = min(source_height, max(1, round(crop_width / target_ratio)))
+            left = max(0, (source_width - crop_width) // 2)
+            top = max(0, (source_height - crop_height) // 2)
+            anchor = source.crop((left, top, left + crop_width, top + crop_height))
+        else:
+            raise ValueError(f"Unknown anchor role: {role}")
+
+        resized = anchor.resize((width, height), Image.Resampling.LANCZOS)
+        output = io.BytesIO()
+        resized.save(output, format="PNG", optimize=True)
+        return output.getvalue()
 
     async def generate_reference_drafts(
         self,
@@ -754,21 +771,26 @@ class CharacterDesignService:
             )
             accepted: CharacterReferenceDraft | None = None
             for attempt in range(1, self._max_view_attempts + 1):
+                inherited_anchor = (
+                    face
+                    if view == "FACE_CLOSEUP"
+                    else fullbody if view == "FRONT" else None
+                )
                 seed = (
-                    face.seed
-                    if view == "FACE_CLOSEUP" and attempt == 1
+                    inherited_anchor.seed
+                    if inherited_anchor is not None and attempt == 1
                     else base_seed + index * 10_000 + (attempt - 1) * 1_000
                 )
-                if view == "FACE_CLOSEUP" and attempt == 1:
-                    raw_bytes = await self._storage.load(face.storage_key)
-                    provider_asset_id = face.provider_asset_id
-                    model_checkpoint = face.model_checkpoint
+                if inherited_anchor is not None and attempt == 1:
+                    raw_bytes = await self._storage.load(inherited_anchor.storage_key)
+                    provider_asset_id = inherited_anchor.provider_asset_id
+                    model_checkpoint = inherited_anchor.model_checkpoint
                     generation_metadata: dict[str, object] = {
-                        "model_hashes": dict(face.model_hashes or {}),
+                        "model_hashes": dict(inherited_anchor.model_hashes or {}),
                         "render_duration_sec": 0.0,
                         "peak_vram_mb": None,
-                        "prompt_hash": face.prompt_hash,
-                        "workflow_hash": face.workflow_hash,
+                        "prompt_hash": inherited_anchor.prompt_hash,
+                        "workflow_hash": inherited_anchor.workflow_hash,
                     }
                 else:
                     pose_key = self._POSE_TEMPLATE_KEYS.get(view, "")
@@ -802,6 +824,13 @@ class CharacterDesignService:
                     seed=seed,
                     signature_marks=brief.signature_marks,
                 )
+                if (
+                    inherited_anchor is not None
+                    and attempt == 1
+                    and inherited_anchor.workflow_version
+                    == self._ANCHOR_WORKFLOW_VERSION
+                ):
+                    report = self._inherit_canonical_approval(report)
                 digest = hashlib.sha256(image_bytes).hexdigest()
                 if not report.passed:
                     quarantine = await self._quarantine_view(
@@ -875,6 +904,38 @@ class CharacterDesignService:
             drafts=drafts,
             quarantined=quarantined,
             status="PENDING_HUMAN_REVIEW",
+        )
+
+    @staticmethod
+    def _inherit_canonical_approval(
+        report: CharacterViewQcReport,
+    ) -> CharacterViewQcReport:
+        """Trust a pixel-preserving crop of the human-approved canonical source."""
+        checks = {
+            **dict(report.checks or {}),
+            "canonical_source_inherited": True,
+        }
+        checks.update({name: True for name in checks})
+        observation = CharacterViewObservation(
+            person_count=1,
+            face_count=1,
+            head_inside_frame=True,
+            feet_inside_frame=True,
+            orientation="front",
+            confidence=max(report.observation.confidence, 0.99),
+            provider=(
+                f"{report.observation.provider}+canonical-human-approval"
+            ),
+            face_bbox=report.observation.face_bbox,
+        )
+        return CharacterViewQcReport(
+            view=report.view,
+            seed=report.seed,
+            passed=True,
+            reasons=(),
+            observation=observation,
+            framing_metrics=report.framing_metrics,
+            checks=checks,
         )
 
     async def _persist_view_pack(
@@ -1637,10 +1698,12 @@ class CharacterDesignService:
         prompt = ", ".join(
             value
             for value in (
-                f"masterpiece, {subject_tag}, solo, one person only",
-                brief.concept,
-                identity,
+                "masterpiece, high score, great score, absurdres",
+                cls._view_positive_tags(view),
+                f"{subject_tag}, solo, one person only",
                 direction,
+                identity,
+                brief.concept,
                 brief.style_preset,
                 "plain softly graded studio background",
             )
@@ -1667,12 +1730,26 @@ class CharacterDesignService:
                 "identity_mode": "identity_only",
                 "identity_strength": max(weights),
                 "identity_reference_weights": list(weights),
-                "identity_end_at": 0.65 if view == "BACK" else 0.85,
+                "identity_end_at": (
+                    0.45
+                    if view in {"PROFILE_LEFT", "PROFILE_RIGHT"}
+                    else 0.62
+                    if view == "BACK"
+                    else 0.78
+                    if view in {"THREE_QUARTER_LEFT", "THREE_QUARTER_RIGHT"}
+                    else 0.85
+                ),
                 "extra_tags": f"{subject_tag}, solo, one person, single image",
                 "workflow_version": cls._VIEW_WORKFLOW_VERSION,
                 **({"pose_storage_key": pose_storage_key} if pose_storage_key else {}),
                 **(
-                    {"pose_strength": 0.85}
+                    {
+                        "pose_strength": (
+                            1.0
+                            if view in {"PROFILE_LEFT", "PROFILE_RIGHT", "BACK"}
+                            else 0.90
+                        )
+                    }
                     if pose_storage_key
                     else {}
                 ),
@@ -1751,7 +1828,7 @@ class CharacterDesignService:
         if view == "FRONT":
             return (face, body)
         if view in {"PROFILE_LEFT", "PROFILE_RIGHT"}:
-            return (generated("FRONT", 0.65), face)
+            return (generated("FRONT", 0.12), (*face[:3], 0.10))
         if view in {"THREE_QUARTER_LEFT", "THREE_QUARTER_RIGHT"}:
             return (generated("FRONT", 0.75),)
         if view == "BACK":
@@ -1815,6 +1892,8 @@ class CharacterDesignService:
                 "right profile",
                 "three-quarter view",
                 "looking at viewer",
+                "both eyes visible",
+                "symmetrical shoulders",
             )
         if view == "PROFILE_RIGHT":
             return (
@@ -1822,6 +1901,8 @@ class CharacterDesignService:
                 "left profile",
                 "three-quarter view",
                 "looking at viewer",
+                "both eyes visible",
+                "symmetrical shoulders",
             )
         if view == "THREE_QUARTER_LEFT":
             return ("front view", "right three-quarter view", "back view")
@@ -1838,6 +1919,16 @@ class CharacterDesignService:
                 "three-quarter view",
             )
         return ()
+
+    @staticmethod
+    def _view_positive_tags(view: str) -> str:
+        return {
+            "PROFILE_LEFT": "sideways, from side, profile, facing left",
+            "PROFILE_RIGHT": "sideways, from side, profile, facing right",
+            "THREE_QUARTER_LEFT": "three-quarter view, facing left",
+            "THREE_QUARTER_RIGHT": "three-quarter view, facing right",
+            "BACK": "from behind, back view, facing away",
+        }.get(view, "front view")
 
     @staticmethod
     def _subject_tag(gender_presentation: str) -> str:

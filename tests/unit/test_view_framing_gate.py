@@ -90,3 +90,26 @@ def test_three_quarter_full_body_view_rejects_chest_up_crop():
         image_bytes=_png(_chest_up_mask()), view="THREE_QUARTER_LEFT"
     )
     assert not report.passed
+
+
+def test_profile_allows_one_narrow_overlapping_leg_silhouette():
+    mask = _full_body_mask()
+    mask[108:195] = False
+    mask[108:195, 54:66] = True
+
+    report = ViewFramingGate().evaluate(
+        image_bytes=_png(mask), view="PROFILE_LEFT"
+    )
+
+    assert report.passed, report.reason
+    assert report.metrics["runs_lower"] == 1
+
+
+def test_front_still_rejects_one_leg_column():
+    mask = _full_body_mask()
+    mask[108:195] = False
+    mask[108:195, 54:66] = True
+
+    report = ViewFramingGate().evaluate(image_bytes=_png(mask), view="FRONT")
+
+    assert not report.passed
