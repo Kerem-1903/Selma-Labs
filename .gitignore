@@ -12,6 +12,7 @@ reference/
 motion/node_modules/
 motion/out/
 motion/remotion-smoke.png
+motion/public/anime-animatic/
 *.tmp
 *.partial
 *.log

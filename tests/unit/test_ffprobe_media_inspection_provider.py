@@ -49,6 +49,8 @@ async def test_inspects_video_and_extracts_thumbnail_frame(tmp_path):
     assert inspection.color_transfer == "bt709"
     assert inspection.color_space == "bt709"
     assert inspection.field_order == "progressive"
-    assert inspection.duration_seconds > 0
+    assert inspection.duration_seconds >= inspection.video_duration_seconds > 0
+    assert inspection.video_duration_seconds == pytest.approx(inspection.frame_count / inspection.fps)
+    assert inspection.audio_duration_seconds is not None
     assert frame.is_file()
     assert frame.stat().st_size > 0

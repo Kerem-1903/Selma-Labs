@@ -11,6 +11,9 @@ from pathlib import Path, PurePosixPath
 
 from core.domain.entities.animatic_project import AnimaticProject
 from core.domain.ports.storage_port import StoragePort
+from infrastructure.providers.render.remotion_media_inventory import (
+    RemotionMediaInventory,
+)
 
 
 class RemotionAnimaticExporter:
@@ -30,12 +33,17 @@ class RemotionAnimaticExporter:
         await asyncio.to_thread(target_root.mkdir, parents=True, exist_ok=True)
         clips = []
         for clip in project.clips:
-            image_suffix = PurePosixPath(clip.image_storage_key).suffix or ".png"
-            image_name = f"{clip.shot_id}{image_suffix}"
-            await asyncio.to_thread(
-                (target_root / image_name).write_bytes,
-                await self._storage.load(clip.image_storage_key),
-            )
+            if clip.image_storage_key.startswith("placeholder://"):
+                image_name = ""
+                image_src = clip.image_storage_key
+            else:
+                image_suffix = PurePosixPath(clip.image_storage_key).suffix or ".png"
+                image_name = f"{clip.shot_id}{image_suffix}"
+                await asyncio.to_thread(
+                    (target_root / image_name).write_bytes,
+                    await self._storage.load(clip.image_storage_key),
+                )
+                image_src = f"{relative_root.as_posix()}/{image_name}"
             audio_src = ""
             if clip.dialogue_audio_storage_key:
                 audio_suffix = (
@@ -52,20 +60,41 @@ class RemotionAnimaticExporter:
                     "shotId": clip.shot_id,
                     "startFrame": clip.start_frame,
                     "durationFrames": clip.duration_frames,
-                    "imageSrc": f"{relative_root.as_posix()}/{image_name}",
+                    "imageSrc": image_src,
                     "dialogue": clip.dialogue,
                     "audioSrc": audio_src,
+                    "warning": clip.warning,
                 }
             )
+        audio_cues = []
+        for cue in project.audio_cues:
+            storage_key = str(cue.get("storage_key", ""))
+            if not storage_key:
+                raise ValueError("Animatic audio cue requires a storage key.")
+            suffix = PurePosixPath(storage_key).suffix or ".wav"
+            cue_name = f"audio-cue-{cue.get('cue_id', uuid.uuid4().hex)}{suffix}"
+            await asyncio.to_thread(
+                (target_root / cue_name).write_bytes,
+                await self._storage.load(storage_key),
+            )
+            materialized = dict(cue)
+            materialized["storage_key"] = f"{relative_root.as_posix()}/{cue_name}"
+            audio_cues.append(materialized)
         props = {
             "title": "SELMA Anime Animatic",
             "fps": project.fps,
             "durationInFrames": project.duration_in_frames,
             "clips": clips,
+            "audioCues": audio_cues,
         }
         target = target_root / "props.json"
         temporary = target_root / f".props.{uuid.uuid4().hex}.tmp"
         payload = json.dumps(props, ensure_ascii=False, indent=2)
+        missing = RemotionMediaInventory.validate(props, self._public)
+        if missing:
+            raise FileNotFoundError(
+                "Active Remotion media is missing: " + ", ".join(missing)
+            )
         try:
             await asyncio.to_thread(temporary.write_text, payload, encoding="utf-8")
             await asyncio.to_thread(os.replace, temporary, target)

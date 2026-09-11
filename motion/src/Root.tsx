@@ -35,7 +35,28 @@ const animeAnimaticDefaults: AnimeAnimaticProps = {
   fps: 24,
   durationInFrames: 240,
   clips: [],
+  audioCues: [],
 };
+
+export const REMOTION_COMPOSITION_CATALOG = {
+  active: ["AnimeAnimatic"],
+  archived: [
+    "ChipBagShort", "AirplaneLavatoryShort", "VlahovicTomatoShort",
+    "PhantomVibrationShort", "StrangeThingsShort", "VenusDayYearV2",
+    "MicrowaveMeshShort", "SpiderEmblemsShort", "HiddenDesignsLong",
+    "HiddenDesignsProvenStylePreview", "HiddenDesignsProvenStyleFull",
+    "HiddenDesignsMascotFull", "HiddenDesignsReferenceV3", "HiddenDesigns45",
+    "EarthStopVideo", "PerseidShort", "InternetOutageVideo",
+    "InternetOutageQaReel", "InternetOutageThumbnail",
+    "HiddenDesignsThumbnail", "MascotAnimationDemo", "MascotIllustratedDemo",
+    "MascotFinalV5Demo", "MascotRigDemo", "MascotRigV2Demo",
+    "StrangeThingsLogo",
+  ],
+} as const;
+
+// Archived compositions remain in source for compatibility and recovery, but
+// are deliberately excluded from baseline discovery and media validation.
+const includeArchivedCompositions = false;
 
 export const RemotionRoot: React.FC = () => (
   <>
@@ -52,6 +73,7 @@ export const RemotionRoot: React.FC = () => (
         fps: 24,
       })}
     />
+    {includeArchivedCompositions ? <>
     <Composition
       id="ChipBagShort"
       component={ChipBagShort}
@@ -266,5 +288,6 @@ export const RemotionRoot: React.FC = () => (
       fps={30}
       durationInFrames={1}
     />
+    </> : null}
   </>
 );
