@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "profile_id": "anime-animation-wan22-v1",
+  "stage": "ANIMATION",
+  "execution": "RENTED_GPU",
+  "paid_model_api_required": false,
+  "model": {
+    "repository": "Wan-AI/Wan2.2-I2V-A14B",
+    "task": "image-to-video",
+    "license": "Apache-2.0",
+    "minimum_vram_gb": 80,
+    "draft_resolution": "832x480",
+    "final_resolution": "1280x720",
+    "fps": 24,
+    "preferred_clip_seconds": [3, 4, 5]
+  },
+  "required_local_tools": ["ffmpeg", "ffprobe", "node", "npm"],
+  "required_episode_files": [
+    "approved-screenplay.json",
+    "continuity-state.json",
+    "shot-list.json",
+    "animatic.mp4",
+    "audio-plan.json",
+    "wan-render-manifest.json",
+    "licenses-and-consents.json"
+  ],
+  "required_episode_directories": [
+    "dialogue",
+    "characters",
+    "backgrounds",
+    "keyframes",
+    "approvals"
+  ],
+  "required_shot_fields": [
+    "shot_id",
+    "duration_frames",
+    "production_method",
+    "start_keyframe",
+    "end_keyframe",
+    "prompt",
+    "negative_prompt",
+    "seed",
+    "output_path"
+  ],
+  "allowed_production_methods": [
+    "WAN_I2V",
+    "LIMITED_CHARACTER_MOTION",
+    "LIP_SYNC",
+    "PARALLAX",
+    "STATIC",
+    "EFFECT"
+  ],
+  "required_remote_worker_file": "config/production/wan2.2-worker.json"
+}

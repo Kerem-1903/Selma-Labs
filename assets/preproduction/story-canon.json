@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "story_canon": {
+    "id": "esik-80-story-v1",
+    "working_title": "ESIK//80",
+    "international_title": "THRESHOLD//80",
+    "format": "12 x 22 minute season with a parallel narrative action-adventure game",
+    "logline": "When FHD-80 makes the citizens of Neo-Geneva unable to recognize even the people they love, infected emergency courier Akira Arel must carry proof of the outbreak's human origin across a city whose machines still know every face.",
+    "dramatic_question": "If memory, appearance and official records disagree, what makes someone the same person?",
+    "theme": "Identity is not a face or a database entry; it is the pattern of choices a person keeps making for others.",
+    "story_engine": [
+      "Akira's 22-day infection clock converts every detour into a cost.",
+      "MNEMOS creates a reversal: machines recognize citizens while citizens cannot recognize one another.",
+      "Scarce treatment forces choices between personal love and public duty.",
+      "Every district tests identity through voice, behavior, trust history and physical evidence.",
+      "Patient Zero's recordings reveal the conspiracy in fragments and cannot react to new events."
+    ],
+    "inciting_incident": "Akira accepts a sealed cold-chain delivery from dying LIMEN researcher Elias Rhen. The case contains no virus sample; it contains the signed human-trial ledger and the only reproducible MAB-TJ treatment key.",
+    "central_conflict": "Director Noe Varga needs the ledger erased to prevent institutional collapse, Dr. Maelle Soren needs it to manufacture treatment, and Akira needs to publish it without handing MNEMOS enough emergency power to permanently own human identity.",
+    "ending_promise": "The truth becomes public and treatment begins, but Akira's sister Mina survives without remembering Akira. Their bond restarts through a shared promise rather than miraculous recognition.",
+    "anime_game_contract": {
+      "anime": "The canonical 22-day Akira story and the fall of MNEMOS legitimacy.",
+      "game": "A parallel district response led by a player-created relay operative; choices alter evacuations, trust networks and survival but do not overwrite the anime's central ending.",
+      "shared_systems": ["infection clock", "identity verification", "district routes", "scarce treatment", "faction trust", "evidence chain"]
+    },
+    "rating_boundaries": [
+      "16+ psychological distress and non-graphic medical peril",
+      "no sexualized minors",
+      "no spectacle built from dehumanizing sick people",
+      "violence is brief, legible and consequential"
+    ],
+    "status": "DRAFT"
+  }
+}

@@ -2,6 +2,13 @@
   "schema_version": 1,
   "templates": [
     {
+      "view": "FRONT",
+      "filename": "pose_front.png",
+      "sha256": "55f79b33b73ca4b674cb6d6df0fd89b7e1ec039600981bd0850b52b085279f6b",
+      "width": 768,
+      "height": 1152
+    },
+    {
       "view": "PROFILE_LEFT",
       "filename": "pose_profile_left.png",
       "sha256": "7a57691680491dd921fae5df752056061bf4d2881492cf8d94b35ae9f5030743",

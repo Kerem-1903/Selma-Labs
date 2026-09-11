@@ -19,9 +19,14 @@ supports both the durable topic/audio factory and a guarded Akira anime pipeline
 | Two-pass ComfyUI motion workflow | Implemented and automated-test validated |
 | FFmpeg layered composition | Real integration coverage |
 | LivePortrait lip sync | Explicit mock/passthrough adapter |
+| Wan GPU execution contract | ADR-009 accepted; real provider/GPU blocked until lease/fencing, staged job graph, idempotent commit, recovery, retry/fallback, and budget admission gaps are implemented |
 
 ## Production boundaries
 
+- Wan execution is currently limited to the pre-GPU fake/test boundary. The
+  [accepted ADR-009 contract](../adr/ADR-009-wan-job-execution-contract.md)
+  must be implemented before real provider credentials or GPU instances are
+  connected.
 - Provider-backed output requires the relevant local models, services, licensed
   inputs, and API credentials.
 - The two-pass motion adapter will not run unless its keyframe is explicitly

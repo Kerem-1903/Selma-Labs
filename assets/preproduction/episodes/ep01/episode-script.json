@@ -1,0 +1,140 @@
+{
+  "id": "esik80-s01e01-draft-1",
+  "title": "Aynadaki Yabancı",
+  "logline": "Enfekte acil durum kuryesi Akira, LIMEN-80 deneylerini kanıtlayan kasayı taşırken gece sonunda kendi kız kardeşinin yüzünü tanıyamaz.",
+  "episode_number": 1,
+  "revision": 1,
+  "provider_used": "human-guided-research-draft",
+  "sequences": [
+    {
+      "id": "ep01-seq01",
+      "title": "Yüzden Önce Ses",
+      "scenes": [
+        {
+          "id": "ep01-sc01",
+          "title": "Aynadaki yabancı",
+          "location": "SAINT ORA KLİNİĞİ - NÖROLOJİ İZOLASYON ODASI",
+          "summary": "Gün 7'de Elias eşinin sesini tanır ama yüzünü ve aynadaki kendisini tanıyamaz.",
+          "characters": ["Elias", "Lena"],
+          "dialogue": [
+            {"speaker": "Lena", "text": "Sesimi tanıdın."},
+            {"speaker": "Elias", "text": "Sesini tanıdım. Ama hanginizden korkmam gerektiğini bilmiyorum."}
+          ],
+          "ability_uses": []
+        },
+        {
+          "id": "ep01-sc02",
+          "title": "Soğuk zincir çatı koşusu",
+          "location": "KIRMIZI HAT - ÇATI SERVİS ROTASI",
+          "summary": "Dört gün önce Akira, kapanan köprü ve iki gözetim dronuna rağmen soğuk kasayı Saint Ora'ya ulaştırır.",
+          "characters": ["Akira", "MNEMOS"],
+          "dialogue": [{"speaker": "MNEMOS", "text": "Yüz doğrulandı. Akira Arel. Geçiş reddedildi."}],
+          "ability_uses": [{"character": "Akira", "ability": "Crimson Arc defensive sword technique"}]
+        },
+        {
+          "id": "ep01-sc03",
+          "title": "Teslim noktası değişti",
+          "location": "SAINT ORA KLİNİĞİ - YÜKLEME BÖLMESİ",
+          "summary": "Elias kasada numune değil seksen insanın kaydı olduğunu söyler ve Akira'dan onu MNEMOS dışındaki yayına götürmesini ister.",
+          "characters": ["Akira", "Elias", "MNEMOS"],
+          "dialogue": [
+            {"speaker": "Elias", "text": "İçinde numune yok. Seksen insanın adı var."},
+            {"speaker": "MNEMOS", "text": "Akira Arel. Yetkisiz LIMEN varlığı tespit edildi."}
+          ],
+          "ability_uses": []
+        }
+      ]
+    },
+    {
+      "id": "ep01-seq02",
+      "title": "Bildiğin Şey",
+      "scenes": [
+        {
+          "id": "ep01-sc04",
+          "title": "Doğum günü",
+          "location": "KUZEY HALKA - AKIRA VE MİNA'NIN DAİRESİ",
+          "summary": "Akira ve Mina'nın doğal kardeşlik ritmi kurulur; Akira tarçını koklayamadığını gizler, Mina yüz tanımama çağrılarını dinler.",
+          "characters": ["Akira", "Mina"],
+          "dialogue": [
+            {"speaker": "Mina", "text": "Yirmi beş için mum bulamadım. Elektrik şirketi yaşlanmanı desteklemiyor."},
+            {"speaker": "Akira", "text": "Yağmur kokuyu öldürmüş."}
+          ],
+          "ability_uses": []
+        },
+        {
+          "id": "ep01-sc05",
+          "title": "Silinen imza",
+          "location": "MNEMOS KULESİ - SAHA LABORATUVARI",
+          "summary": "Sera ve Ivo kayıp kasayı inceler; Sera emirde Süreklilik Direktörlüğünün silinen imzasını görür ve bunu saklar.",
+          "characters": ["Sera", "Ivo"],
+          "dialogue": [
+            {"speaker": "Ivo", "text": "Kurye kim?"},
+            {"speaker": "Sera", "text": "Sistem yüzde doksan dokuz nokta doksan sekiz diyor."}
+          ],
+          "ability_uses": []
+        },
+        {
+          "id": "ep01-sc06",
+          "title": "LIMEN kaydı",
+          "location": "KUZEY HALKA - AKIRA VE MİNA'NIN DAİRESİ",
+          "summary": "Akira kasayı açar; Elias'ın kaydı LIMEN-80'in ilk belirtisini tarif eder ve içeride insan deneyi etiketleri görünür.",
+          "characters": ["Akira", "Elias", "MNEMOS"],
+          "dialogue": [{"speaker": "Elias", "text": "İlk belirti, bildiğiniz bir şeyin size hiçbir şey hissettirmemesidir."}],
+          "ability_uses": []
+        }
+      ]
+    },
+    {
+      "id": "ep01-seq03",
+      "title": "Makine Tanıyor",
+      "scenes": [
+        {
+          "id": "ep01-sc07",
+          "title": "Ev hapsinden çıkış",
+          "location": "KUZEY HALKA - APARTMAN SERVİS KORİDORU",
+          "summary": "MNEMOS teslimat yetkisini iptal edip kapıyı kilitleyince Akira servis hattını açarak kasayla kaçar.",
+          "characters": ["Akira", "MNEMOS"],
+          "dialogue": [{"speaker": "MNEMOS", "text": "Akira Arel. Teslimat yetkiniz askıya alınmıştır."}],
+          "ability_uses": []
+        },
+        {
+          "id": "ep01-sc08",
+          "title": "Eski Pazar takibi",
+          "location": "ESKİ PAZAR GEÇİDİ",
+          "summary": "Akira güvenlik ekibinden kaçar; Ivo kasayı almak yerine düşen Akira'ya yardım etmeyi seçer ve Sera bunu görür.",
+          "characters": ["Akira", "Sera", "Ivo", "Güvenlik Görevlileri"],
+          "dialogue": [
+            {"speaker": "Sera", "text": "Neden almadın?"},
+            {"speaker": "Ivo", "text": "Çünkü düşüyordu."}
+          ],
+          "ability_uses": [{"character": "Akira", "ability": "Crimson Arc defensive sword technique"}]
+        },
+        {
+          "id": "ep01-sc09",
+          "title": "Kapı melodisi",
+          "location": "KUZEY HALKA - AKIRA VE MİNA'NIN DAİRESİ",
+          "summary": "Akira Mina'nın kapı melodisini ve sesini tanır, fakat kapı açıldığında yüzünde hiçbir tanıdıklık bulamaz.",
+          "characters": ["Akira", "Mina"],
+          "dialogue": [
+            {"speaker": "Mina", "text": "Akira?"},
+            {"speaker": "Akira", "text": "Benim adımı nereden biliyorsun?"}
+          ],
+          "ability_uses": []
+        },
+        {
+          "id": "ep01-sc10",
+          "title": "Yüzde doksan dokuz",
+          "location": "KUZEY HALKA - APARTMAN KORİDORU",
+          "summary": "Akira kız kardeşini tanıyamazken koridor kamerası iki kardeşi de kusursuza yakın doğrulukla tanır.",
+          "characters": ["Akira", "Mina", "MNEMOS"],
+          "dialogue": [],
+          "ability_uses": []
+        }
+      ]
+    }
+  ],
+  "status": "DRAFT",
+  "created_at": "2026-09-09T00:00:00+03:00",
+  "approved_by": null,
+  "approved_at": null
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "action_bible": {
+    "id": "esik-80-action-v1",
+    "principle": "Action is survival under failing recognition, not consequence-free spectacle.",
+    "episode_budget": {
+      "major_set_pieces": 1,
+      "major_set_piece_max_seconds": 300,
+      "minor_bursts": "one or two sequences of 20-60 seconds",
+      "generated_shot_length_seconds": [3, 4, 5]
+    },
+    "camera_rules": [
+      "Establish geography with a readable wide shot before acceleration.",
+      "Keep screen direction stable and show the objective in the frame.",
+      "Use close-ups for decisions and injury consequences, not random impact clutter.",
+      "Represent prosopagnosia through delayed recognition, eyelines, sound and mismatched reaction; never physically erase faces.",
+      "Reserve handheld motion and speed-line accents for short peaks.",
+      "Every major sequence ends with a persistent cost: time, injury, medicine, trust or route access."
+    ],
+    "akira_combat_rules": [
+      "Akira carries exactly one matte-black rescue katana used by Red Line route crews to cut composite seals, cables and disabled machines.",
+      "Crimson Arc is a trained defensive footwork pattern, not an energy power.",
+      "Against people she prioritizes evasion, the sheath, joint control and environmental escape.",
+      "The exposed blade is reserved for drones, locked infrastructure and immediate lethal threats.",
+      "No red energy trail, projectile slash, teleport step, effortless crowd defeat or instant healing.",
+      "Her balance, reaction time and spatial certainty worsen with the infection clock."
+    ],
+    "signature_set_pieces": [
+      {
+        "episode": 1,
+        "name": "Cold-chain rooftop run",
+        "duration_seconds": 90,
+        "objective": "Keep Elias's case below its temperature limit while crossing retracting maintenance bridges.",
+        "opposition": "MNEMOS survey drones and a closing district gate.",
+        "identity_twist": "A drone correctly calls Akira by name before she knows she is being hunted.",
+        "cost": "She damages the case coolant and starts a visible delivery countdown."
+      },
+      {
+        "episode": 4,
+        "name": "North Ring checkpoint collapse",
+        "duration_seconds": 180,
+        "objective": "Extract civilians as the biometric gate repeatedly assigns them to the wrong families.",
+        "opposition": "Panic, riot shutters and security officers following contradictory identities.",
+        "identity_twist": "Akira must trust Sera's voice while fighting the instinct that she is a stranger.",
+        "cost": "Their escape seals the district behind them."
+      },
+      {
+        "episode": 6,
+        "name": "Red Line blind route",
+        "duration_seconds": 270,
+        "objective": "Stop a driverless evacuation train before it reaches a quarantined platform.",
+        "opposition": "Maintenance drones, live rails, flooding and Akira's failing spatial map.",
+        "identity_twist": "Mina guides Akira by sound markers, but a forged marker sends her toward the live rail.",
+        "cost": "Akira saves the train but publicly exposes her infection."
+      },
+      {
+        "episode": 7,
+        "name": "Silent transmitter ascent",
+        "duration_seconds": 210,
+        "objective": "Restore Mina's radio relay without speaking over monitored channels.",
+        "opposition": "Vertical service shafts, patrol drones and gesture-only coordination.",
+        "identity_twist": "Sera must identify Akira from her door-tap habit rather than her face.",
+        "cost": "Sera burns her first layer of MNEMOS clearance."
+      },
+      {
+        "episode": 8,
+        "name": "Zero-degree clinic evacuation",
+        "duration_seconds": 240,
+        "objective": "Move unstable patients between overheated and freezing wards during a power cascade.",
+        "opposition": "Fire shutters, seizure hazards and incompatible patient identity records.",
+        "identity_twist": "Mina gives her own verified place to a patient who cannot prove who they are.",
+        "cost": "Mina misses her safe evacuation window and becomes infected."
+      },
+      {
+        "episode": 10,
+        "name": "Vault 80 evidence breach",
+        "duration_seconds": 270,
+        "objective": "Recover the original LIMEN trial ledger before thermal sterilization destroys it.",
+        "opposition": "Archive guardians, collapsing cold-storage racks and Varga's containment team.",
+        "identity_twist": "Multiple guards wear identical MNEMOS-guided masks; behavior, not faces, reveals the insider helping Akira.",
+        "cost": "Maelle's authorship becomes public with the evidence."
+      },
+      {
+        "episode": 12,
+        "name": "MNEMOS Spire ascent",
+        "duration_seconds": 300,
+        "objective": "Reach the public audit core before compulsory ADEX-R deployment begins.",
+        "opposition": "Layered security, failing elevators and Varga's disciplined continuity unit.",
+        "identity_twist": "Varga offers Akira a perfect digital reconstruction of Mina's memories; accepting it would invalidate Mina's consent.",
+        "cost": "Akira destroys the reconstruction and loses the easiest way to be remembered."
+      }
+    ],
+    "wan_assembly_rule": "A set piece is edited from approved 3-5 second image-to-video shots, held keyframes, reaction inserts, effects and sound layers; no model is asked to generate a continuous multi-minute fight.",
+    "status": "DRAFT"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "character_canon": {
+    "id": "esik-80-cast-v1",
+    "characters": [
+      {
+        "id": "akira",
+        "name": "Akira Arel",
+        "age": 25,
+        "role": "protagonist; Red Line emergency courier and rescue-route runner",
+        "surface_goal": "Deliver Elias's evidence and treatment key to an independent broadcast node.",
+        "inner_need": "Accept that trust requires dependence on other people, not perfect control.",
+        "strength": "Disciplined observation under pressure.",
+        "flaw": "Treats attachment as a vulnerability and silently carries every burden.",
+        "infection_arc": "Anosmia on day 3, facial-recognition failure on day 5 and progressive route-memory errors after day 9.",
+        "season_arc": "A lone protector who identifies people by threat becomes someone who identifies them by repeated acts of care.",
+        "gameplay_value": "Traversal, close-range defensive action, timed courier choices and unreliable navigation.",
+        "identity_anchors": ["low measured voice", "single deep-red hair streak", "left-thumb sword-callus", "two-tap pause before opening a door"]
+      },
+      {
+        "id": "mina",
+        "name": "Mina Arel",
+        "age": 18,
+        "role": "Akira's younger sister; community radio apprentice with congenital prosopagnosia",
+        "surface_goal": "Build a civilian identity protocol that does not depend on MNEMOS.",
+        "inner_need": "Stop allowing others to mistake adaptation for invulnerability.",
+        "strength": "Recognizes people through voice, gait, context and behavior.",
+        "flaw": "Hides fear behind competence and takes reckless responsibility for strangers.",
+        "infection_arc": "Her existing prosopagnosia grants no immunity; late infection attacks temperature control and autobiographical memory.",
+        "season_arc": "The person treated as impaired becomes the architect of the city's humane identity network, then must rebuild her own relationships after treatment.",
+        "gameplay_value": "Identity-verification tutorials, radio coordination and trust puzzles.",
+        "identity_anchors": ["records ambient sounds", "counts four steps before speaking", "copper radio tag", "finishes Akira's childhood melody"]
+      },
+      {
+        "id": "sera",
+        "name": "Sera Veyl",
+        "age": 29,
+        "role": "MNEMOS identity-crimes inspector; pursuer who becomes Akira's uneasy ally",
+        "surface_goal": "Recover the ledger and prevent mass identity fraud.",
+        "inner_need": "Learn that verified identity is not the same as truth or consent.",
+        "strength": "Forensic patience and institutional access.",
+        "flaw": "Trusts systems precisely when frightened by people.",
+        "infection_arc": "A false identification of her own partner destroys her professional certainty.",
+        "season_arc": "She moves from enforcing emergency control to sacrificing her clearance so the public can audit MNEMOS.",
+        "gameplay_value": "Investigation, restricted-zone access and evidence-chain decisions.",
+        "identity_anchors": ["formal speech", "worn silver signet", "never sits facing a door", "recites evidence time-stamps aloud"]
+      },
+      {
+        "id": "maelle",
+        "name": "Dr. Maelle Soren",
+        "age": 41,
+        "role": "neuroimmunologist; co-creator of LIMEN and designer of MAB-TJ",
+        "surface_goal": "Manufacture enough early treatment before FHD-80 reaches the brainstem phase.",
+        "inner_need": "Confess that her silence enabled the trial even though she opposed its final form.",
+        "strength": "Precise, unsentimental clinical judgment.",
+        "flaw": "Uses usefulness as a substitute for accountability.",
+        "season_arc": "She begins by rationing truth like medicine and ends by surrendering her work, name and freedom to make treatment public.",
+        "gameplay_value": "Diagnosis, treatment allocation and ethically costly medical choices.",
+        "identity_anchors": ["asymmetric breathing cadence", "blue ceramic pen", "corrects dates but never names", "burn scar across right palm"]
+      },
+      {
+        "id": "varga",
+        "name": "Director Noe Varga",
+        "age": 52,
+        "role": "director of civic continuity and principal human antagonist",
+        "surface_goal": "Keep Neo-Geneva functioning long enough to deploy late-stage treatment.",
+        "inner_need": "Admit that preserving the city has become more important to him than preserving its citizens' agency.",
+        "strength": "Understands infrastructure, panic and second-order consequences.",
+        "flaw": "Believes consent is an unaffordable luxury during catastrophe.",
+        "season_arc": "His defensible emergency decisions harden into permanent identity control; he loses because he refuses public choice.",
+        "gameplay_value": "Faction pressure, emergency decrees and morally credible opposition.",
+        "identity_anchors": ["soft unhurried voice", "black medical gloves", "memorizes every subordinate's family", "never uses the word sacrifice"]
+      },
+      {
+        "id": "elias",
+        "name": "Dr. Elias Rhen",
+        "age": 34,
+        "role": "Patient Zero and posthumous witness",
+        "surface_goal": "Move the trial ledger beyond MNEMOS custody before losing recognition and speech.",
+        "inner_need": "Turn private guilt into evidence others can act on.",
+        "strength": "Methodical documentation.",
+        "flaw": "Waited for certainty while subjects were already being harmed.",
+        "season_arc": "His recordings change from clinical notes to intimate apologies, but he dies on day 17 and never becomes an all-knowing guide.",
+        "gameplay_value": "Nonlinear evidence fragments and unreliable chronology without supernatural messages.",
+        "identity_anchors": ["taps glass when searching for a word", "green recorder light", "labels files with weather", "says names only once"]
+      }
+    ],
+    "relationship_core": [
+      "Akira protects Mina physically; Mina teaches Akira how to recognize without faces.",
+      "Akira and Sera begin as courier and pursuer, then become mutually necessary witnesses rather than a forced romance.",
+      "Maelle and Varga share responsibility but diverge over consent, disclosure and acceptable loss.",
+      "Elias's evidence can reveal past facts but cannot solve present moral decisions."
+    ],
+    "status": "DRAFT"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "profile_id": "esik80-model-capabilities-v1",
+  "models": [
+    {
+      "model_id": "google/gemma-4-E4B-it-qat-q4_0-gguf",
+      "revision": "UNPINNED_PENDING_DOWNLOAD",
+      "file_sha256": "PENDING",
+      "license": "Gemma Terms of Use",
+      "runtime": "llama.cpp",
+      "quantization": "Q4_0 QAT GGUF",
+      "vram_limit_gb": 8,
+      "workflow_hash": "PENDING",
+      "allowed_tasks": ["script_review", "structured_suggestion", "visual_qc_advisory"],
+      "execution_target": "LOCAL",
+      "forbidden_tasks": ["approve_asset", "set_ready", "change_timeline", "choose_final_take"]
+    },
+    {
+      "model_id": "cagliostrolab/animagine-xl-4.0-opt",
+      "revision": "LOCKED_IN_MODELS_LOCK",
+      "file_sha256": "6327eca98bfb6538dd7a4edce22484a1bbc57a8cff6b11d075d40da1afb847ac",
+      "license": "OpenRAIL++",
+      "runtime": "ComfyUI",
+      "quantization": "none",
+      "vram_limit_gb": 8,
+      "workflow_hash": "PENDING",
+      "allowed_tasks": ["character_pose_generation", "background_generation"],
+      "execution_target": "LOCAL",
+      "forbidden_tasks": ["approve_asset", "set_ready", "change_timeline", "choose_final_take"]
+    },
+    {
+      "model_id": "open-mmlab/rtmpose-m",
+      "revision": "UNPINNED_PENDING_DOWNLOAD",
+      "file_sha256": "PENDING",
+      "license": "Apache-2.0_CODE_VERIFY_CHECKPOINT",
+      "runtime": "MMPose",
+      "quantization": "none",
+      "vram_limit_gb": 2,
+      "workflow_hash": "PENDING",
+      "allowed_tasks": ["pose_keypoint_extraction"],
+      "execution_target": "LOCAL",
+      "forbidden_tasks": ["approve_asset", "set_ready", "change_timeline", "choose_final_take"]
+    },
+    {
+      "model_id": "openai/whisper-medium",
+      "revision": "UNPINNED_PENDING_DOWNLOAD",
+      "file_sha256": "PENDING",
+      "license": "MIT",
+      "runtime": "whisper",
+      "quantization": "fp16_or_q8",
+      "vram_limit_gb": 4,
+      "workflow_hash": "NOT_APPLICABLE",
+      "allowed_tasks": ["transcription", "suggested_word_timestamps"],
+      "execution_target": "LOCAL",
+      "forbidden_tasks": ["approve_asset", "set_ready", "change_timeline", "choose_final_take"]
+    },
+    {
+      "model_id": "Wan-AI/Wan2.2-I2V-A14B",
+      "revision": "UNPINNED_PENDING_RENTED_GPU_TEST",
+      "file_sha256": "PENDING",
+      "license": "Apache-2.0",
+      "runtime": "ComfyUI",
+      "quantization": "BF16",
+      "vram_limit_gb": 80,
+      "workflow_hash": "PENDING",
+      "allowed_tasks": ["shot_image_to_video"],
+      "execution_target": "RENTED_GPU",
+      "forbidden_tasks": ["approve_asset", "set_ready", "change_timeline", "choose_final_take"]
+    }
+  ]
+}

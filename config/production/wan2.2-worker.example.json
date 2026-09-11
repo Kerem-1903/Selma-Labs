@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "UNCONFIGURED",
+  "provider": "",
+  "gpu_model": "H100 80GB",
+  "gpu_count": 1,
+  "vram_gb": 80,
+  "container_image": "",
+  "model_repository": "Wan-AI/Wan2.2-I2V-A14B",
+  "model_revision": "",
+  "persistent_storage": "",
+  "queue_concurrency": 1,
+  "maximum_runtime_hours": 24,
+  "download_results_before_shutdown": true
+}

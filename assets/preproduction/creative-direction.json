@@ -1,14 +1,26 @@
 {
   "schema_version": 1,
   "creative_direction": {
-    "id": "selma-crimson-silence",
-    "title": "Crimson Silence",
+    "id": "esik-80-v1",
+    "title": "ESIK//80",
     "version": 1,
-    "genre": "original cinematic shonen mystery",
-    "target_audience": "16+ global anime audience",
-    "narrative_tone": ["restrained", "tense", "melancholic", "explosive in short bursts"],
-    "visual_identity": "Rain-darkened city spaces, controlled silence, hard cel shadows, amber eyes and sparse deep-red accents.",
-    "originality_guardrails": ["Bleach", "Jujutsu Kaisen", "Demon Slayer", "Studio Ghibli", "MAPPA"],
+    "genre": "psychological outbreak thriller, mystery and grounded action anime",
+    "target_audience": "16+ global anime and narrative-game audience",
+    "narrative_tone": [
+      "tense",
+      "intimate",
+      "melancholic",
+      "morally ambiguous",
+      "explosive only in short readable bursts"
+    ],
+    "visual_identity": "Rain-darkened Neo-Geneva, face-recognition infrastructure, restrained charcoal and cold-blue frames, sparse deep-red identity marks, and familiar voices returning warmth to otherwise alien faces.",
+    "originality_guardrails": [
+      "Do not imitate named anime, games, studios, characters, costumes, shots or signature powers.",
+      "FHD-80 never turns people into zombies or monsters.",
+      "Faces remain physically normal; alienation is conveyed through framing, sound and recognition failure.",
+      "Action must arise from evacuation, evidence, scarce treatment and human conflict rather than tournament escalation.",
+      "Every major opponent must have a defensible human objective."
+    ],
     "status": "LOCKED"
   }
 }

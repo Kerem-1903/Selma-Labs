@@ -15,6 +15,8 @@ provider defaults, or milestones.
 
 ## Architecture
 
+- [Architecture Decision Records](adr/README.md)
+- [ADR-009 — Wan job execution contract](adr/ADR-009-wan-job-execution-contract.md)
 - [Engineering review](architecture/engineering-review.md)
 - [Autonomous studio architecture](architecture/autonomous-studio.md)
 - [Premium pipeline architecture](architecture/premium-pipeline.md)

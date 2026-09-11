@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "name": "Kaito",
+  "concept": "A calm disciplined cyberpunk courier presented as a clean production character portrait, one person only.",
+  "age_band": "adult",
+  "gender_presentation": "masculine",
+  "body_type": "athletic adult with natural balanced proportions",
+  "face": "fully visible masculine anime face, natural adult jaw and cheeks, straight nose, calm alert expression, clearly readable facial features",
+  "eyes": "large clearly visible steel-blue eyes with natural anime proportions and clean highlights",
+  "hair": "short straight black hair with a clean forehead silhouette and exactly one narrow cobalt-blue front streak on character-left",
+  "signature_marks": [
+    {
+      "label": "single cobalt-blue front hair streak",
+      "count": 1,
+      "character_side": "left",
+      "colour": "#0047AB"
+    }
+  ],
+  "outfit": "only the upper edge of a simple matte charcoal courier jacket is visible at the shoulders, with restrained cobalt-blue piping",
+  "props": [],
+  "personality": [
+    "disciplined",
+    "observant",
+    "protective"
+  ],
+  "style_preset": "selma-anime-v3-face",
+  "palette": [
+    "matte charcoal",
+    "black",
+    "muted gray",
+    "limited cobalt blue",
+    "steel blue",
+    "natural skin tone"
+  ],
+  "avoid": [
+    "multiple characters",
+    "extra weapons",
+    "blue hair",
+    "multiple blue streaks",
+    "long hair",
+    "cropped face",
+    "cropped head",
+    "text",
+    "watermark",
+    "heavy black shadow blocks",
+    "neon glow",
+    "excessive straps",
+    "oversized armor",
+    "busy cyberpunk armor",
+    "bright cyan background",
+    "Akira red hair streak",
+    "face covering",
+    "faceless",
+    "featureless face",
+    "face hidden in shadow",
+    "closed eyes",
+    "profile view",
+    "back view",
+    "full body",
+    "hands",
+    "legs",
+    "feet",
+    "body crop below shoulders"
+  ],
+  "view_pack": "standard",
+  "requested_actions": [],
+  "additional_notes": "This is a face-anchor discovery portrait, not a full-body design and not an action pose. Show one adult masculine character from the upper chest and shoulders upward. The head must be large, centered, fully visible, and occupy at least one third of the canvas height. Both eyes, eyebrows, nose, mouth, jawline, hairline, ears, and the complete short hairstyle must be readable. Show exactly one narrow cobalt-blue streak on character-left, viewer-right. Keep the face uncovered and evenly lit. Do not depict headgear or any object covering the face, do not use dramatic face shadow, long hair, red hair, Akira identity, or a second person. Use clean precise anime line art, thin controlled outlines, restrained two-step cel shading, natural adult facial proportions, soft readable cheeks and jaw, a plain light-gray studio background, and a simple charcoal shoulder edge only."
+}

@@ -22,6 +22,7 @@
   <a href="README.tr.md">Türkçe</a> ·
   <a href="docs/README.md">Documentation</a> ·
   <a href="docs/operations/runbook.md">Runbook</a> ·
+  <a href="docs/adr/ADR-009-wan-job-execution-contract.md">Wan ADR</a> ·
   <a href="docs/project/roadmap.md">Roadmap</a> ·
   <a href="docs/A8_1_PILOT_PRODUCTION.md">Pilot production</a>
 </p>
@@ -238,6 +239,7 @@ Start with the [documentation index](docs/README.md). Key references:
 - [Roadmap](docs/project/roadmap.md)
 - [Changelog](CHANGELOG.md)
 - [Autonomous studio architecture](docs/architecture/autonomous-studio.md)
+- [Wan job execution ADR](docs/adr/ADR-009-wan-job-execution-contract.md)
 - [Approved keyframe-to-motion workflow](docs/A8_APPROVED_KEYFRAME_MOTION.md)
 - [Pilot production and FFmpeg assembly](docs/A8_1_PILOT_PRODUCTION.md)
 - [Source-control safety](docs/SOURCE_CONTROL_SAFETY.md)

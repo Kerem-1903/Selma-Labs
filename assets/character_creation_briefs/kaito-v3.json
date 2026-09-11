@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "name": "Kaito",
+  "concept": "A single centered disciplined cyberpunk courier, one person only, protecting a quiet district in a rain-soaked megacity.",
+  "age_band": "adult",
+  "gender_presentation": "masculine",
+  "body_type": "athletic adult with natural balanced proportions",
+  "face": "fully visible masculine anime face, angular but natural jaw, straight nose, exposed skin, calm alert expression",
+  "eyes": "clearly visible steel blue eyes",
+  "hair": "short straight black hair, clearly visible around the forehead and temples, with exactly one narrow cobalt-blue front streak",
+  "signature_marks": [
+    {
+      "label": "single cobalt-blue front hair streak",
+      "count": 1,
+      "character_side": "left",
+      "colour": "#0047AB"
+    }
+  ],
+  "outfit": "simple matte charcoal courier jacket with restrained cobalt-blue edge piping, fitted black cargo trousers with minimal pockets, and plain black combat boots",
+  "props": [
+    "one compact messenger bag resting on character-right hip, with its strap crossing from character-left shoulder"
+  ],
+  "personality": [
+    "disciplined",
+    "observant",
+    "protective"
+  ],
+  "style_preset": "selma-anime-v2-balanced",
+  "palette": [
+    "matte charcoal",
+    "black",
+    "muted gray",
+    "limited cobalt blue",
+    "steel blue",
+    "natural skin tone"
+  ],
+  "avoid": [
+    "multiple characters",
+    "extra weapons",
+    "blue hair",
+    "multiple blue streaks",
+    "cropped head",
+    "cropped feet",
+    "text",
+    "watermark",
+    "heavy black shadow blocks",
+    "neon glow",
+    "excessive straps",
+    "oversized armor",
+    "busy cyberpunk armor",
+    "bright cyan background",
+    "Akira red hair streak",
+    "long hair",
+    "helmet",
+    "mask",
+    "visor",
+    "face covering",
+    "faceless",
+    "featureless face",
+    "back view",
+    "rear view",
+    "looking away",
+    "head turned away",
+    "closed eyes",
+    "face hidden in shadow"
+  ],
+  "view_pack": "standard",
+  "requested_actions": [
+    "walking through rain",
+    "guarding a doorway",
+    "looking over shoulder"
+  ],
+  "additional_notes": "One subject only, one body, one head, centered in frame. This is a front-facing design candidate, not a turnaround and not an action pose. The face must be uncovered and clearly readable. Show short black hair and exactly one narrow cobalt-blue streak on character-left, viewer-right in the front view. Keep the messenger bag on character-right hip, viewer-left in the front view, and never mirror asymmetric details. Use a restrained animation-ready design: 70 percent clean natural anime production finish and 30 percent simplified modern cyberpunk energy. No helmet, mask, visor, armor headgear, faceless mannequin, or rear-facing subject."
+}

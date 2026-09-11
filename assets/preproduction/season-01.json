@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "season": {
+    "id": "esik-80-s01",
+    "episode_count": 12,
+    "episode_runtime_minutes": 22,
+    "timeline": "outbreak days 0-22",
+    "episodes": [
+      {"number": 1, "title": "Aynadaki Yabanci", "days": "0-4", "purpose": "Hook the recognition premise and place the evidence in Akira's hands.", "story": "Patient Zero Elias cannot recognize his own reflection. Four days earlier, Akira accepts his sealed cold-chain case while MNEMOS marks the delivery as stolen.", "turn": "Akira hears Mina's voice at home but feels nothing when she sees her face.", "game_hook": "Cold-chain courier tutorial and first identity mismatch."},
+      {"number": 2, "title": "Sesini Taniyorum", "days": "5", "purpose": "Force Akira and Sera into conflict while proving voice is useful but not infallible.", "story": "Clinics fill with patients who recognize voices but not faces. Sera corners Akira, then misidentifies her own partner during a forged evacuation call.", "turn": "The case plays Elias's first recording: the outbreak was anticipated.", "game_hook": "Voice, gait and object-based identity checks."},
+      {"number": 3, "title": "Isim Yerine", "days": "6", "purpose": "Give Mina agency and establish a civilian alternative to biometric rule.", "story": "Identity theft and wrong-family transfers spread. Mina creates a three-part protocol using a shared memory, a behavior and a rotating physical token.", "turn": "MNEMOS criminalizes unregistered identity circles.", "game_hook": "Build and test trust chains; false positives have consequences."},
+      {"number": 4, "title": "Karantina Cizgisi", "days": "7", "purpose": "Close act one and reveal what Akira is carrying.", "story": "Varga seals the North Ring. Akira and Sera cross a collapsing checkpoint and discover that the case contains the human-trial ledger plus a treatment key, not a pathogen sample.", "turn": "Elias enters a coma before authenticating the final file.", "game_hook": "District closure changes routes and faction access."},
+      {"number": 5, "title": "Esik Protokolu", "days": "8", "purpose": "Define scarcity through Akira's irreversible moral choice.", "story": "Maelle demonstrates MAB-TJ, which may interrupt early neuroinvasion. One viable dose remains between infected Akira and a child whose symptoms began hours later.", "turn": "Akira gives away the dose and conceals her worsening spatial errors.", "game_hook": "Treatment allocation with no perfect outcome."},
+      {"number": 6, "title": "Kirmizi Hat", "days": "9-10", "purpose": "Turn Akira's signature competence into a liability.", "story": "A false broadcast diverts an evacuation train into a sealed tunnel. Akira leads survivors through a route she knew by heart while her internal map fractures.", "turn": "Sera realizes only an MNEMOS administrator could have authored the order.", "game_hook": "Unreliable-map traversal and player-made landmarks."},
+      {"number": 7, "title": "Sessizlik Emri", "days": "10-11", "purpose": "Remove the city's strongest remaining human identity channel.", "story": "Citing voice cloning and panic, Varga suspends civilian radio. Mina's network becomes illegal while Sera uses her clearance to keep one transmitter alive.", "turn": "The government relocates unverified citizens to the Cold Archive district.", "game_hook": "Stealth radio relays and misinformation triage."},
+      {"number": 8, "title": "Sifir Derece", "days": "12", "purpose": "Move the disease into autonomic collapse and make the crisis personal for Mina.", "story": "Temperature regulation fails across overcrowded shelters during a power outage. Mina becomes infected while keeping the identity network online.", "turn": "Only ADEX-R may save her, at the risk of erasing autobiographical memory.", "game_hook": "Heat, power and medicine routing under a shared countdown."},
+      {"number": 9, "title": "Odunc Anilar", "days": "13-14", "purpose": "Complicate the apparent cure and divide the allies.", "story": "ADEX-R patients wake alive but with missing years and MNEMOS reconstructions presented as memories. Varga calls it recovery; Maelle calls it survival without consent.", "turn": "Mina enters treatment under a false state identity.", "game_hook": "Choose whether reconstructed records may stabilize patients."},
+      {"number": 10, "title": "Sekseninci Denek", "days": "15-17", "purpose": "Reveal the origin without reducing the season to one evil mastermind.", "story": "Elias's ledger proves FHD-80 was LIMEN variant eighty, designed to weaken traumatic facial associations. Maelle authorized the platform; Varga expanded testing after fatal warnings.", "turn": "Elias dies on day 17 and the last decryption key must be inferred from testimony.", "game_hook": "Evidence reconstruction and responsibility assignment."},
+      {"number": 11, "title": "Beni Hatirlama", "days": "18-21", "purpose": "Resolve the sisters' emotional arc before the institutional climax.", "story": "Mina survives ADEX-R but remembers neither Akira nor their childhood. Akira refuses to force a state-generated memory onto her and introduces herself through actions.", "turn": "Sera releases her access history, sacrificing immunity and opening a route into the Spire.", "game_hook": "Consent-based memory choices and final faction alignment."},
+      {"number": 12, "title": "Esik Seksen", "days": "22", "purpose": "Answer the theme while leaving the wider outbreak open for a game and later seasons.", "story": "Akira, Sera and Maelle enter MNEMOS as Varga prepares compulsory ADEX-R deployment. They broadcast the ledger, treatment risks and source code so districts can choose transparently.", "turn": "Mina cannot recognize Akira, but completes their childhood melody after Akira stops asking to be remembered.", "game_hook": "The anime fixes public disclosure; the game determines which districts survive to receive it."}
+    ],
+    "season_end_state": [
+      "FHD-80 remains active outside Neo-Geneva.",
+      "MNEMOS survives as public infrastructure but loses unilateral authority.",
+      "MAB-TJ and ADEX-R become auditable treatments with explicit risks.",
+      "Akira is alive, infected and neurologically unstable.",
+      "Mina is alive but must rebuild her relationship with Akira.",
+      "Varga is detained, not killed, preserving future political conflict."
+    ],
+    "status": "DRAFT"
+  }
+}

@@ -44,13 +44,13 @@
       }
     ],
     "narrative_profile": {
-      "allowed_abilities": ["Crimson Arc"],
-      "backstory": "A disciplined swordswoman hunting the source of altered memories inside a rain-soaked controlled city.",
-      "canonical_names": ["Akira"],
+      "allowed_abilities": ["Crimson Arc defensive sword technique"],
+      "backstory": "Akira Arel is a Red Line emergency courier and rescue-route runner carrying proof that the FHD-80 outbreak was caused by the LIMEN human-trial program.",
+      "canonical_names": ["Akira", "Akira Arel"],
       "forbidden_behaviors": ["abandons civilians"],
       "forbidden_voice_phrases": ["I give up"],
       "locked": true,
-      "motivation": "Protect civilians without becoming a weapon of the memory regime.",
+      "motivation": "Deliver the FHD-80 evidence and treatment key while protecting civilians without surrendering their identities to MNEMOS.",
       "voice_traits": ["concise", "restrained", "observant"]
     },
     "reference_pack": {},

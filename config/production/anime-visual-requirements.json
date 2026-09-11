@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "profile_id": "anime-visual-local-v1",
+  "stage": "VISUAL_GENERATION",
+  "execution": "LOCAL",
+  "paid_api_required": false,
+  "required_tools": ["ffmpeg", "ffprobe", "node", "npm"],
+  "required_model_roles": [
+    "checkpoint",
+    "ip_adapter",
+    "clip_vision",
+    "controlnet_openpose",
+    "face_detector",
+    "pose_detector"
+  ],
+  "required_comfyui_nodes": [
+    "KSampler",
+    "CheckpointLoaderSimple",
+    "CLIPTextEncode",
+    "VAEDecode",
+    "SaveImage",
+    "LoadImage",
+    "IPAdapterUnifiedLoader",
+    "IPAdapterAdvanced",
+    "ControlNetLoader",
+    "ControlNetApplyAdvanced"
+  ],
+  "required_series_gates": [
+    "APPROVED_STYLE",
+    "PRODUCTION_STYLE_LOCK",
+    "CANONICAL_CAST"
+  ],
+  "required_workflows": ["assets/comfyui_keyframe_workflow.json"],
+  "output_contracts": [
+    "approved character view packs",
+    "approved character pose packs",
+    "approved background packs",
+    "QC-passed start/end keyframe pairs",
+    "asset provenance and SHA-256 evidence"
+  ]
+}

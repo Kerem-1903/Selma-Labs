@@ -22,6 +22,7 @@
   <a href="README.md">English</a> ·
   <a href="docs/README.md">Dokümantasyon</a> ·
   <a href="docs/operations/runbook.md">Operasyon rehberi</a> ·
+  <a href="docs/adr/ADR-009-wan-job-execution-contract.md">Wan ADR</a> ·
   <a href="docs/project/roadmap.md">Yol haritası</a> ·
   <a href="docs/A8_1_PILOT_PRODUCTION.md">Pilot üretimi</a>
 </p>
@@ -207,6 +208,7 @@ kullanmalıdır.
 - [Yol haritası](docs/project/roadmap.md)
 - [Değişiklik kaydı](CHANGELOG.md)
 - [Otonom stüdyo mimarisi](docs/architecture/autonomous-studio.md)
+- [Wan job execution ADR'si](docs/adr/ADR-009-wan-job-execution-contract.md)
 - [Onaylı keyframe-to-motion workflow'u](docs/A8_APPROVED_KEYFRAME_MOTION.md)
 - [Pilot üretimi ve FFmpeg montajı](docs/A8_1_PILOT_PRODUCTION.md)
 - [LoRA'sız Character Factory](docs/CHARACTER_FACTORY.md)

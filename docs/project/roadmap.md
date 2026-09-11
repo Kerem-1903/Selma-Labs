@@ -6,6 +6,9 @@ set through a tracked GitHub issue and lands through a focused pull request.
 ## Now — repository and production clarity
 
 - Keep the documentation index, status page, and README aligned.
+- Implement and test the accepted pre-GPU Wan execution contract in
+  [ADR-009](../adr/ADR-009-wan-job-execution-contract.md) before connecting a
+  real provider or GPU instance.
 - Close or supersede stale pull requests and remove merged remote branches after
   verifying that they contain no unique work.
 - Complete dependency and security automation.

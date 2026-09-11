@@ -4,11 +4,12 @@
   "title": "SELMA Anime",
   "style_bible": {
     "style_id": "selma-production-anime-v1",
+    "style_version": 1,
     "reference_asset": "assets/series/selma-anime-v1/style/approved-style-reference.png",
     "reference_sha256": "f2af7fe8f57d035c75c07bd739ad26f0982346b9900890f4ad218b1c91931774",
     "width": 1024,
     "height": 1024,
-    "status": "APPROVED",
+    "status": "PROVISIONAL",
     "rendering_rules": [
       "professional modern anime concept-art finish",
       "clean controlled line art with restrained cel shading",
@@ -30,5 +31,7 @@
   },
   "character_registry": "config/series/selma-anime-v1.cast.json",
   "model_lock": "models.lock.json",
-  "production_root": "output/production/series/selma-anime-v1"
+  "production_root": "output/production/series/selma-anime-v1",
+  "style_approval_receipt": "config/series/selma-anime-v1/style-approval.json",
+  "production_style_lock": "config/series/selma-anime-v1/production-style-lock.json"
 }
