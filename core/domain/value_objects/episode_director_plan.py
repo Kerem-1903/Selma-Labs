@@ -4,9 +4,20 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from math import isclose
 from typing import Any, Mapping
 
 from core.domain.exceptions import PreProductionValidationError
+
+TIMELINE_FPS = 24
+
+
+def frame_to_ms(frame: int, fps: int = TIMELINE_FPS) -> int:
+    """Convert an exclusive/inclusive frame boundary using deterministic floor math."""
+    if frame < 0 or fps <= 0:
+        raise PreProductionValidationError("Frame and FPS must be non-negative/positive.")
+    return frame * 1000 // fps
+
 
 POSE_IDS = (
     "FRONT_NEUTRAL",
@@ -165,6 +176,11 @@ class DirectorShot:
     reasoning: str
     character_pose_asset_ref: str = ""
     background_asset_ref: str = ""
+    # Frames are the authoritative timeline representation. Milliseconds are
+    # display/export values and cannot be used to reconstruct frame boundaries
+    # safely at 24 FPS.
+    start_frame: int | None = None
+    duration_frames: int | None = None
 
     def __post_init__(self) -> None:
         for value, name in ((self.shot_id, "shot_id"), (self.scene_id, "scene_id"), (self.character_id, "character_id")):
@@ -175,8 +191,21 @@ class DirectorShot:
             raise PreProductionValidationError("Director shot contains an unsupported beat or shot size.")
         if self.duration_seconds <= 0 or self.start_ms < 0 or self.end_ms <= self.start_ms:
             raise PreProductionValidationError("Director shot timing is invalid.")
-        if self.end_ms - self.start_ms != round(self.duration_seconds * 1000):
-            raise PreProductionValidationError("Director shot milliseconds and duration disagree.")
+        if self.start_frame is not None or self.duration_frames is not None:
+            if self.start_frame is None or self.duration_frames is None:
+                raise PreProductionValidationError("Director shot frame fields must be supplied together.")
+            if self.start_frame < 0 or self.duration_frames < 1:
+                raise PreProductionValidationError("Director shot frame timing is invalid.")
+            if not isclose(
+                self.duration_seconds, self.duration_frames / 24, rel_tol=0.0, abs_tol=1e-9
+            ):
+                raise PreProductionValidationError(
+                    "Director shot duration_seconds does not match its frame duration."
+                )
+            if self.end_ms != frame_to_ms(self.start_frame + self.duration_frames):
+                raise PreProductionValidationError("Director shot end_ms does not match its frame boundary.")
+            if self.start_ms != frame_to_ms(self.start_frame):
+                raise PreProductionValidationError("Director shot start_ms does not match its frame boundary.")
         if self.character_pose_asset_ref:
             object.__setattr__(self, "character_pose_asset_ref", _key(self.character_pose_asset_ref, "character_pose_asset_ref"))
         if self.background_asset_ref:
@@ -209,7 +238,16 @@ class DirectorShot:
             "reasoning": self.reasoning,
             "character_pose_asset_ref": self.character_pose_asset_ref,
             "background_asset_ref": self.background_asset_ref,
+            "start_frame": self.start_frame,
+            "duration_frames": self.duration_frames,
         }
+
+    @property
+    def end_frame(self) -> int | None:
+        """Return the frame boundary without reconstructing it from milliseconds."""
+        if self.start_frame is None or self.duration_frames is None:
+            return None
+        return self.start_frame + self.duration_frames
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "DirectorShot":
@@ -239,6 +277,8 @@ class DirectorShot:
             reasoning=str(data.get("reasoning", "")),
             character_pose_asset_ref=str(data.get("character_pose_asset_ref", "")),
             background_asset_ref=str(data.get("background_asset_ref", "")),
+            start_frame=(int(data["start_frame"]) if data.get("start_frame") is not None else None),
+            duration_frames=(int(data["duration_frames"]) if data.get("duration_frames") is not None else None),
         )
 
 
@@ -323,9 +363,9 @@ class EpisodeTimelineClip:
             "shot_id": self.shot_id,
             "start_frame": self.start_frame,
             "duration_frames": self.duration_frames,
-            "start_ms": round(self.start_frame / 24 * 1000),
+            "start_ms": frame_to_ms(self.start_frame),
             "end_frame": self.start_frame + self.duration_frames,
-            "end_ms": round((self.start_frame + self.duration_frames) / 24 * 1000),
+            "end_ms": frame_to_ms(self.start_frame + self.duration_frames),
             "label": self.label,
             "asset_type": self.asset_type,
             "asset_ref": self.asset_ref,
@@ -349,7 +389,7 @@ class EpisodeDirectorPlan:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.schema_version != 1 or self.fps != 24 or not self.scenes or not self.timeline:
+        if self.schema_version != 1 or self.fps != TIMELINE_FPS or not self.scenes or not self.timeline:
             raise PreProductionValidationError("Episode director plan is incomplete.")
         if self.decision_mode not in {"LLM", "RULE_FALLBACK", "HYBRID"}:
             raise PreProductionValidationError("Unknown episode director decision mode.")

@@ -120,6 +120,16 @@ async def index(request: Request):
         context={},
     )
 
+@app.get("/episode-timeline", response_class=HTMLResponse)
+async def episode_timeline(request: Request):
+    """Render the local, file-driven Episode Director timeline preview."""
+    return templates.TemplateResponse(
+        request=request,
+        name="episode_timeline.html",
+        context={},
+    )
+
+
 async def _generate_character_keyframe(
     *,
     job_id: str,

@@ -24,6 +24,7 @@ class AnimaticClip:
     image_storage_key: str
     dialogue: str = ""
     dialogue_audio_storage_key: str = ""
+    warning: str = ""
 
     def __post_init__(self) -> None:
         if (
@@ -44,6 +45,7 @@ class AnimaticClip:
             "image_storage_key": self.image_storage_key,
             "dialogue": self.dialogue,
             "dialogue_audio_storage_key": self.dialogue_audio_storage_key,
+            "warning": self.warning,
         }
 
     @classmethod
@@ -55,6 +57,7 @@ class AnimaticClip:
             image_storage_key=str(data["image_storage_key"]),
             dialogue=str(data.get("dialogue", "")),
             dialogue_audio_storage_key=str(data.get("dialogue_audio_storage_key", "")),
+            warning=str(data.get("warning", "")),
         )
 
 
@@ -70,6 +73,8 @@ class AnimaticProject:
     created_at: datetime
     approved_by: str | None = None
     approved_at: datetime | None = None
+    project_kind: str = "EPISODE"
+    audio_cues: tuple[dict[str, Any], ...] = ()
 
     @classmethod
     def create(
@@ -80,6 +85,8 @@ class AnimaticProject:
         fps: int = 24,
         width: int = 1920,
         height: int = 1080,
+        project_kind: str = "EPISODE",
+        audio_cues: tuple[dict[str, Any], ...] = (),
     ) -> AnimaticProject:
         if not production_plan_id.strip() or not clips or fps != 24:
             raise AnimaticApprovalError(
@@ -87,6 +94,13 @@ class AnimaticProject:
             )
         if width <= 0 or height <= 0:
             raise AnimaticApprovalError("Animatic dimensions must be positive.")
+        if project_kind not in {"EPISODE", "TRAILER"}:
+            raise AnimaticApprovalError("Animatic project kind must be EPISODE or TRAILER.")
+        for cue in audio_cues:
+            if not isinstance(cue, dict):
+                raise AnimaticApprovalError("Animatic audio cues must be objects.")
+            if int(cue.get("start_frame", -1)) < 0 or int(cue.get("end_frame", 0)) <= int(cue.get("start_frame", -1)):
+                raise AnimaticApprovalError("Animatic audio cue frame range is invalid.")
         expected_start = 0
         for clip in clips:
             if clip.start_frame != expected_start:
@@ -103,6 +117,8 @@ class AnimaticProject:
             tuple(clips),
             AnimaticStatus.READY_FOR_REVIEW,
             datetime.now(timezone.utc),
+            project_kind=project_kind,
+            audio_cues=tuple(dict(cue) for cue in audio_cues),
         )
 
     @property
@@ -132,6 +148,8 @@ class AnimaticProject:
             "created_at": self.created_at.isoformat(),
             "approved_by": self.approved_by,
             "approved_at": self.approved_at.isoformat() if self.approved_at else None,
+            "project_kind": self.project_kind,
+            "audio_cues": [dict(cue) for cue in self.audio_cues],
         }
 
     @classmethod
@@ -151,4 +169,6 @@ class AnimaticProject:
                 if data.get("approved_at")
                 else None
             ),
+            project_kind=str(data.get("project_kind", "EPISODE")),
+            audio_cues=tuple(dict(cue) for cue in data.get("audio_cues", ()) if isinstance(cue, dict)),
         )

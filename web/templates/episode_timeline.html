@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SELMA Episode Timeline</title>
+    <style>
+        :root { color-scheme: dark; --bg: #0b0d12; --panel: #151923; --line: #292f3d; --muted: #8d96a8; --text: #eef2f8; }
+        * { box-sizing: border-box; }
+        body { margin: 0; min-height: 100vh; background: radial-gradient(circle at 20% 0%, #17253d 0, transparent 35%), var(--bg); color: var(--text); font: 14px/1.45 Inter, system-ui, sans-serif; }
+        main { width: min(1400px, 100%); margin: 0 auto; padding: 28px; }
+        header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+        h1, h2, h3, p { margin: 0; } h1 { font-size: 24px; } h2 { font-size: 17px; } h3 { font-size: 14px; }
+        .muted { color: var(--muted); }
+        .panel { background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--line); border-radius: 12px; padding: 18px; box-shadow: 0 12px 35px #0003; }
+        .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+        input[type=file] { max-width: 100%; color: var(--muted); }
+        .button { display: inline-block; border: 1px solid #47658f; border-radius: 7px; padding: 8px 12px; color: #dceaff; background: #1b3558; cursor: pointer; }
+        .button:hover { background: #244873; }
+        .hidden { display: none !important; }
+        .summary { display: grid; grid-template-columns: repeat(5, minmax(110px, 1fr)); gap: 10px; margin: 18px 0; }
+        .metric { background: #10141d; border: 1px solid var(--line); border-radius: 8px; padding: 11px; }
+        .metric strong { display: block; font-size: 18px; margin-top: 2px; }
+        .warning { margin: 10px 0; padding: 10px 12px; border-left: 3px solid #d9a441; background: #312716; color: #f1d18b; border-radius: 4px; }
+        .scenes { display: grid; gap: 14px; margin-top: 16px; }
+        .scene { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+        .scene-head { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; background: #1a202d; }
+        .shot { display: grid; grid-template-columns: 105px 1fr 110px; gap: 12px; align-items: center; padding: 11px 14px; border-top: 1px solid #252b37; }
+        .shot:hover { background: #191e29; }
+        .shot-id, .code { font: 12px ui-monospace, SFMono-Regular, Consolas, monospace; color: #a9c8ff; }
+        .shot-details { min-width: 0; } .shot-details strong { display: block; margin-bottom: 2px; }
+        .asset { text-align: right; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .badge { display: inline-block; border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+        .ready { color: #a7f3c0; background: #123b28; border: 1px solid #216b45; }
+        .planned { color: #f5d690; background: #3b2d12; border: 1px solid #765a20; }
+        .blocked { color: #ffb1b1; background: #451d24; border: 1px solid #893744; }
+        .timeline { overflow-x: auto; margin-top: 18px; padding-bottom: 4px; }
+        .track { min-width: 760px; display: grid; grid-template-columns: 110px 1fr; border-top: 1px solid var(--line); }
+        .track-name { padding: 12px 10px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .06em; }
+        .track-lane { position: relative; min-height: 55px; background: repeating-linear-gradient(90deg, #111620 0, #111620 calc(10% - 1px), #202735 10%); }
+        .clip { position: absolute; top: 9px; height: 36px; min-width: 3px; border-radius: 5px; padding: 8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 11px; color: #fff; border: 1px solid #ffffff33; }
+        .clip.ready { background: #17613c; } .clip.planned { background: #74531a; } .clip.blocked { background: #7a2835; }
+        .empty { padding: 70px 20px; text-align: center; border: 1px dashed #465067; border-radius: 10px; color: var(--muted); }
+        @media (max-width: 760px) { main { padding: 16px; } header { align-items: flex-start; flex-direction: column; } .summary { grid-template-columns: repeat(2, 1fr); } .shot { grid-template-columns: 1fr; gap: 3px; } .asset { text-align: left; } }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <div><h1>Episode Timeline Preview</h1><p class="muted">Inspect a 24 FPS screenplay plan without starting production.</p></div>
+        <a class="button" href="/">Back to SELMA</a>
+    </header>
+    <section class="panel">
+        <div class="toolbar">
+            <label class="button" for="plan-file">Open plan JSON</label>
+            <input id="plan-file" type="file" accept=".json,application/json">
+            <span id="file-name" class="muted">Choose an episode plan or preparation manifest.</span>
+        </div>
+        <div id="error" class="warning hidden"></div>
+    </section>
+    <section id="content" class="hidden">
+        <div class="summary">
+            <div class="metric"><span class="muted">Episode</span><strong id="episode"></strong></div>
+            <div class="metric"><span class="muted">Status</span><strong id="status"></strong></div>
+            <div class="metric"><span class="muted">FPS</span><strong id="fps"></strong></div>
+            <div class="metric"><span class="muted">Scenes / Shots</span><strong id="counts"></strong></div>
+            <div class="metric"><span class="muted">Duration</span><strong id="duration"></strong></div>
+        </div>
+        <div id="warnings"></div>
+        <section class="panel"><h2>24 FPS Timeline</h2><div id="timeline" class="timeline"></div></section>
+        <section class="panel" style="margin-top:18px"><h2>Scenes and shot decisions</h2><div id="scenes" class="scenes"></div></section>
+    </section>
+    <div id="empty" class="empty" style="margin-top:18px">Open an <span class="code">episode plan</span> or <span class="code">episode prepare</span> JSON to inspect its scenes, assets, and timeline.</div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+const badge = (status) => `<span class="badge ${(status || 'PLANNED').toLowerCase()}">${esc(status || 'PLANNED')}</span>`;
+function normalize(payload) {
+    const plan = payload.episode_director_plan || payload;
+    if (!plan || !Array.isArray(plan.scenes) || !Array.isArray(plan.timeline)) throw new Error('JSON does not contain an Episode Director plan.');
+    return { plan, jobs: Array.isArray(payload.jobs) ? payload.jobs : [], preparationStatus: payload.preparation_status || '' };
+}
+function jobStatus(jobs, kind, targetId) {
+    const job = jobs.find((item) => item.kind === kind && item.target_id === targetId);
+    return job?.status === 'FAILED' ? 'BLOCKED' : (job?.status || '');
+}
+function requirementStatus(plan, jobs, shot, track, scene) {
+    if (track === 'CHARACTER') {
+        const requirement = (plan.character_requirements || []).find((item) => item.character_id === shot.character_id);
+        return jobStatus(jobs, 'POSE_PACK', shot.character_id) || requirement?.status || 'PLANNED';
+    }
+    if (track === 'BACKGROUND') {
+        const requirement = (plan.background_requirements || []).find((item) => item.recipe_id === shot.background_recipe_id && item.location_id === scene?.location_id);
+        return jobStatus(jobs, 'BACKGROUND_PACK', scene?.location_id) || requirement?.status || (shot.background_asset_ref ? 'READY' : 'PLANNED');
+    }
+    return 'PLANNED';
+}
+function render(payload) {
+    const {plan, jobs, preparationStatus} = normalize(payload);
+    const scenes = plan.scenes || [], shots = scenes.flatMap((scene) => (scene.shots || []).map((shot) => ({...shot, scene}))), clips = plan.timeline || [];
+    $('episode').textContent = plan.title || plan.episode_id;
+    const overallStatus = preparationStatus === 'BLOCKED' ? 'BLOCKED' : (preparationStatus || (plan.warnings?.length ? 'PLANNED' : 'READY'));
+    $('status').innerHTML = badge(overallStatus);
+    $('fps').textContent = `${plan.fps} FPS`;
+    $('counts').textContent = `${scenes.length} / ${shots.length}`;
+    $('duration').textContent = `${Number(plan.total_duration_seconds || 0).toFixed(1)}s`;
+    $('warnings').innerHTML = (plan.warnings || []).map((warning) => `<div class="warning">${esc(warning)}</div>`).join('');
+    const totalFrames = Math.max(1, Number(plan.duration_frames || 1));
+    const tracks = [...new Set(clips.map((clip) => clip.track))];
+    $('timeline').innerHTML = tracks.map((track) => `<div class="track"><div class="track-name">${esc(track)}</div><div class="track-lane">${clips.filter((clip) => clip.track === track).map((clip) => {
+        const shot = shots.find((item) => item.shot_id === clip.shot_id);
+        const status = shot ? requirementStatus(plan, jobs, shot, track, shot.scene) : 'PLANNED';
+        const left = Math.max(0, Number(clip.start_frame || 0) / totalFrames * 100);
+        const width = Math.max(0.5, Number(clip.duration_frames || 1) / totalFrames * 100);
+        return `<div class="clip ${status.toLowerCase()}" style="left:${left}%;width:${width}%" title="${esc(clip.asset_ref || clip.label)}">${esc(clip.label || clip.shot_id)} ${badge(status)}</div>`;
+    }).join('')}</div></div>`).join('') || '<p class="muted">No timeline clips found.</p>';
+    $('scenes').innerHTML = scenes.map((scene) => `<article class="scene"><div class="scene-head"><div><h3>${esc(scene.title)}</h3><p class="muted">${esc(scene.scene_purpose)} · ${esc(scene.emotional_intent)}</p></div><span class="code">${esc(scene.scene_id)}</span></div>${(scene.shots || []).map((shot) => {
+        const charRequirement = (plan.character_requirements || []).find((item) => item.character_id === shot.character_id);
+        const charStatus = jobStatus(jobs, 'POSE_PACK', shot.character_id) || charRequirement?.status || 'PLANNED';
+        const bgStatus = (plan.background_requirements || []).find((item) => item.recipe_id === shot.background_recipe_id && item.location_id === scene.location_id)?.status || 'PLANNED';
+        const bgJobStatus = jobStatus(jobs, 'BACKGROUND_PACK', scene.location_id);
+        const resolvedBgStatus = bgJobStatus || bgStatus;
+        return `<div class="shot"><div><div class="shot-id">${esc(shot.shot_id)}</div><span class="muted">${esc(shot.duration_seconds)}s · ${esc(shot.shot_size)}</span></div><div class="shot-details"><strong>${esc(shot.purpose)}</strong><span class="muted">${esc(shot.character_id)} · ${esc(shot.character_pose_id)} · ${esc(shot.character_action)}</span><br><span class="muted">Background: ${esc(shot.background_recipe_id)}</span></div><div class="asset">${badge(charStatus)} ${badge(resolvedBgStatus)}<br><span class="code">${esc(shot.character_pose_asset_ref || shot.background_asset_ref || 'provisional')}</span></div></div>`;
+    }).join('')}</article>`).join('');
+    $('content').classList.remove('hidden'); $('empty').classList.add('hidden'); $('error').classList.add('hidden');
+}
+$('plan-file').addEventListener('change', async (event) => {
+    const file = event.target.files[0]; if (!file) return; $('file-name').textContent = file.name;
+    try { render(JSON.parse(await file.text())); } catch (error) { $('error').textContent = error.message; $('error').classList.remove('hidden'); }
+});
+</script>
+</body>
+</html>

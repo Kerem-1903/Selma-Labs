@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from pathlib import PurePosixPath
 
 from core.domain.entities.shot_animation import ShotPlan
@@ -18,10 +18,14 @@ class AnimationOrchestratorService:
         motion_generator: MotionGeneratorPort,
         lipsync_generator: LipSyncPort,
         compositor: SceneCompositorPort,
+        pair_approval_guard: Callable[[ShotPlan], Awaitable[object]] | None = None,
+        pose_pack_approval_guard: Callable[[ShotPlan], Awaitable[object]] | None = None,
     ) -> None:
         self._motion_generator = motion_generator
         self._lipsync_generator = lipsync_generator
         self._compositor = compositor
+        self._pair_approval_guard = pair_approval_guard
+        self._pose_pack_approval_guard = pose_pack_approval_guard
 
     async def orchestrate_shot(
         self,
@@ -36,6 +40,28 @@ class AnimationOrchestratorService:
                 "Animation orchestration cannot bypass the human keyframe approval gate."
             )
         self._validate_output_key(output_path)
+        if shot_plan.pose_pack_manifest_key or shot_plan.pose_pack_approval_key:
+            if self._pose_pack_approval_guard is None:
+                raise MotionGenerationError(
+                    "Pose-pack-backed animation requires a pose-pack approval guard."
+                )
+            try:
+                await self._pose_pack_approval_guard(shot_plan)
+            except Exception as error:
+                raise MotionGenerationError(
+                    "Animation orchestration requires an approved, unchanged pose pack."
+                ) from error
+        if shot_plan.keyframe_pair_manifest_key or shot_plan.keyframe_pair_approval_key:
+            if self._pair_approval_guard is None:
+                raise MotionGenerationError(
+                    "Pair-backed animation requires a pair approval guard."
+                )
+            try:
+                await self._pair_approval_guard(shot_plan)
+            except Exception as error:
+                raise MotionGenerationError(
+                    "Animation orchestration requires an approved, unchanged keyframe pair."
+                ) from error
         last_progress = 0.0
 
         def publish(value: float) -> None:

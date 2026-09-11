@@ -8,8 +8,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from core.domain.entities.episode_script import EpisodeScript
+from core.domain.value_objects.episode_director_decision import EpisodeDirectorDecision, EpisodeSceneDecision
 from core.domain.entities.location_bible import LocationBible
-from core.domain.exceptions import PreProductionValidationError
+from core.domain.exceptions import PreProductionValidationError, ProviderError, ScenePlanningError
+from core.domain.ports.episode_director_decision_port import EpisodeDirectorDecisionPort
 from core.domain.value_objects.background_production import (
     BackgroundCandidatePack,
     BackgroundProductionPlan,
@@ -62,6 +64,75 @@ class EpisodeDirectorService:
             return self.plan_episode(screenplay, **kwargs)
         return self.plan_text(str(screenplay), **kwargs)
 
+    async def plan_with_provider(
+        self,
+        screenplay: EpisodeScript | str,
+        provider: EpisodeDirectorDecisionPort,
+        **kwargs: Any,
+    ) -> EpisodeDirectorPlan:
+        """Use a structured provider when it returns a traceable decision set.
+
+        Asset resolution, pose validity and 24 FPS timing remain deterministic
+        and local. A provider outage or malformed response falls back to the
+        rules director rather than making offline planning unusable.
+        """
+        if isinstance(screenplay, EpisodeScript):
+            scenes = screenplay.scenes
+            provider_input = self._structured_decision_input(screenplay)
+        else:
+            text = str(screenplay)
+            parsed = self._parse_text(text, kwargs.get("episode_id", "episode-001"), kwargs.get("locations", ()))
+            scenes = parsed
+            provider_input = self._text_decision_input(text, parsed)
+        try:
+            decision = await provider.decide(provider_input)
+            expected_ids = tuple(scene.id for scene in scenes) if isinstance(screenplay, EpisodeScript) else tuple(scene.scene_id for scene in scenes)
+            decision_by_id = {item.scene_id: item for item in decision.decisions}
+            if set(decision_by_id) != set(expected_ids):
+                raise ScenePlanningError("Episode Director provider did not return exactly one decision per scene.")
+            kwargs["decisions"] = tuple(decision_by_id[scene_id] for scene_id in expected_ids)
+            kwargs["decision_mode"] = "LLM"
+            kwargs["decision_provider"] = provider.provider_identity
+            return self.plan(screenplay, **kwargs)
+        except (ProviderError, ScenePlanningError, PreProductionValidationError) as exc:
+            kwargs.pop("decisions", None)
+            kwargs["decision_mode"] = "RULE_FALLBACK"
+            kwargs["decision_provider"] = "rules:episode-director-v1"
+            plan = self.plan(screenplay, **kwargs)
+            return self._with_warning(plan, f"Director provider unavailable; deterministic fallback used: {exc}")
+
+    @staticmethod
+    def _with_warning(plan: EpisodeDirectorPlan, warning: str) -> EpisodeDirectorPlan:
+        return EpisodeDirectorPlan(
+            schema_version=plan.schema_version,
+            episode_id=plan.episode_id,
+            title=plan.title,
+            decision_mode=plan.decision_mode,
+            provider=plan.provider,
+            fps=plan.fps,
+            total_duration_seconds=plan.total_duration_seconds,
+            scenes=plan.scenes,
+            character_requirements=plan.character_requirements,
+            background_requirements=plan.background_requirements,
+            timeline=plan.timeline,
+            warnings=(*plan.warnings, warning),
+            metadata=plan.metadata,
+        )
+
+    @staticmethod
+    def _structured_decision_input(script: EpisodeScript) -> str:
+        return "\n\n".join(
+            f"SCENE_ID: {scene.id}\nTITLE: {scene.title}\nLOCATION: {scene.location}\nSUMMARY: {scene.summary}\n"
+            + "\n".join(f"{line.speaker}: {line.text}" for line in scene.dialogue)
+            for scene in script.scenes
+        )
+
+    @staticmethod
+    def _text_decision_input(text: str, scenes: Sequence[_DirectorInputScene]) -> str:
+        return text + "\n\nDETERMINISTIC SCENE IDS:\n" + "\n".join(
+            f"{scene.scene_id}: {scene.title}" for scene in scenes
+        )
+
     def plan_episode(
         self,
         script: EpisodeScript,
@@ -71,6 +142,9 @@ class EpisodeDirectorService:
         pose_packs: Mapping[str, CharacterPosePackManifest] | None = None,
         background_packs: Mapping[str, BackgroundCandidatePack] | None = None,
         episode_id: str | None = None,
+        decisions: Sequence[EpisodeSceneDecision] = (),
+        decision_mode: str = "RULE_FALLBACK",
+        decision_provider: str | None = None,
     ) -> EpisodeDirectorPlan:
         scenes = tuple(
             _DirectorInputScene(
@@ -91,7 +165,9 @@ class EpisodeDirectorService:
             locations=locations,
             pose_packs=pose_packs or {},
             background_packs=background_packs or {},
-            provider=f"rules:episode-director-v1",
+            provider=decision_provider or "rules:episode-director-v1",
+            decisions=decisions,
+            decision_mode=decision_mode,
         )
 
     def plan_text(
@@ -104,6 +180,9 @@ class EpisodeDirectorService:
         locations: Sequence[LocationBible] = (),
         pose_packs: Mapping[str, CharacterPosePackManifest] | None = None,
         background_packs: Mapping[str, BackgroundCandidatePack] | None = None,
+        decisions: Sequence[EpisodeSceneDecision] = (),
+        decision_mode: str = "RULE_FALLBACK",
+        decision_provider: str | None = None,
     ) -> EpisodeDirectorPlan:
         scenes = self._parse_text(script_text, episode_id, locations)
         return self._build_plan(
@@ -114,7 +193,9 @@ class EpisodeDirectorService:
             locations=locations,
             pose_packs=pose_packs or {},
             background_packs=background_packs or {},
-            provider="rules:episode-director-v1",
+            provider=decision_provider or "rules:episode-director-v1",
+            decisions=decisions,
+            decision_mode=decision_mode,
         )
 
     def _build_plan(
@@ -128,6 +209,8 @@ class EpisodeDirectorService:
         pose_packs: Mapping[str, CharacterPosePackManifest],
         background_packs: Mapping[str, BackgroundCandidatePack],
         provider: str,
+        decisions: Sequence[EpisodeSceneDecision] = (),
+        decision_mode: str = "RULE_FALLBACK",
     ) -> EpisodeDirectorPlan:
         if not scenes:
             raise PreProductionValidationError("Episode screenplay contains no scenes.")
@@ -165,14 +248,23 @@ class EpisodeDirectorService:
         warnings: list[str] = []
         previous_location = ""
         shot_number = 0
+        decision_by_scene_id = {
+            decision.scene_id: decision
+            for decision in decisions
+        }
         for scene_index, scene in enumerate(scenes, start=1):
             scene_shots: list[DirectorShot] = []
+            decision = decision_by_scene_id.get(scene.scene_id)
             lines = self._visual_lines(scene)
-            story_beat = self._story_beat(scene_index, len(scenes), scene.summary)
+            story_beat = decision.story_beat if decision else self._story_beat(scene_index, len(scenes), scene.summary)
+            scene_purpose = decision.purpose if decision else self._purpose(story_beat, scene.summary)
+            emotional_intent = decision.emotional_intent if decision else self._emotion(story_beat, scene.summary)
             for shot_index, line in enumerate(lines, start=1):
                 character_id = self._character_id(self._visual_character(scene, shot_index), character_lookup)
-                pose_id = self._pose_for(story_beat, shot_index, len(lines))
-                shot_size = self._shot_size(shot_index, len(lines), bool(line[1]))
+                preferred_pose = decision.pose_preferences.get(character_id) if decision else None
+                pose_id = preferred_pose or self._pose_for(story_beat, shot_index, len(lines))
+                preferred_size = decision.shot_sizes[shot_index - 1] if decision and shot_index <= len(decision.shot_sizes) else None
+                shot_size = preferred_size or self._shot_size(shot_index, len(lines), bool(line[1]))
                 duration_frames = self._duration_frames(line[1] or line[0], bool(line[1]))
                 duration_seconds = duration_frames / 24
                 start_frame = cursor_frame
@@ -183,8 +275,8 @@ class EpisodeDirectorService:
                 )
                 shot_number += 1
                 shot_id = f"{episode_id}-shot-{shot_number:03d}"
-                purpose = self._purpose(story_beat, scene.summary)
-                action = line[0]
+                purpose = scene_purpose
+                action = (decision.character_actions.get(character_id, line[0]) if decision else line[0])
                 dialogue = line[1]
                 angle = self._camera_angle(pose_id)
                 movement = self._camera_movement(story_beat, shot_index)
@@ -201,23 +293,29 @@ class EpisodeDirectorService:
                     character_pose_id=pose_id,
                     pose_reason=self._pose_reason(pose_id, story_beat, dialogue),
                     character_action=action,
-                    expression=self._expression(story_beat, dialogue),
+                    expression=(emotional_intent if decision else self._expression(story_beat, dialogue)),
                     shot_size=shot_size,
                     camera_angle=angle,
                     camera_movement=movement,
                     background_recipe_id=background_id,
-                    background_prompt=background_prompt,
+                    background_prompt=(
+                        f"{background_prompt}; {decision.background_direction}"
+                        if decision and decision.background_direction
+                        else background_prompt
+                    ),
                     foreground_effects=effects,
                     transition_in="dissolve" if previous_location and previous_location != scene.location_id else "cut",
                     transition_out="cut",
-                    start_ms=round(start_frame / 24 * 1000),
-                    end_ms=round(end_frame / 24 * 1000),
+                    start_ms=start_frame * 1000 // 24,
+                    end_ms=end_frame * 1000 // 24,
                     reasoning=(
                         f"{story_beat} beat: {purpose}; {pose_id} keeps the character readable "
                         f"while {shot_size} framing serves the scene."
                     ),
                     character_pose_asset_ref=self._pose_asset_ref(character_id, pose_id, pose_packs),
                     background_asset_ref=background_asset_ref,
+                    start_frame=start_frame,
+                    duration_frames=duration_frames,
                 )
                 scene_shots.append(shot)
                 timeline.extend(self._clips_for_shot(shot, background_id))
@@ -232,9 +330,9 @@ class EpisodeDirectorService:
                     scene_id=scene.scene_id,
                     title=scene.title,
                     location_id=scene.location_id,
-                    scene_purpose=self._purpose(story_beat, scene.summary),
+                    scene_purpose=scene_purpose,
                     story_beat=story_beat,
-                    emotional_intent=self._emotion(story_beat, scene.summary),
+                    emotional_intent=emotional_intent,
                     time_of_day=scene.time_of_day,
                     weather=scene.weather,
                     continuity_notes=(
@@ -262,7 +360,7 @@ class EpisodeDirectorService:
             schema_version=1,
             episode_id=episode_id,
             title=title,
-            decision_mode="RULE_FALLBACK",
+            decision_mode=decision_mode,
             provider=provider,
             fps=24,
             total_duration_seconds=total_seconds,
@@ -418,8 +516,14 @@ class EpisodeDirectorService:
         )
 
     def _clips_for_shot(self, shot: DirectorShot, background_id: str) -> tuple[EpisodeTimelineClip, ...]:
-        start_frame = round(shot.start_ms / 1000 * 24)
-        duration_frames = round(shot.duration_seconds * 24)
+        if shot.start_frame is None or shot.duration_frames is None:
+            # Compatibility for plans created by older callers. New plans always
+            # carry explicit frame fields from the director cursor.
+            start_frame = round(shot.start_ms / 1000 * 24)
+            duration_frames = round(shot.duration_seconds * 24)
+        else:
+            start_frame = shot.start_frame
+            duration_frames = shot.duration_frames
         clips = [
             EpisodeTimelineClip("SCRIPT", f"{shot.shot_id}-script", shot.shot_id, start_frame, duration_frames, shot.purpose, "script", shot.scene_id),
             EpisodeTimelineClip("CHARACTER", f"{shot.shot_id}-character", shot.shot_id, start_frame, duration_frames, shot.character_action, "pose", shot.character_pose_asset_ref or shot.character_pose_id),
@@ -435,7 +539,15 @@ class EpisodeDirectorService:
     @staticmethod
     def _pack_ready(character_id: str, packs: Mapping[str, CharacterPosePackManifest]) -> bool:
         pack = EpisodeDirectorService._pose_pack(character_id, packs)
-        return bool(pack and pack.complete and pack.status == "PENDING_HUMAN_REVIEW" and EpisodeDirectorService._pack_asset_refs(character_id, packs).keys() == set(POSE_PACK_POSE_IDS))
+        if not pack or not pack.complete or pack.status != "PENDING_HUMAN_REVIEW":
+            return False
+        from core.application.services.asset_approval_service import AssetApprovalService
+        return AssetApprovalService.verify_asset_set(
+            pack.approval_receipt,
+            asset_id=pack.character_id,
+            asset_hashes=[pose.content_hash for pose in pack.poses],
+            manifest_payload=pack.to_dict(),
+        ) and EpisodeDirectorService._pack_asset_refs(character_id, packs).keys() == set(POSE_PACK_POSE_IDS)
 
     @staticmethod
     def _pose_pack(character_id: str, packs: Mapping[str, CharacterPosePackManifest]) -> CharacterPosePackManifest | None:
@@ -451,6 +563,14 @@ class EpisodeDirectorService:
         pack = EpisodeDirectorService._pose_pack(character_id, packs)
         if not pack or pack.status != "PENDING_HUMAN_REVIEW":
             return {}
+        from core.application.services.asset_approval_service import AssetApprovalService
+        if not AssetApprovalService.verify_asset_set(
+            pack.approval_receipt,
+            asset_id=pack.character_id,
+            asset_hashes=[pose.content_hash for pose in pack.poses],
+            manifest_payload=pack.to_dict(),
+        ):
+            return {}
         return {pose.pose_id: pose.storage_key for pose in pack.poses}
 
     @staticmethod
@@ -461,6 +581,14 @@ class EpisodeDirectorService:
     def _background_asset_ref(location_id: str, recipe_id: str, packs: Mapping[str, BackgroundCandidatePack]) -> str:
         pack = packs.get(location_id) or packs.get(location_id.casefold())
         if not pack:
+            return ""
+        from core.application.services.asset_approval_service import AssetApprovalService
+        if not AssetApprovalService.verify_asset_set(
+            pack.approval_receipt,
+            asset_id=pack.location_id,
+            asset_hashes=[candidate.content_hash for candidate in pack.candidates],
+            manifest_payload=pack.to_dict(),
+        ):
             return ""
         for candidate in pack.candidates:
             if candidate.recipe_id == recipe_id:
@@ -558,7 +686,8 @@ class EpisodeDirectorService:
 
     @staticmethod
     def _safe_id(value: str, field_name: str) -> str:
-        normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value).strip()).strip("-")
+        normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value).strip())
+        normalized = re.sub(r"-+", "-", normalized).strip("-")
         if not normalized or not EpisodeDirectorService._SAFE_ID.fullmatch(normalized):
             raise PreProductionValidationError(f"{field_name} must be a storage-safe identifier.")
         return normalized.casefold()
