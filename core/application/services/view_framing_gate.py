@@ -125,13 +125,24 @@ class ViewFramingGate:
                     in_run = False
             return runs
 
-        width_lower = width_at(0.97)
-        runs_lower = runs_at(0.97)
+        # A floor line or cast shadow can fill the very bottom of an otherwise
+        # valid full-body frame. Sample several ankle/boot bands and use the
+        # narrowest one; a true chest-up crop remains wide throughout them.
+        lower_samples = tuple(
+            (fraction, width_at(fraction))
+            for fraction in (0.88, 0.91, 0.94, 0.97)
+        )
+        occupied_samples = tuple(item for item in lower_samples if item[1] > 0.0)
+        lower_fraction, width_lower = min(
+            occupied_samples or lower_samples, key=lambda item: item[1]
+        )
+        runs_lower = runs_at(lower_fraction)
         metrics: dict[str, float | int] = {
             "top": round(top, 3),
             "bottom": round(bottom, 3),
             "width_lower": round(width_lower, 3),
             "runs_lower": runs_lower,
+            "lower_sample_fraction": lower_fraction,
         }
         # Calibrated on measured frames: a standing full-body figure reaches the
         # bottom with separated leg columns (runs >= 2) that stay narrow

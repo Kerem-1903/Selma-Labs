@@ -113,3 +113,15 @@ def test_front_still_rejects_one_leg_column():
     report = ViewFramingGate().evaluate(image_bytes=_png(mask), view="FRONT")
 
     assert not report.passed
+
+
+def test_full_body_ignores_a_wide_floor_line_at_the_frame_bottom():
+    mask = _full_body_mask()
+    mask[194:200, 10:110] = True
+
+    report = ViewFramingGate().evaluate(
+        image_bytes=_png(mask), view="FULL_BODY"
+    )
+
+    assert report.passed, report.reason
+    assert report.metrics["lower_sample_fraction"] < 0.97
