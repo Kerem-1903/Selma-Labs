@@ -29,20 +29,31 @@ from core.application.services.character_golden_set_service import (
 from core.application.services.character_onboarding_service import (
     CharacterOnboardingService,
 )
+from core.application.services.character_pose_pack_service import (
+    CharacterPosePackService,
+)
 from core.application.services.character_view_quality_gate import (
     CharacterViewQualityGate,
 )
+from core.application.services.episode_asset_generation_service import (
+    EpisodeAssetGenerationService,
+)
+from core.application.services.episode_director_service import EpisodeDirectorService
 from core.application.services.hierarchical_shot_planning_service import (
     HierarchicalShotPlanningService,
 )
 from core.application.services.keyframe_generation_service import (
     KeyframeGenerationService,
 )
+from core.application.services.keyframe_pair_quality_gate import (
+    KeyframePairQualityGate,
+)
 from core.application.services.model_lock_service import load_model_lock
 from core.application.services.production_manifest_service import (
     ProductionManifestService,
 )
 from core.application.services.script_breakdown_service import ScriptBreakdownService
+from core.application.services.series_style_lock_service import SeriesStyleLockService
 from core.application.services.story_engine_service import StoryEngineService
 from core.application.services.streak_pre_gate import StreakPreGate
 from core.application.services.structured_mark_validation_service import (
@@ -106,11 +117,16 @@ class AnimationContainer:
     character_golden_set_service: CharacterGoldenSetService
     character_design_service: CharacterDesignService
     character_onboarding_service: CharacterOnboardingService
+    character_pose_pack_service: CharacterPosePackService
+    style_lock_service: SeriesStyleLockService
+    production_workflow_path: str
     background_factory_service: BackgroundFactoryService
+    episode_asset_generation_service: EpisodeAssetGenerationService
     hierarchical_shot_planning_service: HierarchicalShotPlanningService
     animatic_planning_service: AnimaticPlanningService
     animation_ready_packaging_service: AnimationReadyPackagingService
     canon_repository: CanonRepositoryPort
+    episode_director_service: EpisodeDirectorService
     keyframe_generation_service: KeyframeGenerationService
 
     def __getitem__(self, name: str) -> Any:
@@ -170,7 +186,8 @@ def create_container(
         fps=resolved.render_fps,
     )
     breakdown = ScriptBreakdownService(character_bible)
-    orchestrator = AnimationOrchestratorService(motion, lipsync, compositor)
+    # The orchestrator is created after the keyframe service below so pair-backed
+    # shots can be hash-verified at the final animation boundary.
     canon_repository = LocalJsonCanonRepository(
         resolved.preproduction_canon_dir,
         resolved.preproduction_character_dir,
@@ -257,6 +274,22 @@ def create_container(
             resolved.keyframe_storage_root_dir
         ),
     )
+    style_lock_service = SeriesStyleLockService(
+        Path(__file__).resolve().parents[1]
+    )
+    character_pose_pack_service = CharacterPosePackService(
+        keyframe_generator,
+        keyframe_storage,
+        quality_gate=character_view_quality_gate,
+        max_attempts=resolved.character_pose_pack_max_attempts,
+        pose_width=resolved.character_pose_pack_width,
+        pose_height=resolved.character_pose_pack_height,
+        require_real_provenance=not keyframe_generator.name.startswith("fake:"),
+        style_lock_resolver=style_lock_service,
+        active_series_path=resolved.active_series_path,
+        production_workflow_path=resolved.comfyui_keyframe_workflow_path,
+        default_mode="PRODUCTION",
+    )
 
     async def require_view_pack(character_id: str, character_version: int) -> object:
         return await character_design_service.load_approved_view_pack(
@@ -277,6 +310,43 @@ def create_container(
         human_review_required=human_review_required,
         character_lora_active=bool(resolved.comfyui_character_lora_name),
         view_pack_approval_guard=require_view_pack,
+        pair_quality_gate=(
+            KeyframePairQualityGate(character_view_quality_gate)
+            if character_view_quality_gate is not None
+            else None
+        ),
+        pair_max_attempts=resolved.keyframe_pair_max_attempts,
+        pose_dimensions=(resolved.keyframe_pose_width, resolved.keyframe_pose_height),
+    )
+
+    async def require_pair_approval(shot_plan):
+        return await keyframe_service.require_approved_pair(shot_plan)
+
+    async def require_pose_pack_approval(shot_plan):
+        manifest_key = shot_plan.pose_pack_manifest_key
+        approval_key = shot_plan.pose_pack_approval_key
+        if not manifest_key or not approval_key:
+            raise ValueError("Pose-pack keys are required for pose-pack-backed shots.")
+        return await character_pose_pack_service.require_approved_pack(
+            manifest_storage_key=manifest_key,
+            approval_storage_key=approval_key,
+        )
+
+    orchestrator = AnimationOrchestratorService(
+        motion,
+        lipsync,
+        compositor,
+        pair_approval_guard=require_pair_approval,
+        pose_pack_approval_guard=require_pose_pack_approval,
+    )
+    background_factory_service = BackgroundFactoryService(
+        keyframe_generator, keyframe_storage, preproduction_evaluator
+    )
+    episode_asset_generation_service = EpisodeAssetGenerationService(
+        character_pose_pack_service,
+        background_factory_service,
+        keyframe_storage,
+        style_lock_resolver=style_lock_service,
     )
     return AnimationContainer(
         character_bible=character_bible,
@@ -300,12 +370,15 @@ def create_container(
             ),
             style_refine=resolved.character_style_refine_enabled,
         ),
-        background_factory_service=BackgroundFactoryService(
-            keyframe_generator, keyframe_storage, preproduction_evaluator
-        ),
+        character_pose_pack_service=character_pose_pack_service,
+        style_lock_service=style_lock_service,
+        production_workflow_path=resolved.comfyui_keyframe_workflow_path,
+        background_factory_service=background_factory_service,
+        episode_asset_generation_service=episode_asset_generation_service,
         hierarchical_shot_planning_service=hierarchical,
         animatic_planning_service=AnimaticPlanningService(asset_storage),
         animation_ready_packaging_service=AnimationReadyPackagingService(asset_storage),
         canon_repository=canon_repository,
+        episode_director_service=EpisodeDirectorService(),
         keyframe_generation_service=keyframe_service,
     )

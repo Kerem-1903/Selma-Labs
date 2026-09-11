@@ -5,17 +5,53 @@ import os
 import shutil
 import subprocess
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
+from typing import Protocol
 
-from config.settings import Settings
-from core.domain.value_objects.system_health import SystemHealthCheck, SystemHealthReport
+from core.domain.value_objects.system_health import (
+    SystemHealthCheck,
+    SystemHealthReport,
+)
+
+
+class SystemHealthSettings(Protocol):
+    ffmpeg_binary_path: str
+    ffprobe_binary_path: str
+    render_provider: str
+    remotion_project_dir: str
+    remotion_cli_path: str
+    render_output_width: int
+    render_output_height: int
+    render_fps: int
+    caption_maximum_words_per_cue: int
+    caption_maximum_cue_duration_ms: int
+    caption_safe_margin_left: int
+    caption_safe_margin_right: int
+    script_provider: str
+    scene_planning_provider: str
+    translation_provider: str
+    fact_check_provider: str
+    fact_check_fallback_provider: str
+    voice_provider: str
+    video_provider: str
+    vision_enabled: bool
+    vision_provider: str
+    topic_selection_provider: str
+    nvidia_api_key: str
+    anthropic_api_key: str
+    openai_api_key: str
+    elevenlabs_api_key: str
+    pexels_api_key: str
+    youtube_data_api_key: str
+    storage_root_dir: str
+    voice_cache_dir: str
 
 
 class SystemHealthService:
     def __init__(
         self,
-        settings: Settings,
+        settings: SystemHealthSettings,
         *,
         project_root: str | Path,
         executable_lookup: Callable[[str], str | None] = shutil.which,

@@ -154,6 +154,12 @@ class Settings(BaseSettings):
     comfyui_keyframe_poll_interval_seconds: float = 1.0
     keyframe_candidate_db_path: str = "data/keyframe_candidates.db"
     keyframe_storage_root_dir: str = "output/production"
+    keyframe_pair_max_attempts: int = 1
+    keyframe_pose_width: int = 768
+    keyframe_pose_height: int = 1152
+    character_pose_pack_max_attempts: int = 2
+    character_pose_pack_width: int = 768
+    character_pose_pack_height: int = 1152
     character_bible_repository_dir: str = "assets/character_bibles"
     storyboard_repository_dir: str = "output/storyboards"
     image_to_video_provider: Literal["fake", "comfyui"] = "fake"

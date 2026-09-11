@@ -30,6 +30,48 @@ def build_parser() -> argparse.ArgumentParser:
     series_status.add_argument(
         "--project", default="config/series/selma-anime-v1.json"
     )
+    series_style_approve = series_commands.add_parser(
+        "approve-style", help="Create a human creative Style Approval Receipt"
+    )
+    series_style_approve.add_argument(
+        "--project", default="config/series/selma-anime-v1.json"
+    )
+    series_style_approve.add_argument("--approved-by", required=True)
+    series_style_approve.add_argument(
+        "--check", action="append", dest="checks", default=[],
+        help="Confirm one creative style criterion; repeat as needed",
+    )
+    series_style_promote = series_commands.add_parser(
+        "promote-style", help="Promote the persisted creative style receipt"
+    )
+    series_style_promote.add_argument(
+        "--project", default="config/series/selma-anime-v1.json"
+    )
+    series_lock_create = series_commands.add_parser(
+        "create-production-lock", help="Create a pending technical production style lock"
+    )
+    series_lock_create.add_argument(
+        "--project", default="config/series/selma-anime-v1.json"
+    )
+    series_lock_create.add_argument(
+        "--workflow", default="assets/comfyui_keyframe_workflow.json"
+    )
+    series_lock_create.add_argument("--receipt-sha256", required=True)
+    series_lock_create.add_argument("--width", type=int, default=768)
+    series_lock_create.add_argument("--height", type=int, default=1152)
+    series_lock_create.add_argument("--sampler", default="euler")
+    series_lock_create.add_argument("--steps", type=int, default=24)
+    series_lock_create.add_argument("--cfg", type=float, default=5.0)
+    series_lock_create.add_argument("--denoise", type=float, default=0.65)
+    series_lock_create.add_argument("--lock-version", type=int, default=1)
+    series_lock_compatible = series_commands.add_parser(
+        "mark-production-compatible",
+        help="Attach a real smoke-test receipt and enable production",
+    )
+    series_lock_compatible.add_argument(
+        "--project", default="config/series/selma-anime-v1.json"
+    )
+    series_lock_compatible.add_argument("--smoke-receipt", required=True)
     series_register = series_commands.add_parser(
         "register-character", help="Add one Character Bible to the series cast"
     )
@@ -123,6 +165,50 @@ def build_parser() -> argparse.ArgumentParser:
     character_turnaround.add_argument("--approval", required=True)
     character_turnaround.add_argument("--manifest", required=True)
     character_turnaround.add_argument("--output-prefix", default="characters")
+    pose_pack = character_commands.add_parser(
+        "pose-pack", help="Generate or approve the five-pose pre-animation character pack"
+    )
+    pose_pack_commands = pose_pack.add_subparsers(
+        dest="pose_pack_command", required=True
+    )
+    pose_pack_generate = pose_pack_commands.add_parser(
+        "generate", help="Generate a resumable five-pose pack from a canonical approval"
+    )
+    pose_pack_generate.add_argument("--brief", required=True)
+    pose_pack_generate.add_argument("--approval", required=True)
+    pose_pack_generate.add_argument(
+        "--active-series",
+        default="config/series/selma-anime-v1.json",
+        help="Active series manifest; Production resolves style only from this file",
+    )
+    pose_pack_generate.add_argument("--manifest", required=True)
+    pose_pack_generate.add_argument("--output-prefix", default="characters")
+    pose_pack_generate.add_argument("--run-id")
+    pose_pack_approve = pose_pack_commands.add_parser(
+        "approve", help="Human-approve a complete five-pose character pack"
+    )
+    pose_pack_approve.add_argument("--manifest", required=True)
+    pose_pack_approve.add_argument("--approved-by", required=True)
+    pose_pack_approve.add_argument(
+        "--check", action="append", dest="checks", default=[],
+        help="Confirm one pose-pack check; repeat for all five checks",
+    )
+    pose_pack_batch = pose_pack_commands.add_parser(
+        "batch", help="Run resumable pose-pack generation for a JSON job list"
+    )
+    pose_pack_batch.add_argument("--jobs", required=True)
+    pose_pack_batch.add_argument("--manifest", required=True)
+    pose_pack_batch.add_argument(
+        "--active-series",
+        default="config/series/selma-anime-v1.json",
+        help="Active series whose production style lock is pinned at batch start",
+    )
+    pose_pack_batch.add_argument(
+        "--workflow",
+        default="assets/comfyui_keyframe_workflow.json",
+        help="Workflow whose hash is verified against the production style lock",
+    )
+    pose_pack_batch.add_argument("--stop-on-error", action="store_true")
     character_approve_views = character_commands.add_parser(
         "approve-view-pack",
         help="Human-approve a complete QC-passed seven-view pack",
@@ -321,6 +407,8 @@ def build_parser() -> argparse.ArgumentParser:
     episode_plan.add_argument("--output", help="Optional JSON output path")
     episode_plan.add_argument("--episode-id", default="episode-001")
     episode_plan.add_argument("--title", default="Untitled episode")
+    episode_plan.add_argument("--director-provider", choices=("rules", "claude"), default="rules", help="Optional structured Episode Director provider")
+    episode_plan.add_argument("--director-model", default="claude-sonnet-4-5")
     episode_plan.add_argument(
         "--character-bible", action="append", dest="character_bibles", default=[],
         help="Character Bible JSON; repeat for every available character",
@@ -337,6 +425,62 @@ def build_parser() -> argparse.ArgumentParser:
         "--background-pack", action="append", dest="background_packs", default=[],
         help="Generated background candidate pack JSON; repeat for every location",
     )
+    episode_prepare = episode_commands.add_parser(
+        "prepare", help="Prepare an episode plan and enumerate missing pose/background jobs"
+    )
+    episode_prepare.add_argument("--input", required=True, help="Screenplay text or EpisodeScript JSON")
+    episode_prepare.add_argument("--output", required=True, help="Preparation manifest and plan output path")
+    episode_prepare.add_argument("--episode-id", default="episode-001")
+    episode_prepare.add_argument("--title", default="Untitled episode")
+    episode_prepare.add_argument("--director-provider", choices=("rules", "claude"), default="rules", help="Optional structured Episode Director provider")
+    episode_prepare.add_argument("--director-model", default="claude-sonnet-4-5")
+    episode_prepare.add_argument(
+        "--character-bible", action="append", dest="character_bibles", default=[],
+        help="Character Bible JSON; repeat for every available character",
+    )
+    episode_prepare.add_argument(
+        "--location-bible", action="append", dest="location_bibles", default=[],
+        help="Location Bible JSON; repeat for every available location",
+    )
+    episode_prepare.add_argument(
+        "--pose-pack", action="append", dest="pose_packs", default=[],
+        help="Generated five-pose manifest JSON; repeat for every available character",
+    )
+    episode_prepare.add_argument(
+        "--background-pack", action="append", dest="background_packs", default=[],
+        help="Generated background candidate pack JSON; repeat for every location",
+    )
+    episode_prepare.add_argument(
+        "--pose-job", action="append", dest="pose_jobs", default=[],
+        help="Pose-pack generation job JSON; repeat for each character",
+    )
+    episode_prepare.add_argument(
+        "--generate-assets", action="store_true",
+        help="Dispatch supplied pose jobs and required backgrounds before writing the plan",
+    )
+    episode_prepare.add_argument(
+        "--asset-mode", choices=("DISCOVERY", "PRODUCTION"), default="DISCOVERY",
+        help="Use deterministic fake providers or the configured production provider",
+    )
+    episode_prepare.add_argument(
+        "--asset-output-root",
+        help="Directory for generated asset manifests; defaults beside --output",
+    )
+    episode_prepare.add_argument(
+        "--active-series",
+        default="config/series/selma-anime-v1.json",
+        help="Production style-lock source used when dispatching pose generation",
+    )
+    episode_prepare.add_argument(
+        "--workflow",
+        default="assets/comfyui_keyframe_workflow.json",
+        help="ComfyUI workflow whose lock is used for production generation",
+    )
+    episode_prepare.add_argument("--resume", help="Previous preparation manifest to resume")
+    episode_prepare.add_argument(
+        "--retry-job", action="append", dest="retry_jobs", default=[],
+        help="Retry one failed preparation job; repeat for multiple jobs",
+    )
     episode_inspect = episode_commands.add_parser(
         "inspect", help="Inspect a previously generated Episode Director plan"
     )
@@ -344,6 +488,67 @@ def build_parser() -> argparse.ArgumentParser:
     episode_inspect.add_argument(
         "--full", action="store_true", help="Print the complete plan instead of a summary"
     )
+    episode_animatic = episode_commands.add_parser(
+        "animatic", help="Build a reviewable 24 FPS animatic from an episode plan"
+    )
+    episode_animatic.add_argument("--input", required=True, help="Episode plan or preparation JSON")
+    episode_animatic.add_argument("--output", required=True, help="Animatic result JSON")
+    episode_animatic.add_argument(
+        "--mode", choices=("STRICT", "PLACEHOLDER"), default="STRICT",
+        help="Block on missing assets or render visible placeholders for review",
+    )
+    episode_animatic.add_argument(
+        "--storage-root", default="output/production",
+        help="Storage root containing resolved pose/background assets",
+    )
+    episode_animatic.add_argument(
+        "--audio-map", help="JSON mapping shot IDs to dialogue audio storage keys"
+    )
+    episode_animatic.add_argument(
+        "--motion-public-dir", default="motion/public",
+        help="Remotion public directory used when --export is enabled",
+    )
+    episode_animatic.add_argument(
+        "--export", action="store_true",
+        help="Copy resolved clips and write Remotion props.json",
+    )
+    episode_animatic.add_argument(
+        "--render", action="store_true",
+        help="Render the exported Remotion composition to MP4 and verify it with ffprobe",
+    )
+    episode_animatic.add_argument(
+        "--render-output", help="MP4 output path used with --render",
+    )
+
+    trailer = commands.add_parser("trailer", help="Plan and inspect a locked 180-second trailer")
+    trailer_commands = trailer.add_subparsers(dest="trailer_command", required=True)
+    trailer_init = trailer_commands.add_parser("init", help="Write the locked EŞİK//80 trailer brief")
+    trailer_init.add_argument("--trailer-id", default="esik80-trailer-v1")
+    trailer_init.add_argument("--output", required=True)
+    trailer_plan = trailer_commands.add_parser("plan", help="Plan a traceable four-beat trailer from an episode plan")
+    trailer_plan.add_argument("--input", required=True, help="Episode plan or preparation JSON")
+    trailer_plan.add_argument("--output", required=True)
+    trailer_plan.add_argument("--brief", help="TrailerBrief JSON; defaults to the locked v1 brief")
+    trailer_inspect = trailer_commands.add_parser("inspect", help="Inspect a trailer plan")
+    trailer_inspect.add_argument("--input", required=True)
+    trailer_inspect.add_argument("--full", action="store_true")
+    trailer_package = trailer_commands.add_parser("package", help="Create auditable Wan2.2 shot packages")
+    trailer_package.add_argument("--input", required=True, help="Trailer plan JSON")
+    trailer_package.add_argument("--sources", required=True, help="JSON mapping shot IDs to source image and motion metadata")
+    trailer_package.add_argument("--output", required=True)
+    trailer_animatic = trailer_commands.add_parser("animatic", help="Build and optionally render a trailer animatic")
+    trailer_animatic.add_argument("--input", required=True, help="Trailer plan JSON")
+    trailer_animatic.add_argument("--output", required=True, help="Animatic result JSON")
+    trailer_animatic.add_argument("--assets", help="JSON mapping trailer shot IDs to asset keys")
+    trailer_animatic.add_argument("--audio-cues", help="JSON list of timeline-bound MUSIC/SFX cues")
+    trailer_animatic.add_argument("--shot-id", action="append", dest="shot_ids", default=[])
+    trailer_animatic.add_argument("--mode", choices=("STRICT", "PLACEHOLDER"), default="STRICT")
+    trailer_animatic.add_argument("--storage-root", default="output/production")
+    trailer_animatic.add_argument("--motion-public-dir", default="motion/public")
+    trailer_animatic.add_argument("--render", action="store_true")
+    trailer_animatic.add_argument("--render-output")
+    trailer_preflight = trailer_commands.add_parser("preflight", help="Check rented Wan2.2 worker configuration")
+    trailer_preflight.add_argument("--worker", required=True)
 
     script = commands.add_parser("script", help="Break a script into executable shots")
     script_commands = script.add_subparsers(dest="script_command", required=True)
@@ -429,6 +634,16 @@ def build_parser() -> argparse.ArgumentParser:
     pair.add_argument("--prompt-end", required=True)
     pair.add_argument("--start-pose", required=True)
     pair.add_argument("--end-pose", required=True)
+    pair_approve = keyframe_commands.add_parser(
+        "approve-pair", help="Human-approve a generated start/end pair"
+    )
+    pair_approve.add_argument("--shot-id", required=True)
+    pair_approve.add_argument("--manifest", required=True)
+    pair_approve.add_argument("--approved-by", required=True)
+    pair_approve.add_argument(
+        "--check", action="append", dest="checks", default=[],
+        help="Confirm one pair check; repeat for all five required checks",
+    )
 
     return parser
 
@@ -473,7 +688,9 @@ def main(
                     _generate_backgrounds(arguments, container_factory())
                 )
         elif arguments.command == "episode":
-            return _run_episode_command(arguments)
+            return _run_episode_command(arguments, container_factory=container_factory)
+        elif arguments.command == "trailer":
+            return _run_trailer_command(arguments)
         elif arguments.command == "script":
             _break_down_script(arguments)
         elif arguments.command == "render":
@@ -496,9 +713,49 @@ def main(
 
 def _run_series_command(arguments: argparse.Namespace) -> int:
     from core.application.services.series_project_service import SeriesProjectService
+    from core.application.services.series_style_lock_service import (
+        SeriesStyleLockService,
+    )
 
     workspace_root = Path(__file__).resolve().parents[1]
     service = SeriesProjectService(workspace_root)
+    if arguments.series_command == "approve-style":
+        checks = tuple(arguments.checks or ("creative-style-reviewed",))
+        receipt = SeriesStyleLockService(workspace_root).write_style_approval(
+            arguments.project,
+            approved_by=arguments.approved_by,
+            approval_criteria=checks,
+        )
+        print(json.dumps(receipt.to_dict(), ensure_ascii=False, indent=2))
+        return 0
+    if arguments.series_command == "promote-style":
+        receipt = SeriesStyleLockService(workspace_root).promote_style(
+            arguments.project
+        )
+        print(json.dumps(receipt.to_dict(), ensure_ascii=False, indent=2))
+        return 0
+    if arguments.series_command == "create-production-lock":
+        lock = SeriesStyleLockService(workspace_root).write_production_lock(
+            arguments.project,
+            workflow_path=arguments.workflow,
+            style_approval_receipt_sha256=arguments.receipt_sha256,
+            width=arguments.width,
+            height=arguments.height,
+            sampler=arguments.sampler,
+            steps=arguments.steps,
+            cfg=arguments.cfg,
+            denoise=arguments.denoise,
+            lock_version=arguments.lock_version,
+        )
+        print(json.dumps(lock.to_dict(), ensure_ascii=False, indent=2))
+        return 0
+    if arguments.series_command == "mark-production-compatible":
+        lock = SeriesStyleLockService(workspace_root).mark_production_compatible(
+            arguments.project,
+            smoke_test_receipt_path=arguments.smoke_receipt,
+        )
+        print(json.dumps(lock.to_dict(), ensure_ascii=False, indent=2))
+        return 0
     if arguments.series_command == "register-character":
         registry = service.register_character(
             project_path=arguments.project,
@@ -510,6 +767,26 @@ def _run_series_command(arguments: argparse.Namespace) -> int:
         print(json.dumps(registry.to_dict(), ensure_ascii=False, indent=2))
         return 0
     project, registry = service.load(arguments.project)
+    style_lock_payload: dict[str, Any]
+    try:
+        snapshot = SeriesStyleLockService(workspace_root).resolve_production(
+            arguments.project,
+            workflow_path=workspace_root / "assets/comfyui_keyframe_workflow.json",
+        )
+    except Exception as error:  # noqa: BLE001 - status reports readiness without hiding it
+        reason = getattr(error, "reason", "STYLE_LOCK_INVALID")
+        detail = getattr(error, "detail", str(error))
+        style_lock_payload = {
+            "status": "BLOCKED",
+            "blocking_reason": reason,
+            "detail": detail,
+        }
+    else:
+        style_lock_payload = {
+            "status": "READY",
+            "blocking_reason": "",
+            "snapshot": snapshot.to_dict(),
+        }
     print(
         json.dumps(
             {
@@ -517,6 +794,8 @@ def _run_series_command(arguments: argparse.Namespace) -> int:
                 "series": project.to_dict(),
                 "cast": registry.to_dict(),
                 "cast_size": len(registry.members),
+                "production_ready": style_lock_payload["status"] == "READY",
+                "style_lock": style_lock_payload,
                 "next_gate": (
                     "REGISTER_FIRST_CHARACTER"
                     if not registry.members
@@ -663,6 +942,8 @@ async def _generate_backgrounds(
 def _approve_backgrounds(arguments: argparse.Namespace) -> None:
     from dataclasses import replace
 
+    from core.application.services.asset_approval_service import AssetApprovalService
+
     location = _load_location_bible(arguments.input)
     manifest = json.loads(Path(arguments.manifest).read_text(encoding="utf-8"))
     if not isinstance(manifest, dict):
@@ -688,6 +969,40 @@ def _approve_backgrounds(arguments: argparse.Namespace) -> None:
     if len(keys) != len(set(keys)):
         raise ValueError("Background approval contains duplicate candidates.")
     locked = replace(location, locked=True)
+    from core.domain.value_objects.background_production import (
+        BackgroundCandidate,
+        BackgroundCandidatePack,
+    )
+
+    candidate_pack = BackgroundCandidatePack(
+        location_id=location.location_id,
+        candidates=tuple(
+            BackgroundCandidate(
+                recipe_id=str(item.get("recipe_id", "")),
+                storage_key=str(item.get("storage_key", "")),
+                width=int(item.get("width", 0)),
+                height=int(item.get("height", 0)),
+                attempt=int(item.get("attempt", 1)),
+                content_hash=str(item.get("content_hash", "")),
+            )
+            for item in candidates
+        ),
+        quarantined=(),
+    )
+    pack_payload = candidate_pack.to_dict()
+    receipt = None
+    try:
+        asset_hashes = [candidate.content_hash for candidate in candidate_pack.candidates]
+        receipt = AssetApprovalService.receipt(
+            asset_id=location.location_id,
+            asset_hash=AssetApprovalService.asset_set_digest(asset_hashes),
+            manifest_payload=pack_payload,
+            approved_by=arguments.approved_by,
+        ).to_dict()
+    except Exception:
+        # A legacy manifest may still lock the Location Bible, but without
+        # content hashes it cannot claim production asset approval.
+        receipt = None
     print(
         _write_json(
             arguments.output,
@@ -695,14 +1010,17 @@ def _approve_backgrounds(arguments: argparse.Namespace) -> None:
                 "schema_version": 1,
                 "approval": {
                     "approved_by": arguments.approved_by,
-                    "background_pack_approved": True,
+                    "background_pack_approved": receipt is not None,
                     "approved_storage_keys": keys,
                 },
                 "location_bible": locked.to_dict(),
+                "candidates": candidates,
+                "quarantined": [],
+                "approval_receipt": receipt,
+                "human_approved": receipt is not None,
             },
         )
     )
-
 
 def _plan_character(arguments: argparse.Namespace) -> None:
     from core.application.services.character_onboarding_service import (
@@ -791,26 +1109,87 @@ async def _run_character_generation(
     arguments: argparse.Namespace,
     container: AnimationContainer,
 ) -> int:
+    if arguments.character_command == "pose-pack":
+        from core.application.services.character_pose_pack_batch_service import (
+            CharacterPosePackBatchService,
+        )
+        from core.domain.value_objects.character_design import (
+            CharacterCanonicalApproval,
+        )
+
+        if arguments.pose_pack_command == "generate":
+            brief = _load_character_creation_brief(arguments.brief)
+            raw_approval = json.loads(Path(arguments.approval).read_text(encoding="utf-8"))
+            if not isinstance(raw_approval, dict):
+                raise TypeError("Canonical approval receipt must contain an object.")
+            manifest = await container.character_pose_pack_service.generate_pack(
+                brief,
+                CharacterCanonicalApproval.from_dict(raw_approval),
+                active_series_path=arguments.active_series,
+                mode="PRODUCTION",
+                output_prefix=arguments.output_prefix,
+                run_id=arguments.run_id,
+            )
+            print(_write_json(arguments.manifest, manifest.to_dict()))
+            return 0
+        if arguments.pose_pack_command == "approve":
+            approval = await container.character_pose_pack_service.approve_pack(
+                manifest_storage_key=arguments.manifest,
+                approved_by=arguments.approved_by,
+                confirmed_checks=list(arguments.checks or []),
+            )
+            print(json.dumps(approval.to_dict(), ensure_ascii=False, indent=2))
+            return 0
+        raw_jobs = json.loads(Path(arguments.jobs).read_text(encoding="utf-8"))
+        if not isinstance(raw_jobs, list) or not all(isinstance(item, dict) for item in raw_jobs):
+            raise TypeError("Pose-pack batch jobs must be a JSON list of objects.")
+        payload = await CharacterPosePackBatchService(
+            container.character_pose_pack_service,
+            style_lock_resolver=container.style_lock_service,
+        ).run(
+            raw_jobs,
+            output_manifest=arguments.manifest,
+            continue_on_error=not arguments.stop_on_error,
+            active_series_path=arguments.active_series,
+            workflow_path=arguments.workflow,
+        )
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+        return 0
     if arguments.character_command == "benchmark-run":
         from config.settings import get_settings
         from core.application.services.character_model_tournament_service import (
             CharacterModelTournamentService,
         )
+        from infrastructure.providers.keyframe.comfyui_memory_releaser import (
+            ComfyUiMemoryReleaser,
+        )
 
         workspace_root = Path(__file__).resolve().parents[1]
+        base_settings = get_settings()
         brief = _load_character_creation_brief(arguments.brief)
         run_id = arguments.run_id or datetime.now(timezone.utc).strftime(
             "%Y%m%dT%H%M%SZ"
         )
+        def generator_factory(model_lock_path: Path):
+            settings = base_settings.model_copy(
+                update={
+                    "keyframe_generation_provider": "comfyui",
+                    "comfyui_model_lock_path": str(model_lock_path),
+                    "comfyui_keyframe_checkpoint": "",
+                }
+            )
+            return create_container(settings=settings).character_design_service
+
         report = await CharacterModelTournamentService(
-            workspace_root, create_container
+            workspace_root,
+            generator_factory,
+            ComfyUiMemoryReleaser(base_settings.comfyui_api_url).release,
         ).run(
             benchmark_path=arguments.benchmark,
             brief=brief,
             model_lock_paths=arguments.model_locks,
             count=arguments.count,
             run_id=run_id,
-            base_settings=get_settings(),
         )
         print(_write_json(arguments.output, report))
         return 0
@@ -1068,14 +1447,57 @@ def _load_episode_plan_inputs(arguments: argparse.Namespace):
         BackgroundCandidate,
         BackgroundCandidatePack,
     )
-    from core.domain.value_objects.character_pose_pack import CharacterPosePackManifest
+    from core.application.services.asset_approval_service import AssetApprovalService
+    from core.domain.value_objects.asset_approval import AssetApprovalReceipt
+    from core.domain.value_objects.character_pose_pack import (
+        CharacterPosePackApproval,
+        CharacterPosePackManifest,
+    )
 
     characters = [_load_character_bible(path) for path in arguments.character_bibles]
     locations = [_load_location_bible(path) for path in arguments.location_bibles]
     pose_packs = {}
     for path in arguments.pose_packs:
         payload = _load_json_object(path)
-        manifest = CharacterPosePackManifest.from_dict(payload.get("manifest", payload))
+        manifest_payload = payload.get("manifest", payload)
+        manifest = CharacterPosePackManifest.from_dict(manifest_payload)
+        approval_path = Path(path).with_name("approval.json")
+        if approval_path.is_file() and manifest_payload is payload:
+            approval = CharacterPosePackApproval.from_dict(
+                _load_json_object(approval_path)
+            )
+            import hashlib
+            manifest_bytes = Path(path).read_bytes()
+            expected_pose_hashes = {
+                pose.pose_id: pose.content_hash for pose in manifest.poses
+            }
+            shared_receipt = _load_json_object(approval_path).get("asset_approval_receipt")
+            shared_valid = False
+            if isinstance(shared_receipt, dict):
+                try:
+                    shared_valid = AssetApprovalService.verify(
+                        AssetApprovalReceipt.from_dict(shared_receipt),
+                        asset_hash=AssetApprovalService.asset_set_digest(
+                            [pose.content_hash for pose in manifest.poses]
+                        ),
+                        manifest_payload=manifest.to_dict(),
+                    )
+                except Exception:
+                    shared_valid = False
+            if (
+                hashlib.sha256(manifest_bytes).hexdigest()
+                == approval.manifest_content_hash
+                and approval.character_id == manifest.character_id
+                and approval.character_version == manifest.character_version
+                and dict(approval.pose_hashes) == expected_pose_hashes
+                and shared_valid
+            ):
+                from dataclasses import replace
+                manifest = replace(
+                    manifest,
+                    human_approved=True,
+                    approval_receipt=shared_receipt,
+                )
         pose_packs[manifest.character_id] = manifest
     background_packs = {}
     for path in arguments.background_packs:
@@ -1090,22 +1512,180 @@ def _load_episode_plan_inputs(arguments: argparse.Namespace):
                 width=int(item.get("width", 0)),
                 height=int(item.get("height", 0)),
                 attempt=int(item.get("attempt", 1)),
+                content_hash=str(item.get("content_hash", "")),
             )
             for item in raw_candidates
             if isinstance(item, dict)
         )
+        approval = payload.get("approval", {})
+        raw_receipt = payload.get("approval_receipt")
         pack = BackgroundCandidatePack(
             location_id=str(payload.get("location_id", "")),
             candidates=candidates,
+            human_approved=False,
+            approval_receipt=(dict(raw_receipt) if isinstance(raw_receipt, dict) else None),
         )
+        if isinstance(raw_receipt, dict):
+            try:
+                pack = BackgroundCandidatePack(
+                    location_id=pack.location_id,
+                    candidates=pack.candidates,
+                    human_approved=AssetApprovalService.verify(
+                        AssetApprovalReceipt.from_dict(raw_receipt),
+                        asset_hash=AssetApprovalService.asset_set_digest(
+                            [candidate.content_hash for candidate in candidates]
+                        ),
+                        manifest_payload=pack.to_dict(),
+                    ),
+                    approval_receipt=raw_receipt,
+                )
+            except Exception:
+                pass
         background_packs[pack.location_id] = pack
     return characters, locations, pose_packs, background_packs
 
 
+def _episode_director_provider(arguments: argparse.Namespace):
+    if getattr(arguments, "director_provider", "rules") == "rules":
+        return None
+    if arguments.director_provider == "claude":
+        from config.settings import get_settings
+        from infrastructure.providers.episode_director.claude_episode_director_provider import (
+            ClaudeEpisodeDirectorProvider,
+        )
+
+        settings = get_settings()
+        return ClaudeEpisodeDirectorProvider(
+            api_key=settings.anthropic_api_key,
+            model=arguments.director_model,
+        )
+    raise ValueError(f"Unsupported Episode Director provider: {arguments.director_provider}")
+
+
+def _run_trailer_command(arguments: argparse.Namespace) -> int:
+    from core.application.services.trailer_cli_service import TrailerCliService
+
+    service = TrailerCliService()
+    if arguments.trailer_command == "init":
+        payload = service.init(arguments.trailer_id)
+        print(_write_json(arguments.output, payload))
+        return 0
+    if arguments.trailer_command == "plan":
+        episode = service.load(arguments.input)
+        brief = service.load(arguments.brief) if arguments.brief else None
+        payload = service.plan(episode, brief)
+        print(_write_json(arguments.output, payload))
+        return 0
+    if arguments.trailer_command == "package":
+        from core.application.services.wan22_package_service import Wan22PackageService
+        from core.domain.value_objects.trailer_plan import TrailerPlan
+        plan = TrailerPlan.from_dict(service.load(arguments.input))
+        sources = service.load(arguments.sources)
+        packages = Wan22PackageService().build(plan, sources)
+        print(_write_json(arguments.output, {"schema_version": 1, "trailer_id": plan.timeline.trailer_id, "packages": [item.to_dict() for item in packages]}))
+        return 0
+    if arguments.trailer_command == "animatic":
+        from core.application.services.trailer_animatic_service import TrailerAnimaticService
+        from infrastructure.storage.local_fs_storage import LocalFsStorage
+        from core.domain.value_objects.trailer_audio_cue import TrailerAudioCue
+        from core.domain.value_objects.trailer_plan import TrailerPlan
+        plan = TrailerPlan.from_dict(service.load(arguments.input))
+        assets = service.load(arguments.assets) if arguments.assets else {}
+        raw_cues = service.load(arguments.audio_cues) if arguments.audio_cues else []
+        if isinstance(raw_cues, dict):
+            raw_cues = raw_cues.get("audio_cues", [])
+        if not isinstance(raw_cues, list):
+            raise TypeError("Audio cues must contain a JSON list.")
+        audio_cues = tuple(
+            TrailerAudioCue.from_dict(item)
+            for item in raw_cues
+            if isinstance(item, dict)
+        )
+        storage = LocalFsStorage(arguments.storage_root)
+        animatic_service = TrailerAnimaticService(storage)
+
+        async def build_trailer_animatic():
+            normalized_assets, audio_diagnostics = await animatic_service.prepare_audio_assets(
+                plan, assets, shot_ids=arguments.shot_ids or None
+            )
+            built_project = await animatic_service.build(
+                plan,
+                assets=normalized_assets,
+                shot_ids=arguments.shot_ids or None,
+                audio_cues=audio_cues,
+                mode=arguments.mode,
+            )
+            return built_project, audio_diagnostics
+
+        project, audio_diagnostics = asyncio.run(build_trailer_animatic())
+        audio_blocked = arguments.mode == "STRICT" and any(
+            item.get("status") != "OK" for item in audio_diagnostics
+        )
+        payload = {
+            "status": "BLOCKED" if audio_blocked else ("READY_FOR_REVIEW" if project else "BLOCKED"),
+            "mode": arguments.mode,
+            "project_kind": "TRAILER",
+            "animatic_project": project.to_dict() if project and not audio_blocked else None,
+            "audio_diagnostics": list(audio_diagnostics),
+        }
+        if audio_blocked:
+            print(_write_json(arguments.output, payload))
+            return 2
+        if project is not None and arguments.render:
+            from core.application.services.animatic_render_service import (
+                AnimaticRenderService,
+            )
+            from infrastructure.providers.render.ffprobe_media_inspection_provider import (
+                FfprobeMediaInspectionProvider,
+            )
+            from infrastructure.providers.render.remotion_animatic_exporter import (
+                RemotionAnimaticExporter,
+            )
+            props_path = asyncio.run(RemotionAnimaticExporter(storage, arguments.motion_public_dir).export(project))
+            render_result = asyncio.run(AnimaticRenderService(
+                motion_directory="motion",
+                inspector=FfprobeMediaInspectionProvider(),
+            ).render(
+                project, props_path=props_path,
+                output_path=arguments.render_output or str(Path(arguments.output).with_suffix(".mp4")),
+            ))
+            payload["render"] = render_result.to_dict()
+            if render_result.status != "READY_FOR_REVIEW":
+                print(_write_json(arguments.output, payload))
+                return 3
+        print(_write_json(arguments.output, payload))
+        return 0
+    if arguments.trailer_command == "preflight":
+        from core.application.services.wan22_package_service import Wan22PackageService
+        print(json.dumps(Wan22PackageService.preflight(arguments.worker), ensure_ascii=False, indent=2))
+        return 0
+    if arguments.trailer_command == "inspect":
+        payload = service.load(arguments.input)
+        plan = payload
+        shots = plan.get("shots", [])
+        timeline = plan.get("timeline", {})
+        summary = {
+            "trailer_id": plan.get("timeline", {}).get("trailer_id", ""),
+            "fps": timeline.get("fps"),
+            "duration_frames": timeline.get("duration_frames"),
+            "shot_count": len(shots) if isinstance(shots, list) else 0,
+            "beat_count": len(timeline.get("beats", [])) if isinstance(timeline, dict) else 0,
+            "warnings": plan.get("warnings", []),
+        }
+        print(json.dumps(plan if arguments.full else summary, ensure_ascii=False, indent=2))
+        return 0
+    raise ValueError(f"Unsupported trailer command: {arguments.trailer_command}")
+
+
 def _run_episode_command(
     arguments: argparse.Namespace,
+    *,
+    container_factory: Callable[[], AnimationContainer] = create_container,
 ) -> int:
     from core.domain.value_objects.episode_director_plan import EpisodeDirectorPlan
+
+    if arguments.episode_command == "animatic":
+        return _run_episode_animatic(arguments)
 
     if arguments.episode_command == "inspect":
         payload = _load_json_object(arguments.input)
@@ -1127,45 +1707,259 @@ def _run_episode_command(
         print(json.dumps(plan.to_dict() if arguments.full else summary, ensure_ascii=False, indent=2))
         return 0
 
-    if arguments.episode_command != "plan":
+    if arguments.episode_command not in {"plan", "prepare"}:
         raise ValueError(f"Unsupported episode command: {arguments.episode_command}")
 
+    is_prepare = arguments.episode_command == "prepare"
     from core.application.services.episode_director_service import EpisodeDirectorService
 
     characters, locations, pose_packs, background_packs = _load_episode_plan_inputs(arguments)
     source = Path(arguments.input)
     raw = _load_json_object(source) if source.suffix.lower() == ".json" else None
     director = EpisodeDirectorService()
+    provider = _episode_director_provider(arguments)
     if isinstance(raw, dict) and ("sequences" in raw or "episode_script" in raw):
         script_payload = raw.get("episode_script", raw)
-        plan = director.plan_episode(
-            EpisodeScript.from_dict(dict(script_payload)),
-            character_bibles=characters,
-            locations=locations,
-            pose_packs=pose_packs,
-            background_packs=background_packs,
-            episode_id=(
-                arguments.episode_id
-                if arguments.episode_id != "episode-001"
-                else None
-            ),
-        )
+        script = EpisodeScript.from_dict(dict(script_payload))
+        planning_input: EpisodeScript | str = script
+        plan_kwargs = {
+            "character_bibles": characters,
+            "locations": locations,
+            "pose_packs": pose_packs,
+            "background_packs": background_packs,
+            "episode_id": arguments.episode_id if arguments.episode_id != "episode-001" else None,
+        }
+        plan = awaitable_run(director.plan_with_provider(script, provider, **plan_kwargs)) if provider else director.plan_episode(script, **plan_kwargs)
     else:
-        plan = director.plan_text(
-            raw.get("script_text", "") if isinstance(raw, dict) else source.read_text(encoding="utf-8"),
-            episode_id=arguments.episode_id,
-            title=arguments.title,
-            character_bibles=characters,
-            locations=locations,
-            pose_packs=pose_packs,
-            background_packs=background_packs,
+        plan_kwargs = {
+            "character_bibles": characters,
+            "locations": locations,
+            "pose_packs": pose_packs,
+            "background_packs": background_packs,
+        }
+        if source.suffix.lower() == ".fountain":
+            from core.application.services.screenplay_normalization_service import (
+                ScreenplayNormalizationService,
+            )
+
+            script = ScreenplayNormalizationService().from_fountain(
+                source.read_text(encoding="utf-8"),
+                script_id=arguments.episode_id,
+                title=arguments.title,
+            )
+            planning_input = script
+            plan_kwargs["episode_id"] = arguments.episode_id
+            plan = (
+                awaitable_run(director.plan_with_provider(script, provider, **plan_kwargs))
+                if provider
+                else director.plan_episode(script, **plan_kwargs)
+            )
+        else:
+            screenplay_text = raw.get("script_text", "") if isinstance(raw, dict) else source.read_text(encoding="utf-8")
+            planning_input = screenplay_text
+            plan_kwargs.update({"episode_id": arguments.episode_id, "title": arguments.title})
+            plan = (
+                awaitable_run(director.plan_with_provider(screenplay_text, provider, **plan_kwargs))
+                if provider
+                else director.plan_text(screenplay_text, **plan_kwargs)
+            )
+
+    if is_prepare:
+        from core.application.services.episode_preparation_service import (
+            EpisodePreparationResult,
+            EpisodePreparationService,
         )
 
-    payload = {"schema_version": 1, "episode_director_plan": plan.to_dict()}
+        previous = None
+        if arguments.resume:
+            previous = EpisodePreparationResult.from_dict(
+                _load_json_object(arguments.resume)
+            )
+        asset_generation = None
+        generation_failures: dict[str, str] = {}
+        if arguments.generate_assets:
+            from core.application.services.episode_asset_generation_service import (
+                EpisodeAssetGenerationService,
+            )
+
+            pose_jobs: list[dict[str, Any]] = []
+            for path in arguments.pose_jobs:
+                raw_job = _load_json_object(path)
+                raw_jobs = raw_job.get("jobs", raw_job.get("pose_jobs", raw_job))
+                if isinstance(raw_jobs, list):
+                    pose_jobs.extend(
+                        item for item in raw_jobs if isinstance(item, dict)
+                    )
+                elif isinstance(raw_jobs, dict):
+                    pose_jobs.append(raw_jobs)
+                else:
+                    raise TypeError("Pose generation job JSON must contain an object or list.")
+            if arguments.asset_mode == "DISCOVERY":
+                from core.application.services.background_factory_service import (
+                    BackgroundFactoryService,
+                )
+                from core.application.services.character_pose_pack_service import (
+                    CharacterPosePackService,
+                )
+                from infrastructure.providers.keyframe.fake_keyframe_generation_provider import (
+                    FakeKeyframeGenerationProvider,
+                )
+                from infrastructure.storage.local_fs_storage import LocalFsStorage
+
+                discovery_storage = LocalFsStorage(
+                    str(
+                        Path(arguments.asset_output_root or Path(arguments.output).parent / "assets")
+                        / "storage"
+                    )
+                )
+                discovery_generator = FakeKeyframeGenerationProvider(sized_output=True)
+                discovery_pose_service = CharacterPosePackService(
+                    discovery_generator,
+                    discovery_storage,
+                    require_real_provenance=False,
+                    default_mode="DISCOVERY",
+                )
+                discovery_background_service = BackgroundFactoryService(
+                    discovery_generator,
+                    discovery_storage,
+                )
+                from core.application.services.episode_asset_generation_service import (
+                    EpisodeAssetGenerationService,
+                )
+
+                asset_service = EpisodeAssetGenerationService(
+                    discovery_pose_service,
+                    discovery_background_service,
+                    discovery_storage,
+                )
+            else:
+                container = container_factory()
+                asset_service = container.episode_asset_generation_service
+            generated = awaitable_run(
+                asset_service.generate(
+                    plan,
+                    locations=tuple(locations),
+                    pose_jobs=pose_jobs,
+                    asset_mode=arguments.asset_mode,
+                    output_root=(
+                        arguments.asset_output_root
+                        or Path(arguments.output).parent / "assets"
+                    ),
+                    active_series_path=arguments.active_series,
+                    workflow_path=arguments.workflow,
+                )
+            )
+            asset_generation = generated
+            generation_failures = dict(generated.failures)
+            if generated.pose_packs or generated.background_packs:
+                regenerated_kwargs = {
+                    **plan_kwargs,
+                    "character_bibles": characters,
+                    "locations": locations,
+                    "pose_packs": {**pose_packs, **generated.pose_packs},
+                    "background_packs": {**background_packs, **generated.background_packs},
+                }
+                plan = (
+                    awaitable_run(director.plan_with_provider(planning_input, provider, **regenerated_kwargs))
+                    if provider
+                    else director.plan(planning_input, **regenerated_kwargs)
+                )
+
+        result = EpisodePreparationService().prepare(
+            plan,
+            previous=previous,
+            retry_job_ids=tuple(arguments.retry_jobs or ()),
+            failed_jobs=generation_failures,
+        )
+        payload = result.to_dict()
+        if asset_generation is not None:
+            payload["asset_generation"] = asset_generation.to_dict()
+    else:
+        payload = {"schema_version": 1, "episode_director_plan": plan.to_dict()}
     if arguments.output:
         print(_write_json(arguments.output, payload))
     else:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0
+
+
+def awaitable_run(awaitable):
+    """Run one async asset dispatch from the synchronous CLI boundary."""
+    return asyncio.run(awaitable)
+
+
+def _run_episode_animatic(arguments: argparse.Namespace) -> int:
+    from core.application.services.episode_animatic_service import EpisodeAnimaticService
+    from core.domain.value_objects.episode_director_plan import EpisodeDirectorPlan
+    from infrastructure.storage.local_fs_storage import LocalFsStorage
+
+    payload = _load_json_object(arguments.input)
+    raw_plan = payload.get("episode_director_plan", payload)
+    if not isinstance(raw_plan, dict):
+        raise TypeError("Episode input must contain an episode director plan object.")
+    plan = EpisodeDirectorPlan.from_dict(raw_plan)
+    audio_keys: dict[str, str] = {}
+    if arguments.audio_map:
+        audio_payload = _load_json_object(arguments.audio_map)
+        raw_audio = audio_payload.get("audio", audio_payload)
+        if not isinstance(raw_audio, dict):
+            raise TypeError("Audio map must contain a shot-id to storage-key object.")
+        audio_keys = {str(key): str(value) for key, value in raw_audio.items()}
+    result = awaitable_run(
+        EpisodeAnimaticService(LocalFsStorage(arguments.storage_root)).build(
+            plan,
+            dialogue_audio_keys=audio_keys,
+            mode=arguments.mode,
+        )
+    )
+    if result.status == "BLOCKED":
+        print(_write_json(arguments.output, result.to_dict()))
+        return 2
+    output = result.to_dict()
+    if result.project is not None and arguments.export:
+        from infrastructure.providers.render.remotion_animatic_exporter import (
+            RemotionAnimaticExporter,
+        )
+
+        props_path = awaitable_run(
+            RemotionAnimaticExporter(
+                LocalFsStorage(arguments.storage_root),
+                arguments.motion_public_dir,
+            ).export(result.project)
+        )
+        output["remotion_props_path"] = str(props_path)
+        if arguments.render:
+            from core.application.services.animatic_render_service import (
+                AnimaticRenderService,
+            )
+            from infrastructure.providers.render.ffprobe_media_inspection_provider import (
+                FfprobeMediaInspectionProvider,
+            )
+            render_output = arguments.render_output or str(
+                Path(arguments.output).with_suffix(".mp4")
+            )
+            render_result = awaitable_run(
+                AnimaticRenderService(
+                    motion_directory="motion",
+                    inspector=FfprobeMediaInspectionProvider(),
+                ).render(
+                    result.project,
+                    props_path=props_path,
+                    output_path=render_output,
+                )
+            )
+            output["render"] = render_result.to_dict()
+            if render_result.status != "READY_FOR_REVIEW":
+                print(_write_json(arguments.output, output))
+                return 3
+    elif arguments.render:
+        output["render"] = {
+            "status": "BLOCKED",
+            "error": "MP4 render requires a resolved animatic project; use PLACEHOLDER mode for a review render.",
+        }
+        print(_write_json(arguments.output, output))
+        return 3
+    print(_write_json(arguments.output, output))
     return 0
 
 
@@ -1392,6 +2186,15 @@ async def _run_keyframe_commands(
     arguments: argparse.Namespace,
     container: AnimationContainer,
 ) -> int:
+    if arguments.keyframe_command == "approve-pair":
+        approval = await container.keyframe_generation_service.approve_keyframe_pair(
+            shot_id=arguments.shot_id,
+            manifest_storage_key=arguments.manifest,
+            approved_by=arguments.approved_by,
+            confirmed_checks=list(arguments.checks or []),
+        )
+        print(json.dumps(approval.to_dict(), ensure_ascii=False, indent=2))
+        return 0
     if arguments.keyframe_command != "pair":
         raise ValueError(f"Unsupported keyframe command: {arguments.keyframe_command}")
 
@@ -1422,13 +2225,14 @@ async def _run_keyframe_commands(
                 "shot_id": arguments.shot_id,
                 "start_storage_key": pair.start_storage_key,
                 "end_storage_key": pair.end_storage_key,
+                "manifest_storage_key": pair.manifest_storage_key,
+                "contact_sheet_storage_key": pair.contact_sheet_storage_key,
                 "human_approved": pair.human_approved,
             },
             indent=2,
         )
     )
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
