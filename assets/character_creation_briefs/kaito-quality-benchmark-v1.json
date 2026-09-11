@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "name": "Kaito",
+  "concept": "A single adult male anime courier in a clean studio character-design presentation, one visible person only.",
+  "age_band": "mature adult man, approximately 28 years old",
+  "gender_presentation": "masculine adult man",
+  "body_type": "tall athletic adult male with realistic eight-head proportions, broad shoulders, long balanced limbs, normal-sized head",
+  "face": "uncovered angular adult anime face with a defined jaw, straight nose, both eyes visible, fully readable facial features",
+  "eyes": "steel-blue adult eyes",
+  "hair": "fully visible short black hair with exactly one narrow cobalt-blue front streak",
+  "signature_marks": [
+    {
+      "label": "single cobalt-blue front hair streak",
+      "count": 1,
+      "character_side": "left",
+      "colour": "#0047AB"
+    }
+  ],
+  "outfit": "simple matte charcoal courier jacket with sparse cobalt-blue piping, fitted black cargo trousers, and plain black boots",
+  "props": [
+    "one compact messenger bag resting on character-right hip, its strap crossing from character-left shoulder"
+  ],
+  "personality": [
+    "disciplined",
+    "observant",
+    "protective"
+  ],
+  "style_preset": "selma-anime-v1",
+  "palette": [
+    "matte charcoal",
+    "black",
+    "muted gray",
+    "limited cobalt blue",
+    "steel blue",
+    "natural skin tone"
+  ],
+  "avoid": [
+    "multiple characters",
+    "second person",
+    "child",
+    "young boy",
+    "chibi",
+    "super deformed",
+    "oversized head",
+    "helmet",
+    "headgear",
+    "mask",
+    "visor",
+    "face covering",
+    "faceless",
+    "closed eyes",
+    "extra weapons",
+    "blue hair",
+    "multiple blue streaks",
+    "cropped head",
+    "cropped feet",
+    "oversized armor",
+    "busy cyberpunk armor",
+    "excessive straps",
+    "neon glow",
+    "text",
+    "watermark"
+  ],
+  "view_pack": "standard",
+  "requested_actions": [],
+  "additional_notes": "Benchmark-only text prompt; do not use the Akira reference as conditioning. Show Kaito standing straight and facing forward from head to boots with comfortable margins. His uncovered adult face, complete short hair, exactly one cobalt streak, simple jacket, fitted trousers, boots, and single messenger bag must all be readable. Use clean precise anime line art, restrained two-step cel shading, a neutral light-gray studio background, and a production-ready non-chibi adult silhouette. No pose, scenery, armor, helmet, mask, weapon, logo, or second figure."
+}

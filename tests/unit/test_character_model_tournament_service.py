@@ -83,6 +83,40 @@ async def test_tournament_uses_same_text_only_seed_inputs_for_both_models():
 
 
 @pytest.mark.asyncio
+async def test_tournament_accepts_dedicated_full_body_benchmark_brief():
+    calls: list[dict[str, object]] = []
+
+    def factory(model_lock_path):
+        return _DesignService(calls)
+
+    raw_brief = json.loads(
+        (ROOT / "assets/character_creation_briefs/kaito-quality-benchmark-v1.json")
+        .read_text(encoding="utf-8")
+    )
+    brief = CharacterCreationBrief.from_dict(raw_brief)
+
+    async def release():
+        return None
+
+    service = CharacterModelTournamentService(ROOT, factory, release)
+    report = await service.run(
+        benchmark_path=ROOT / "config/character_benchmarks/akira-quality-v1.json",
+        brief=brief,
+        model_lock_paths=(
+            ROOT / "models.lock.json",
+            ROOT / "config/model_profiles/illustrious-xl-v2.lock.json",
+        ),
+        count=1,
+        run_id="dedicated-benchmark",
+    )
+
+    assert report["status"] == "PENDING_HUMAN_REVIEW"
+    assert report["character_id"] == "kaito"
+    assert len(report["variants"]) == 2
+    assert len(calls) == 2
+
+
+@pytest.mark.asyncio
 async def test_tournament_requires_two_distinct_checkpoints():
     raw_brief = json.loads(
         (ROOT / "assets/character_creation_briefs/kaito.json").read_text(
@@ -106,3 +140,38 @@ async def test_tournament_requires_two_distinct_checkpoints():
             count=1,
             run_id="duplicate",
         )
+
+
+@pytest.mark.asyncio
+async def test_tournament_rejects_face_brief_for_full_body_benchmark_before_factory():
+    raw_brief = json.loads(
+        (ROOT / "assets/character_creation_briefs/kaito-v4.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    brief = CharacterCreationBrief.from_dict(raw_brief)
+    factory_calls = []
+
+    def factory(model_lock_path):
+        factory_calls.append(model_lock_path)
+        return _DesignService([])
+
+    async def release():
+        return None
+
+    service = CharacterModelTournamentService(ROOT, factory, release)
+
+    with pytest.raises(ValueError, match="requires a full-body character"):
+        await service.run(
+            benchmark_path=ROOT
+            / "config/character_benchmarks/akira-quality-v1.json",
+            brief=brief,
+            model_lock_paths=(
+                ROOT / "models.lock.json",
+                ROOT / "config/model_profiles/illustrious-xl-v2.lock.json",
+            ),
+            count=1,
+            run_id="incompatible",
+        )
+
+    assert factory_calls == []

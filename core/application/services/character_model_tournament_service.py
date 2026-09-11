@@ -52,6 +52,7 @@ class CharacterModelTournamentService:
         benchmark = CharacterQualityBenchmarkService(self._workspace_root).validate(
             benchmark_path
         )
+        self._validate_brief_compatibility(benchmark.visual_targets, brief)
         variants: list[tuple[Path, Any, str]] = []
         checkpoint_hashes: set[str] = set()
         dependency_fingerprint: dict[str, str] | None = None
@@ -121,3 +122,23 @@ class CharacterModelTournamentService:
             "prohibited_transfer": list(benchmark.prohibited_transfer),
             "variants": results,
         }
+
+    @staticmethod
+    def _validate_brief_compatibility(
+        visual_targets: Sequence[str], brief: CharacterCreationBrief
+    ) -> None:
+        """Reject contradictory benchmark inputs before loading large checkpoints."""
+        targets = " ".join(visual_targets).casefold().replace("-", " ")
+        avoided = {item.casefold().replace("-", " ") for item in brief.avoid}
+        requires_full_body = "full body" in targets or "head to boots" in targets
+        forbids_full_body = any(
+            value in avoided for value in ("full body", "legs", "feet")
+        )
+        if requires_full_body and (
+            brief.style_preset.casefold() == "selma-anime-v3-face"
+            or forbids_full_body
+        ):
+            raise ValueError(
+                "Benchmark requires a full-body character, but the brief is a "
+                "face/crop brief or explicitly forbids full-body anatomy."
+            )
