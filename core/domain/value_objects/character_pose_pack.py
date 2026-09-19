@@ -1,4 +1,4 @@
-"""Durable contracts for the pre-animation five-pose character library."""
+"""Durable contracts for the pre-animation three-pose character library."""
 
 from __future__ import annotations
 
@@ -12,15 +12,13 @@ from core.domain.exceptions import PreProductionValidationError
 
 POSE_PACK_POSE_IDS = (
     "FRONT_NEUTRAL",
-    "THREE_QUARTER_LEFT",
     "PROFILE_LEFT",
-    "THREE_QUARTER_RIGHT",
     "BACK_FULL_BODY",
 )
 POSE_PACK_HUMAN_CHECKS = (
     "identity_consistent",
     "outfit_consistent",
-    "all_five_poses_present",
+    "all_three_poses_present",
     "style_consistent",
     "anatomy_and_artifacts_pass",
 )
@@ -178,7 +176,7 @@ class CharacterPosePackManifest:
         if len(pose_ids) != len(self.poses):
             raise PreProductionValidationError("Pose-pack pose ids must be unique.")
         if self.status == "PENDING_HUMAN_REVIEW" and pose_ids != set(POSE_PACK_POSE_IDS):
-            raise PreProductionValidationError("A reviewable pose pack requires all five poses.")
+            raise PreProductionValidationError("A reviewable pose pack requires all three poses.")
         if self.status == "PENDING_HUMAN_REVIEW":
             if not self.contact_sheet_storage_key or not self.contact_sheet_content_hash:
                 raise PreProductionValidationError("A reviewable pose pack requires a contact sheet.")
@@ -261,7 +259,7 @@ class CharacterPosePackApproval:
 
     def __post_init__(self) -> None:
         if self.schema_version != 1 or set(self.pose_hashes) != set(POSE_PACK_POSE_IDS):
-            raise PreProductionValidationError("Pose-pack approval requires all five pose hashes.")
+            raise PreProductionValidationError("Pose-pack approval requires all three pose hashes.")
         object.__setattr__(self, "character_id", _text(self.character_id, "character_id"))
         object.__setattr__(self, "style_id", _text(self.style_id, "style_id"))
         object.__setattr__(self, "approved_by", _text(self.approved_by, "approved_by"))

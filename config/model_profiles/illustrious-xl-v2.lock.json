@@ -1,6 +1,8 @@
 {
   "schema_version": 1,
   "comfyui_root": "C:/Users/LOQ/Desktop/ComfyUI",
+  "retired": true,
+  "retired_reason": "Illustrious/Animagine text-only satir kept identity transfer icin yetersiz kaldi. Agirlik Illustrious-XL-v2.0.safetensors 2026-09-13'te diskten kaldirildi (docs/REJECTED_APPROACHES.md); bu yuzden bu profil uretimde kullanilamaz ve preflight model_lock:retired ile duser. Kaynak-gudumlu yol: models-flux2.lock.json.",
   "models": [
     {
       "role": "checkpoint",
@@ -9,7 +11,7 @@
       "sha256": "c2a1a3eaa13d4c107dc7e00c3fe830cab427aa026362740ea094745b3422a331",
       "size_bytes": 6938040674,
       "required": true,
-      "note": "Tournament challenger; never selected without benchmark evidence."
+      "note": "RETIRED 2026-09-13: weights removed from disk. Kept only as a historical record of the text-only challenger; never select for production."
     },
     {
       "role": "ip_adapter",

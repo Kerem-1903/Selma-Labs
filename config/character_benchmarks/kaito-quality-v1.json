@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "kaito-quality-v1",
+  "reference_asset": "assets/quality_benchmarks/kaito-v1/kaito-quality-reference.png",
+  "reference_sha256": "dc022b75c1ad768cd88c56acd2ab44957c9a772e84a348dded12dc6e9603c0a0",
+  "width": 1024,
+  "height": 1024,
+  "usage": "quality_and_style_evaluation_only",
+  "visual_targets": [
+    "single centered full-body anime character from head to boots",
+    "short black hair carrying exactly one narrow cobalt front streak on the character-left side",
+    "one compact messenger bag on the character-right hip with its strap over the character-left shoulder",
+    "matte charcoal courier jacket with sparse cobalt piping over fitted black cargo trousers and plain black boots",
+    "clean precise line art with restrained two-step cel shading",
+    "muted charcoal, black and gray palette with limited cobalt accent",
+    "plain light-gray studio background and neutral lighting without scenery or text"
+  ],
+  "human_criteria": [
+    {
+      "id": "same_facial_identity",
+      "label": "The same adult anime face reads clearly in every view",
+      "weight": 0.2
+    },
+    {
+      "id": "signature_mark_preserved",
+      "label": "Exactly one cobalt front streak survives every view, stays on character-left, and is never mirrored",
+      "weight": 0.2
+    },
+    {
+      "id": "accessory_continuity",
+      "label": "The single messenger bag keeps its size, colour and shoulder-to-hip strap path in every view",
+      "weight": 0.2
+    },
+    {
+      "id": "outfit_and_proportions",
+      "label": "Jacket layers, piping, trousers, boots and body proportions stay consistent",
+      "weight": 0.2
+    },
+    {
+      "id": "style_and_background",
+      "label": "Line art, two-step cel shading and the plain studio background stay clean in every view",
+      "weight": 0.2
+    }
+  ],
+  "prohibited_transfer": [
+    "using the benchmark reference as an identity or image-edit source for a different character",
+    "copying Kaito's face, hair or outfit into another character",
+    "treating output from a rejected method as an accepted target",
+    "scoring a view by prompt adherence alone while ignoring the locked reference"
+  ]
+}

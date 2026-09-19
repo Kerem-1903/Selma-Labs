@@ -1,0 +1,38 @@
+{
+  "artifact_mode": "PRODUCTION",
+  "artifact_type": "PRODUCTION_STYLE_LOCK",
+  "cfg": 5.0,
+  "compatibility_status": "PRODUCTION_COMPATIBLE",
+  "component_hashes": {
+    "clip_vision": "6ca9667da1ca9e0b0f75e46bb030f7e011f44f86cbfb8d5a36590fcd7507b030",
+    "controlnet_openpose": "8afa079285bf9384eaf8f6322884cb4f24bbe405da490f91f5540d3bff585e75",
+    "face_detector": "717923c19b3f4bbf5250b728f1fa6b2cb72a33aed1d236ea9caf0e21ad943e5f",
+    "ip_adapter": "3f5062b8400c94b7159665b21ba5c62acdcd7682262743d7f2aefedef00e6581",
+    "pose_detector": "c6fa93dd1ee4a2c18c900a45c1d864a1c6f7aba75d84f91648a30b7fb641d212"
+  },
+  "denoise": 0.65,
+  "height": 1152,
+  "lock_storage_key": "config/series/selma-anime-v1/production-style-lock.json",
+  "lock_version": 1,
+  "model_hashes": {
+    "checkpoint": "6327eca98bfb6538dd7a4edce22484a1bbc57a8cff6b11d075d40da1afb847ac",
+    "clip_vision": "6ca9667da1ca9e0b0f75e46bb030f7e011f44f86cbfb8d5a36590fcd7507b030",
+    "controlnet_openpose": "8afa079285bf9384eaf8f6322884cb4f24bbe405da490f91f5540d3bff585e75",
+    "face_detector": "717923c19b3f4bbf5250b728f1fa6b2cb72a33aed1d236ea9caf0e21ad943e5f",
+    "ip_adapter": "3f5062b8400c94b7159665b21ba5c62acdcd7682262743d7f2aefedef00e6581",
+    "pose_detector": "c6fa93dd1ee4a2c18c900a45c1d864a1c6f7aba75d84f91648a30b7fb641d212"
+  },
+  "model_lock_sha256": "d7950ae2eb3933598e8077b7e8d594f906aac65d3af0f467eae2ec1c0bac6135",
+  "production_eligible": true,
+  "sampler": "euler",
+  "schema_version": 1,
+  "series_id": "selma-anime-v1",
+  "smoke_test_receipt_sha256": "cf53eb18c139761413c977bd52b3fcc41b53c8310f39e02a7fe717305b061f49",
+  "steps": 24,
+  "style_approval_receipt_sha256": "695efc45a4df1871058d7344026f02115ba08e7d7110a4ec8ccbf12c70a2e8d2",
+  "style_id": "selma-production-anime-v1",
+  "style_version": 1,
+  "width": 768,
+  "workflow_id": "comfyui_keyframe_workflow.json",
+  "workflow_sha256": "bb3a3d427484233f187d24430d8748c6a781eb1d711b77a3fcb4e8f706a531f3"
+}

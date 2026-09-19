@@ -6,3 +6,19 @@ markers = [
     "blender_integration: tests that require a local Blender installation",
 ]
 
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+
+[tool.ruff.lint]
+# Correctness core only, so the gate is green from day one without rewriting the
+# existing tree. The ratchet order for the stricter sets (I/UP autofix, then the
+# full pyflakes F set for __init__ re-exports, then bugbear/simplify) is recorded
+# in docs/CODE_REVIEW.md.
+select = ["E9", "F63", "F7", "F82", "F811", "F823", "E722"]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+files = ["core", "config", "cli"]
+

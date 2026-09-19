@@ -26,5 +26,10 @@ class FakeImageToVideoProvider(ImageToVideoGenerationPort):
             duration_seconds=request.target_duration_seconds,
             fps=request.fps,
             provider_asset_id=asset_id,
-            metadata={"source_image_storage_key": request.source_image_storage_key},
+            metadata={
+                "source_image_storage_key": request.source_image_storage_key,
+                "offline": True,
+                "runtime_profile": "offline-test",
+                "production_eligible": False,
+            },
         )

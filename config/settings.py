@@ -10,10 +10,13 @@ construct Settings() themselves.
 
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -33,6 +36,11 @@ class Settings(BaseSettings):
     ollama_api_url: str = "http://localhost:11434/api/generate"
     ollama_script_model: str = "llama3"
     story_development_model: str = "qwen3:8b"
+    # Local story models answer in 60-90s per reviewer on an 8GB card, and the
+    # three reviewers share one model. This is a client wait, not a resource
+    # limit, so it is deliberately generous: a gate that fails on its own
+    # slowness would look like a script defect.
+    story_development_timeout_seconds: float = 600.0
     preproduction_canon_dir: str = "assets/preproduction"
     preproduction_character_dir: str = "assets/character_bibles"
     preproduction_approval_dir: str = "output/preproduction/story-approvals"
@@ -125,6 +133,11 @@ class Settings(BaseSettings):
     voice_cache_enabled: bool = True
     voice_cache_dir: str = "cache/voice"
 
+    # Runtime profile is the explicit boundary between real production and
+    # deterministic offline/test adapters. Keep offline-test as the default so
+    # existing contract tests remain cheap; production rejects fake providers.
+    runtime_profile: Literal["production", "offline-test", "legacy", "experimental"] = "offline-test"
+
     # Visual asset discovery (Sprint 3). video_provider is the single
     # switch that selects an adapter via config/provider_registry.py, same
     # pattern as voice_provider above.
@@ -132,10 +145,21 @@ class Settings(BaseSettings):
     luma_api_key: str = ""
     comfyui_api_url: str = "http://127.0.0.1:8188"
     comfyui_workflow_path: str = "assets/comfyui_workflow.json"
-    keyframe_generation_provider: Literal["fake", "comfyui"] = "fake"
+    # "comfyui" is the seven-view IP-Adapter/pose-template dialect; 
+    # "comfyui-flux2-edit" is the source-led FLUX.2 Klein edit dialect.
+    keyframe_generation_provider: Literal[
+        "fake", "comfyui", "comfyui-flux2-edit"
+    ] = "fake"
     comfyui_keyframe_workflow_path: str = "assets/comfyui_keyframe_workflow.json"
     comfyui_keyframe_checkpoint: str = ""
     comfyui_model_lock_path: str = "models.lock.json"
+    # Capability refinements over keyframe_generation_provider; see
+    # core/domain/value_objects/generation_capability.py.
+    keyframe_provider_profile_path: str = "config/keyframe_provider_profile.json"
+    comfyui_flux2_edit_workflow_path: str = (
+        "assets/comfyui_flux2_klein_edit_workflow.json"
+    )
+    comfyui_flux2_model_lock_path: str = "models-flux2.lock.json"
     production_preflight_min_free_disk_gb: float = 40.0
     production_preflight_min_free_ram_gb: float = 4.0
     production_preflight_test_job: bool = True
@@ -152,12 +176,26 @@ class Settings(BaseSettings):
     comfyui_character_lora_strength_clip: float = 0.0
     comfyui_keyframe_timeout_seconds: float = 300.0
     comfyui_keyframe_poll_interval_seconds: float = 1.0
+    comfyui_flux2_edit_timeout_seconds: float = 600.0
+    comfyui_flux2_edit_poll_interval_seconds: float = 2.0
+    # Advisory turnaround drift measurement (signature mark colour and side).
+    character_drift_accent_colour: str = "#0047AB"
+    character_drift_mark_side: Literal["", "left", "right"] = "left"
+    # Calibrated tolerance band for the drift report. An empty path keeps the
+    # built-in defaults; a configured path must exist and parse, because falling
+    # back to the defaults would measure every render against a much looser band
+    # than the one the reference pack was calibrated at.
+    character_drift_thresholds_path: str = (
+        "config/character_acceptance/kaito-drift-thresholds-v1.json"
+    )
+    # Seeds rendered per view before the least-drifted one is kept.
+    character_view_candidate_count: int = 1
     keyframe_candidate_db_path: str = "data/keyframe_candidates.db"
     keyframe_storage_root_dir: str = "output/production"
     keyframe_pair_max_attempts: int = 1
     keyframe_pose_width: int = 768
     keyframe_pose_height: int = 1152
-    character_pose_pack_max_attempts: int = 2
+    character_pose_pack_max_attempts: int = 4
     character_pose_pack_width: int = 768
     character_pose_pack_height: int = 1152
     character_bible_repository_dir: str = "assets/character_bibles"
@@ -295,3 +333,21 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+def warn_if_offline_test_profile(settings: Settings) -> None:
+    """Make the offline-test default loud at a production entry point.
+
+    ``offline-test`` is the default so the test suite stays cheap, which means
+    an operator who forgets ``RUNTIME_PROFILE=production`` would get
+    deterministic fake providers with no complaint: the guard in
+    ``config/provider_registry.py`` only fires when the profile is *explicitly*
+    ``production``. This warning covers the "nobody set it" case without
+    changing the test-facing default, and it warns rather than raises so an
+    intentional offline smoke run still proceeds.
+    """
+    if settings.runtime_profile == "offline-test":
+        logger.warning(
+            "RUNTIME_PROFILE is 'offline-test': deterministic fake providers may "
+            "be selected. Set RUNTIME_PROFILE=production for real generation."
+        )

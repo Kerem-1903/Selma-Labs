@@ -45,5 +45,9 @@ class FakeKeyframeGenerationProvider(KeyframeGenerationPort):
             width=request.width,
             height=request.height,
             provider_asset_id=f"fake-{request_digest}",
-            metadata={"offline": True},
+            metadata={
+                "offline": True,
+                "runtime_profile": "offline-test",
+                "production_eligible": False,
+            },
         )

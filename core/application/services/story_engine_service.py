@@ -5,7 +5,12 @@ from __future__ import annotations
 import asyncio
 
 from core.application.services.canon_validation_service import CanonValidationService
-from core.domain.entities.direction_bible import BibleStatus
+from core.domain.entities.character_bible import CharacterBible
+from core.domain.entities.direction_bible import (
+    BibleStatus,
+    CreativeDirectionBible,
+    WorldBible,
+)
 from core.domain.entities.episode_script import (
     EpisodeScript,
     EpisodeScriptStatus,
@@ -17,7 +22,11 @@ from core.domain.ports.canon_repository_port import CanonRepositoryPort
 from core.domain.ports.dialogue_generator_port import DialogueGeneratorPort
 from core.domain.ports.story_generator_port import StoryGeneratorPort
 from core.domain.ports.story_reviewer_port import StoryReviewerPort
-from core.domain.value_objects.story_review import StoryDevelopmentResult
+from core.domain.value_objects.canon_validation import CanonValidationReport
+from core.domain.value_objects.story_review import (
+    StoryDevelopmentResult,
+    StoryReviewReport,
+)
 
 
 class StoryEngineService:
@@ -42,7 +51,9 @@ class StoryEngineService:
         self._approval_repository = approval_repository
         self._canon_validator = canon_validator or CanonValidationService()
 
-    async def develop(self, brief: StoryBrief) -> StoryDevelopmentResult:
+    async def _load_locked_canon(
+        self,
+    ) -> tuple[CreativeDirectionBible, WorldBible, tuple[CharacterBible, ...]]:
         direction = await self._canon_repository.get_creative_direction()
         world = await self._canon_repository.get_world_bible()
         characters = await self._canon_repository.get_character_bibles()
@@ -60,14 +71,15 @@ class StoryEngineService:
             raise StoryDevelopmentError(
                 "Story development requires locked character canon."
             )
-        script = await self._story_generator.generate_episode(
-            brief, direction, world, characters
-        )
-        script = await self._dialogue_generator.refine_dialogue(script, characters)
-        if script.status is EpisodeScriptStatus.LOCKED:
-            raise StoryDevelopmentError(
-                "Providers must not return an already locked script."
-            )
+        return direction, world, characters
+
+    async def _run_review(
+        self,
+        script: EpisodeScript,
+        direction: CreativeDirectionBible,
+        world: WorldBible,
+        characters: tuple[CharacterBible, ...],
+    ) -> tuple[CanonValidationReport, tuple[StoryReviewReport, ...]]:
         canon_report = self._canon_validator.validate(
             script, direction, world, characters
         )
@@ -79,12 +91,57 @@ class StoryEngineService:
                 )
             )
         )
-        status = (
+        return canon_report, reviews
+
+    @staticmethod
+    def _review_status(
+        canon_report: CanonValidationReport,
+        reviews: tuple[StoryReviewReport, ...],
+    ) -> EpisodeScriptStatus:
+        return (
             EpisodeScriptStatus.READY_FOR_APPROVAL
             if canon_report.passed and all(review.passed for review in reviews)
             else EpisodeScriptStatus.CHANGES_REQUIRED
         )
-        return StoryDevelopmentResult(script.with_status(status), canon_report, reviews)
+
+    async def develop(self, brief: StoryBrief) -> StoryDevelopmentResult:
+        direction, world, characters = await self._load_locked_canon()
+        script = await self._story_generator.generate_episode(
+            brief, direction, world, characters
+        )
+        script = await self._dialogue_generator.refine_dialogue(script, characters)
+        if script.status is EpisodeScriptStatus.LOCKED:
+            raise StoryDevelopmentError(
+                "Providers must not return an already locked script."
+            )
+        canon_report, reviews = await self._run_review(
+            script, direction, world, characters
+        )
+        return StoryDevelopmentResult(
+            script.with_status(self._review_status(canon_report, reviews)),
+            canon_report,
+            reviews,
+        )
+
+    async def review(self, script: EpisodeScript) -> StoryDevelopmentResult:
+        """Gate an existing screenplay through the same review as a drafted one.
+
+        Hand-written drafts reach canon through the identical checks as generated
+        ones, so a screenplay cannot be locked by taking a different road.
+        """
+        if script.status is EpisodeScriptStatus.LOCKED:
+            raise StoryDevelopmentError(
+                "A locked episode script cannot be reviewed again."
+            )
+        direction, world, characters = await self._load_locked_canon()
+        canon_report, reviews = await self._run_review(
+            script, direction, world, characters
+        )
+        return StoryDevelopmentResult(
+            script.with_status(self._review_status(canon_report, reviews)),
+            canon_report,
+            reviews,
+        )
 
     async def approve(
         self, result: StoryDevelopmentResult, *, approved_by: str

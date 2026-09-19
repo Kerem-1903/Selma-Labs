@@ -18,8 +18,32 @@ ROOT = Path(__file__).parents[2]
 PROJECT = ROOT / "config/series/selma-anime-v1.json"
 
 
-def test_selected_style_is_series_level_and_cast_starts_empty():
-    project, registry = SeriesProjectService(ROOT).load(PROJECT)
+def test_selected_style_is_series_level_and_cast_starts_empty(tmp_path):
+    """A fresh series starts provisional and uncast; that is the rule under test.
+
+    Reading it off the live project would pin the suite to "the style was never
+    approved and nobody was ever cast" -- the exact state this project is meant
+    to leave. The state is therefore staged on an isolated copy, while the
+    series-level facts (reference hash, identity policy) still come from the
+    real project file.
+    """
+    payload = json.loads(PROJECT.read_text(encoding="utf-8"))
+    payload["style_bible"]["status"] = "PROVISIONAL"
+    payload["style_bible"]["reference_asset"] = "style.png"
+    payload["character_registry"] = "cast.json"
+    payload["model_lock"] = "models.lock.json"
+    (tmp_path / "series.json").write_text(json.dumps(payload), encoding="utf-8")
+    shutil.copyfile(
+        ROOT / "assets/series/selma-anime-v1/style/approved-style-reference.png",
+        tmp_path / "style.png",
+    )
+    shutil.copyfile(ROOT / "models.lock.json", tmp_path / "models.lock.json")
+    (tmp_path / "cast.json").write_text(
+        json.dumps({"schema_version": 1, "series_id": "selma-anime-v1", "members": []}),
+        encoding="utf-8",
+    )
+
+    project, registry = SeriesProjectService(tmp_path).load(tmp_path / "series.json")
 
     assert project.series_id == "selma-anime-v1"
     assert project.style_bible.status == "PROVISIONAL"
@@ -43,10 +67,22 @@ def test_series_cli_validates_without_building_generation_container(capsys):
     )
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "VALID"
-    assert payload["cast_size"] == 0
-    assert payload["production_ready"] is False
-    assert payload["style_lock"]["blocking_reason"] == "STYLE_LOCK_UNAPPROVED"
-    assert payload["next_gate"] == "REGISTER_FIRST_CHARACTER"
+    # This command is the operator's readiness read-out, so it must stay
+    # internally consistent after the series starts being populated instead of
+    # being pinned to the moment it had no cast and no approved style.
+    members = json.loads(
+        (ROOT / "config/series/selma-anime-v1.cast.json").read_text(encoding="utf-8")
+    )["members"]
+    assert payload["cast_size"] == len(members)
+    assert payload["next_gate"] in {
+        "REGISTER_FIRST_CHARACTER",
+        "VALIDATE_CAST_DISTINCTIVENESS",
+    }
+    if payload["next_gate"] == "REGISTER_FIRST_CHARACTER":
+        assert payload["cast_size"] == 0
+    assert payload["production_ready"] == (payload["style_lock"]["status"] == "READY")
+    if not payload["production_ready"]:
+        assert payload["style_lock"]["blocking_reason"]
 
 
 def test_registry_rejects_duplicate_character_versions():

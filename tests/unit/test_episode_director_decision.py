@@ -30,7 +30,7 @@ def _decision(scene_id="episode-001-scene-001"):
         story_beat="conflict",
         emotional_intent="urgent",
         character_actions={"akira": "raises her hand toward the signal"},
-        pose_preferences={"akira": "THREE_QUARTER_LEFT"},
+        pose_preferences={"akira": "PROFILE_LEFT"},
         shot_sizes=("wide", "close_up"),
         background_direction="wet rooftop with a pulsing red signal",
     )
@@ -46,7 +46,7 @@ async def test_structured_provider_decision_controls_episode_plan():
     assert plan.provider == "fake:director"
     assert plan.scenes[0].story_beat == "conflict"
     assert plan.scenes[0].scene_purpose.startswith("show the character")
-    assert plan.scenes[0].shots[0].character_pose_id == "THREE_QUARTER_LEFT"
+    assert plan.scenes[0].shots[0].character_pose_id == "PROFILE_LEFT"
     assert "wet rooftop" in plan.scenes[0].shots[0].background_prompt
 
 

@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "default_provider": "",
+  "notes": "Capability refinements layered over keyframe_generation_provider. An empty default_provider means every unlisted capability keeps using the globally configured engine. Overrides only refine a real engine: they never promote the offline 'fake' default into GPU work, so offline tests stay offline.",
+  "capabilities": {
+    "character.turnaround": "comfyui-flux2-edit"
+  }
+}

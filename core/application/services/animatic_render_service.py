@@ -42,6 +42,7 @@ class AnimaticRenderService:
         remotion_binary: str = "npx",
         inspector: MediaInspectionPort,
         timeout_seconds: float = 300.0,
+        browser_executable: str | Path | None = None,
     ) -> None:
         self._motion_directory = Path(motion_directory)
         self._remotion_binary = (
@@ -51,6 +52,11 @@ class AnimaticRenderService:
         )
         self._inspector = inspector
         self._timeout_seconds = timeout_seconds
+        self._browser_executable = (
+            str(Path(browser_executable).resolve())
+            if browser_executable
+            else ""
+        )
 
     async def render(
         self,
@@ -75,6 +81,8 @@ class AnimaticRenderService:
             f"--props={Path(props_path).resolve()}",
             "--log=error",
         ]
+        if self._browser_executable:
+            command.insert(-1, f"--browser-executable={self._browser_executable}")
         process = None
         try:
             process = await asyncio.create_subprocess_exec(

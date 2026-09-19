@@ -111,7 +111,14 @@ async def test_locked_story_canon_blocks_golden_set_until_character_pack_is_appr
     direction = await repository.get_creative_direction()
     world = await repository.get_world_bible()
     style = await repository.get_visual_style()
-    (akira,) = await repository.get_character_bibles()
+    # The bible directory is a cast directory: it holds every registered
+    # character. Select the one under test by identity instead of assuming the
+    # directory only ever contains a single file.
+    akira = next(
+        bible
+        for bible in await repository.get_character_bibles()
+        if bible.character_id == "akira"
+    )
 
     assert direction.status is world.status is style.status is BibleStatus.LOCKED
     with pytest.raises(GoldenSetValidationError, match="reference pack is incomplete"):
@@ -129,7 +136,11 @@ async def test_golden_adapter_threads_openpose_into_generation_request(tmp_path)
         "assets/preproduction", "assets/character_bibles"
     )
     style = await repository.get_visual_style()
-    (akira,) = await repository.get_character_bibles()
+    akira = next(
+        bible
+        for bible in await repository.get_character_bibles()
+        if bible.character_id == "akira"
+    )
     running = next(
         case
         for case in default_akira_golden_cases()

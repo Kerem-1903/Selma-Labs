@@ -17,6 +17,9 @@ No other file needs to change.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from config.settings import Settings, get_settings
 from core.application.selection.rules.asset_reuse_rule import AssetReuseRule
 from core.application.selection.rules.keyword_fatigue_rule import KeywordFatigueRule
@@ -32,7 +35,11 @@ from core.application.services.vision_asset_scoring_service import (
 from core.application.utils.resilient_provider_decorator import (
     ResilientSearchProviderDecorator,
 )
-from core.domain.exceptions import ProviderConnectionError, ProviderTimeoutError
+from core.domain.exceptions import (
+    ProviderConnectionError,
+    ProviderTimeoutError,
+    RuntimeProfileError,
+)
 from core.domain.ports.audio_mix_port import AudioMixPort
 from core.domain.ports.background_music_port import BackgroundMusicPort
 from core.domain.ports.fact_check_port import FactCheckPort
@@ -51,6 +58,11 @@ from core.domain.ports.trend_source_port import TrendSourcePort
 from core.domain.ports.video_source_port import VideoSourcePort
 from core.domain.ports.vision_analysis_port import VisionAnalysisPort
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
+from core.domain.value_objects.generation_capability import (
+    GenerationCapability,
+    KeyframeProviderProfile,
+)
+from core.domain.value_objects.production_infra import ModelLock
 from core.infrastructure.cache.in_memory_cache import InMemoryCache
 from infrastructure.providers.audio_mix.ffmpeg_audio_mix_provider import (
     FfmpegAudioMixProvider,
@@ -456,18 +468,162 @@ def get_vision_asset_scoring_service(settings: Settings) -> VisionAssetScoringSe
     )
 
 
+def _reject_fake_in_production(settings: Settings, provider_name: str) -> None:
+    if settings.runtime_profile == "production":
+        raise RuntimeProfileError(
+            f"{provider_name} cannot use a fake provider in the production runtime profile."
+        )
+
+
+def load_keyframe_provider_profile(
+    path: str | Path | None,
+) -> KeyframeProviderProfile:
+    """Load the capability profile; a missing file means "no overrides".
+
+    A malformed file raises instead of degrading to the global switch: silently
+    ignoring a policy file is how a workload ends up on the wrong engine.
+    """
+    if not path:
+        return KeyframeProviderProfile.empty()
+    profile_path = Path(path)
+    if not profile_path.is_file():
+        return KeyframeProviderProfile.empty()
+    try:
+        payload = json.loads(profile_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError(
+            f"Keyframe provider profile is not readable JSON: {profile_path}"
+        ) from error
+    if not isinstance(payload, dict):
+        raise TypeError("Keyframe provider profile must contain an object.")
+    return KeyframeProviderProfile.from_dict(payload)
+
+
+def resolve_keyframe_provider_name(
+    settings: Settings,
+    capability: GenerationCapability | None = None,
+) -> str:
+    """Return the engine that serves one capability.
+
+    ``capability=None`` keeps the original single-switch behaviour so existing
+    callers and scripts are unaffected.
+    """
+    base = settings.keyframe_generation_provider
+    if capability is None or base == "fake":
+        # The profile refines a real engine; it never switches one on. Without
+        # this rule an override could turn the offline default into GPU work.
+        return base
+    profile = load_keyframe_provider_profile(
+        settings.keyframe_provider_profile_path
+    )
+    return profile.provider_for(capability, fallback=base)
+
+
+def build_flux2_edit_provider(
+    settings: Settings,
+    model_lock: ModelLock,
+    *,
+    storage: StoragePort | None,
+) -> KeyframeGenerationPort:
+    """Build the source-led edit engine for one *specific* model lock.
+
+    The configured lock path cannot serve a tournament, which by definition
+    varies the checkpoint across variants. Everything else -- model lock
+    verification, preflight, watchdog, thermal guard -- is identical to the
+    configured path, so a tournament is not a back door around production
+    safety.
+    """
+    if storage is None:
+        raise ValueError(
+            "ComfyUI keyframe generation requires the application's StoragePort."
+        )
+    from pathlib import Path
+
+    from core.application.services.comfy_watchdog_service import ComfyJobWatchdog
+    from core.application.services.production_preflight_service import (
+        PreflightOptions,
+        ProductionPreflightService,
+    )
+    from core.application.services.thermal_guard_service import ThermalGuardService
+    from core.domain.value_objects.production_infra import (
+        ThermalPolicy,
+        WatchdogPolicy,
+    )
+    from infrastructure.providers.keyframe.comfyui_flux2_edit_provider import (
+        ComfyUIFlux2EditProvider,
+    )
+
+    # The shared preflight probes the graph by loading a CheckpointLoaderSimple,
+    # which the FLUX.2 dialect deliberately does not have. Lock hashing and
+    # disk/RAM checks still run; the dialect proves itself on the first real
+    # turnaround job instead of on a probe.
+    preflight = ProductionPreflightService(
+        PreflightOptions(
+            comfyui_api_url=settings.comfyui_api_url,
+            output_dir=Path(settings.keyframe_storage_root_dir),
+            min_free_disk_gb=settings.production_preflight_min_free_disk_gb,
+            min_free_ram_gb=settings.production_preflight_min_free_ram_gb,
+            run_test_job=False,
+            test_job_timeout_sec=settings.comfyui_flux2_edit_timeout_seconds,
+        )
+    )
+    watchdog = ComfyJobWatchdog(
+        WatchdogPolicy(
+            no_progress_timeout_sec=settings.comfyui_watchdog_no_progress_timeout_sec,
+            absolute_job_timeout_sec=settings.comfyui_watchdog_absolute_timeout_sec,
+            retry_limit=settings.comfyui_watchdog_retry_limit,
+        )
+    )
+    thermal_guard = ThermalGuardService(
+        ThermalPolicy(
+            minimum_inter_job_delay_sec=settings.thermal_minimum_inter_job_delay_sec,
+            thermal_threshold_celsius=settings.thermal_threshold_celsius,
+            thermal_poll_interval_sec=settings.thermal_poll_interval_sec,
+            thermal_max_wait_sec=settings.thermal_max_wait_sec,
+        )
+    )
+    return ComfyUIFlux2EditProvider(
+        api_url=settings.comfyui_api_url,
+        workflow_path=settings.comfyui_flux2_edit_workflow_path,
+        storage=storage,
+        model_lock=model_lock,
+        timeout_seconds=settings.comfyui_flux2_edit_timeout_seconds,
+        poll_interval_seconds=settings.comfyui_flux2_edit_poll_interval_seconds,
+        preflight_service=preflight,
+        watchdog=watchdog,
+        thermal_guard=thermal_guard,
+    )
+
+
 def get_keyframe_generation_provider(
     settings: Settings,
     *,
+    capability: GenerationCapability | None = None,
     storage: StoragePort | None = None,
 ) -> KeyframeGenerationPort:
-    if settings.keyframe_generation_provider == "fake":
+    """Return the engine for one capability, or the globally configured one.
+
+    Pass ``capability`` for every production consumer: one engine cannot serve
+    text-only design candidates, source-led turnaround edits, pose-conditioned
+    keyframes and golden-set evaluation at the same time.
+    """
+    provider_name = resolve_keyframe_provider_name(settings, capability)
+    if provider_name == "fake":
+        _reject_fake_in_production(settings, "Keyframe generation")
         from infrastructure.providers.keyframe.fake_keyframe_generation_provider import (
             FakeKeyframeGenerationProvider,
         )
 
         return FakeKeyframeGenerationProvider()
-    if settings.keyframe_generation_provider == "comfyui":
+    if provider_name == "comfyui-flux2-edit":
+        from core.application.services.model_lock_service import load_model_lock
+
+        return build_flux2_edit_provider(
+            settings,
+            load_model_lock(settings.comfyui_flux2_model_lock_path),
+            storage=storage,
+        )
+    if provider_name == "comfyui":
         if storage is None:
             raise ValueError(
                 "ComfyUI keyframe generation requires the application's StoragePort."
@@ -549,8 +705,7 @@ def get_keyframe_generation_provider(
             thermal_guard=thermal_guard,
         )
     raise ValueError(
-        "Unknown keyframe_generation_provider configured: "
-        f"{settings.keyframe_generation_provider!r}."
+        "Unknown keyframe_generation_provider configured: " f"{provider_name!r}."
     )
 
 
@@ -579,6 +734,7 @@ def get_image_to_video_generation_provider(
     storage: StoragePort | None = None,
 ) -> ImageToVideoGenerationPort:
     if settings.image_to_video_provider == "fake":
+        _reject_fake_in_production(settings, "Image-to-video generation")
         from infrastructure.providers.video.fake_image_to_video_provider import (
             FakeImageToVideoProvider,
         )

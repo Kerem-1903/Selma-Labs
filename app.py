@@ -318,7 +318,7 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
             with open(log_file, "r", encoding="utf-8") as lf:
                 lines = lf.readlines()
                 logs = "".join(lines[-15:]) # Son 15 log
-        except:
+        except (OSError, UnicodeError):
             pass
         return stats["cpu_percent"], stats["ram_percent"], stats["gpu_info"], stats["disk_percent"], logs
 

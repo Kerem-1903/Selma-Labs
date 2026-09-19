@@ -7,6 +7,7 @@ from config.provider_registry import (
     get_fact_source_provider,
     get_media_inspection_provider,
     get_image_to_video_generation_provider,
+    get_keyframe_generation_provider,
     get_pipeline_video_source_provider,
     get_render_provider,
     get_scene_planning_provider,
@@ -19,6 +20,7 @@ from config.provider_registry import (
     get_voice_provider,
 )
 from config.settings import Settings
+from core.domain.exceptions import RuntimeProfileError
 from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
 from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
 from infrastructure.providers.audio_mix.ffmpeg_audio_mix_provider import FfmpegAudioMixProvider
@@ -147,6 +149,27 @@ def test_get_fake_image_to_video_provider_success():
         Settings(image_to_video_provider="fake")
     )
     assert isinstance(provider, FakeImageToVideoProvider)
+
+
+def test_production_profile_rejects_fake_keyframe_provider():
+    with pytest.raises(RuntimeProfileError, match="fake provider"):
+        get_keyframe_generation_provider(
+            Settings(runtime_profile="production", keyframe_generation_provider="fake")
+        )
+
+
+def test_production_profile_rejects_fake_image_to_video_provider():
+    with pytest.raises(RuntimeProfileError, match="fake provider"):
+        get_image_to_video_generation_provider(
+            Settings(runtime_profile="production", image_to_video_provider="fake")
+        )
+
+
+def test_offline_fake_keyframe_provider_remains_available():
+    provider = get_keyframe_generation_provider(
+        Settings(runtime_profile="offline-test", keyframe_generation_provider="fake")
+    )
+    assert provider.name == "fake:keyframe"
 
 
 def test_comfyui_image_to_video_provider_requires_storage():

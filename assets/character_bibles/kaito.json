@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "character_bible": {
+    "character_id": "kaito",
+    "identity_constraints": {
+      "eye_color": "steel blue",
+      "hair": "short black hair with exactly one narrow cobalt-blue front streak on character left (viewer right)",
+      "facial_geometry": "angular anime face with a defined jaw and straight nose",
+      "body_proportions": "athletic adult with consistent limb proportions",
+      "silhouette": "charcoal courier jacket with blue trim, fitted black cargo trousers, black boots, and one compact messenger bag on the character-right hip",
+      "trigger_prompt": "kaito_courier",
+      "immutable_marks": [
+        "exactly one narrow cobalt-blue front hair streak on character left (viewer right)",
+        "steel blue eyes",
+        "one compact messenger bag resting on the character-right hip, strap crossing from the character-left shoulder",
+        "no weapons of any kind"
+      ],
+      "structured_marks": [
+        {
+          "id": "kaito-cobalt-streak",
+          "label": "single cobalt-blue front hair streak",
+          "color_hex": "#0047AB",
+          "viewer_side": "viewer_right",
+          "count": 1,
+          "color_tolerance_delta_e": 18.0,
+          "mirror_side": "viewer_left",
+          "shape_grammar": "single narrow lock, full length, matte, no gradient",
+          "enforcement": "steer"
+        }
+      ]
+    },
+    "style_profile": {
+      "base_style": "clean cinematic anime character design with the selma-anime-v1 series finish",
+      "lighting_preferences": [],
+      "color_palette": [
+        "charcoal",
+        "black",
+        "cobalt blue",
+        "steel blue"
+      ],
+      "negative_prompts": [
+        "identity drift",
+        "different face",
+        "multiple characters",
+        "second figure",
+        "character sheet",
+        "extra weapons",
+        "blue hair",
+        "multiple blue streaks",
+        "cobalt streak on character right (viewer left)",
+        "mirrored messenger bag",
+        "bag on character-left hip",
+        "cropped head",
+        "cropped feet",
+        "text",
+        "watermark"
+      ]
+    },
+    "reference_pack": {},
+    "outfit_catalog": [
+      {
+        "id": "kaito-default",
+        "character_id": "kaito",
+        "description": "charcoal courier jacket with blue trim, fitted black cargo trousers, and black boots",
+        "reference_image_keys": []
+      }
+    ],
+    "narrative_profile": {
+      "canonical_names": [
+        "Kaito"
+      ],
+      "motivation": "Keep one quiet district of the rain-soaked megacity intact by delivering what its people need before the city notices it moved, without ever letting a route cost a bystander.",
+      "backstory": "A route courier who learned the quiet district's service tunnels while hand-carrying medical and data payloads after the official channels closed. Known for arriving on schedule through weather that grounds everyone else; the one compact messenger bag on the right hip is the only inventory he has ever needed.",
+      "voice_traits": [
+        "disciplined",
+        "observant",
+        "protective"
+      ],
+      "allowed_abilities": [
+        "reads a district's service routes and traffic instantly",
+        "moves a payload through weather without being stopped"
+      ],
+      "forbidden_behaviors": [
+        "abandons a delivery to save himself",
+        "abandons civilians",
+        "draws a weapon"
+      ],
+      "forbidden_voice_phrases": [
+        "I give up"
+      ],
+      "locked": true
+    }
+  }
+}

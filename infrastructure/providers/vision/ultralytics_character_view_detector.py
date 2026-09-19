@@ -87,6 +87,7 @@ class UltralyticsCharacterViewDetector(CharacterViewDetectorPort):
             orientation, pose_confidence = self._orientation(
                 pose_result, face_count=face_count
             )
+            torso_foreshortening = self._torso_foreshortening(pose_result)
             return CharacterViewObservation(
                 person_count=len(person_boxes),
                 face_count=face_count,
@@ -96,9 +97,66 @@ class UltralyticsCharacterViewDetector(CharacterViewDetectorPort):
                 confidence=pose_confidence,
                 provider="ultralytics:yolo-person+face+pose",
                 face_bbox=face_bbox,
+                person_bboxes=tuple(
+                    (
+                        max(0.0, x1 / width),
+                        max(0.0, y1 / height),
+                        min(1.0, x2 / width),
+                        min(1.0, y2 / height),
+                    )
+                    for x1, y1, x2, y2 in person_boxes
+                ),
+                torso_foreshortening=torso_foreshortening,
             )
 
         return await asyncio.to_thread(run)
+
+    @staticmethod
+    def _torso_foreshortening(result: Any) -> float | None:
+        """Body yaw as foreshortening: torso width over torso height.
+
+        A square-on torso measures wide and a turned one narrows toward zero, so
+        this is the one yaw axis that survives stylised anime art -- the facial
+        keypoints read a true profile as a three-quarter view, and the face
+        detector's box barely changes at all. It is advisory evidence, never a
+        gate: the labelled samples we own do not separate cleanly enough for a
+        threshold, but a render whose body ignored its pose guide should be
+        visible in the record instead of passing silently on framing alone.
+        """
+        keypoints = getattr(result, "keypoints", None)
+        xy = getattr(keypoints, "xy", None)
+        confidence = getattr(keypoints, "conf", None)
+        if xy is None or confidence is None or len(xy) == 0:
+            return None
+
+        def as_list(value: Any) -> Any:
+            if isinstance(value, (list, tuple)):
+                return value
+            return value.cpu().tolist() if hasattr(value, "cpu") else value.tolist()
+
+        coordinates = as_list(xy[0])
+        confidences = as_list(confidence[0])
+        # COCO order: 5/6 shoulders, 11/12 hips.
+        if len(coordinates) < 13 or len(confidences) < 13:
+            return None
+
+        def visible(index: int) -> bool:
+            return float(confidences[index]) >= 0.25 and len(coordinates[index]) >= 2
+
+        widths = [
+            abs(float(coordinates[left][0]) - float(coordinates[right][0]))
+            for left, right in ((5, 6), (11, 12))
+            if visible(left) and visible(right)
+        ]
+        heights = [
+            float(coordinates[index][1]) for index in (5, 6, 11, 12) if visible(index)
+        ]
+        if not widths or len(heights) < 2:
+            return None
+        torso_height = max(heights) - min(heights)
+        if torso_height <= 0:
+            return None
+        return max(widths) / torso_height
 
     @staticmethod
     def _boxes(result: Any) -> list[tuple[float, float, float, float]]:
@@ -110,23 +168,70 @@ class UltralyticsCharacterViewDetector(CharacterViewDetectorPort):
 
     @staticmethod
     def _orientation(result: Any, *, face_count: int) -> tuple[str, float]:
-        keypoints = getattr(getattr(result, "keypoints", None), "conf", None)
-        if keypoints is None or len(keypoints) == 0:
-            return ("back", 1.0) if face_count == 0 else ("unknown", 0.0)
-        values = keypoints[0].cpu().tolist() if hasattr(keypoints[0], "cpu") else keypoints[0].tolist()
-        if len(values) < 5:
-            return ("back", 1.0) if face_count == 0 else ("unknown", 0.0)
-        nose = float(values[0])
-        left = (float(values[1]) + float(values[3])) / 2.0
-        right = (float(values[2]) + float(values[4])) / 2.0
-        if face_count == 0 and max(nose, left, right) < 0.25:
-            return "back", 1.0 - max(nose, left, right)
-        stronger = max(left, right)
-        weaker = max(0.01, min(left, right))
-        ratio = stronger / weaker
-        side = "left" if left > right else "right"
-        if ratio >= 2.0:
-            return f"profile_{side}", min(1.0, stronger)
-        if ratio >= 1.25:
-            return f"three_quarter_{side}", min(1.0, stronger)
-        return "front", min(1.0, max(nose, left, right))
+        # A strict rear view has no detectable face. Pose models may still
+        # hallucinate low-level facial keypoints on hair or garment edges;
+        # those coordinates must not overrule the dedicated face detector.
+        if face_count == 0:
+            return "back", 1.0
+        keypoints = getattr(result, "keypoints", None)
+        xy = getattr(keypoints, "xy", None)
+        confidence = getattr(keypoints, "conf", None)
+        if xy is None or confidence is None or len(xy) == 0:
+            return "unknown", 0.0
+
+        def as_list(value: Any) -> Any:
+            if isinstance(value, (list, tuple)):
+                return value
+            return value.cpu().tolist() if hasattr(value, "cpu") else value.tolist()
+
+        coordinates = as_list(xy[0])
+        confidences = as_list(confidence[0])
+        if len(coordinates) < 5 or len(confidences) < 5:
+            return "unknown", 0.0
+
+        # COCO pose order: nose, left eye, right eye, left ear, right ear.
+        # Orientation must use spatial coordinates; confidence values only say
+        # whether a keypoint is visible and must never be treated as position.
+        visible = [
+            index
+            for index in range(5)
+            if float(confidences[index]) >= 0.25
+            and len(coordinates[index]) >= 2
+        ]
+        if not visible:
+            return "unknown", 0.0
+        nose_x = float(coordinates[0][0])
+        facial_points = [
+            float(coordinates[index][0])
+            for index in (1, 2, 3, 4)
+            if index in visible
+        ]
+        if not facial_points:
+            return "unknown", 0.0
+
+        facial_center_x = sum(facial_points) / len(facial_points)
+        direction_delta = nose_x - facial_center_x
+        coordinate_scale = max(
+            1.0,
+            max(float(point[0]) for point in coordinates[:5])
+            - min(float(point[0]) for point in coordinates[:5]),
+        )
+        normalized_delta = abs(direction_delta) / coordinate_scale
+        side = "right" if direction_delta > 0 else "left"
+        eye_count = sum(index in visible for index in (1, 2))
+        ear_count = sum(index in visible for index in (3, 4))
+        visible_face_points = eye_count + ear_count
+        confidence = min(
+            1.0,
+            sum(float(confidences[index]) for index in visible) / len(visible),
+        )
+        # One visible eye/ear and a clearly displaced nose is a strict profile;
+        # two visible eyes indicate a three-quarter view. A near-centred nose is
+        # front-facing even when one auxiliary keypoint is weak.
+        if normalized_delta < 0.08:
+            return "front", confidence
+        if visible_face_points <= 2 and eye_count <= 1:
+            return f"profile_{side}", confidence
+        if normalized_delta >= 0.08:
+            return f"three_quarter_{side}", confidence
+        return "unknown", confidence

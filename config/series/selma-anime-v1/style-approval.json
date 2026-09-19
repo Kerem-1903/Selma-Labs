@@ -1,0 +1,21 @@
+{
+  "approval_criteria": [
+    "style reference reviewed: the series finish matches the approved reference plate",
+    "rendering rules reviewed: line art, cel shading and garment construction stay readable",
+    "composition rules reviewed: centered complete silhouette, head and feet inside frame, neutral subordinate background",
+    "identity policy reviewed: the reference is a finish target only and never a character source"
+  ],
+  "approval_status": "APPROVED",
+  "approved_at": "2026-09-14T16:17:19.238691+00:00",
+  "approved_by": "LOQ",
+  "artifact_mode": "DISCOVERY",
+  "artifact_type": "STYLE_APPROVAL_RECEIPT",
+  "production_eligible": false,
+  "receipt_storage_key": "config/series/selma-anime-v1/style-approval.json",
+  "reference_sha256": "f2af7fe8f57d035c75c07bd739ad26f0982346b9900890f4ad218b1c91931774",
+  "schema_version": 1,
+  "series_id": "selma-anime-v1",
+  "style_bible_sha256": "b6bd38ac9fdf18861f84bfda4813d445d860b5bf655f7f9f6166c0e90d68702f",
+  "style_id": "selma-production-anime-v1",
+  "style_version": 1
+}

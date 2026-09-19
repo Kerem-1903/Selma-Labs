@@ -46,6 +46,10 @@ class ProviderError(SelmaError):
     """Base class for errors raised by external provider adapters."""
 
 
+class RuntimeProfileError(ProviderError):
+    """A provider is incompatible with the selected runtime profile."""
+
+
 class ProviderAuthError(ProviderError):
     """Credentials are missing, invalid, or expired. Do not retry."""
 

@@ -17,13 +17,21 @@ WORKFLOW = ROOT / "assets/comfyui_keyframe_workflow.json"
 
 
 def test_production_resolver_blocks_provisional_series_before_render(tmp_path):
-    service = SeriesStyleLockService(ROOT)
+    """The rule is about the *state* of a series, not about one specific series.
+
+    Asserting this against the live project would freeze the repository at
+    "style never approved": promoting the style is the intended next step, and
+    a test that breaks when the project makes progress is measuring the wrong
+    thing. The state is therefore staged explicitly on an isolated copy.
+    """
+    project_path = _temporary_project(tmp_path)
+    payload = json.loads(project_path.read_text(encoding="utf-8"))
+    payload["style_bible"]["status"] = "PROVISIONAL"
+    project_path.write_text(json.dumps(payload), encoding="utf-8")
+    service = SeriesStyleLockService(tmp_path)
 
     with pytest.raises(StyleLockError) as caught:
-        service.resolve_production(
-            PROJECT,
-            workflow_path=ROOT / "assets/comfyui_keyframe_workflow.json",
-        )
+        service.resolve_production(project_path, workflow_path=tmp_path / "workflow.json")
 
     assert caught.value.reason == "STYLE_LOCK_UNAPPROVED"
     assert "PROVISIONAL" in caught.value.detail
@@ -50,6 +58,7 @@ def test_canonical_style_hash_excludes_unrelated_series_data():
 
 def _temporary_project(tmp_path: Path) -> Path:
     project = json.loads(PROJECT.read_text(encoding="utf-8"))
+    project["style_bible"]["status"] = "PROVISIONAL"
     project["style_bible"]["reference_asset"] = "style.png"
     project["character_registry"] = "cast.json"
     project["model_lock"] = "models.lock.json"

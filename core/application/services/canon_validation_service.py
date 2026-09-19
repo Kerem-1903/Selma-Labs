@@ -17,8 +17,22 @@ from core.domain.value_objects.canon_validation import (
 )
 
 
-def _normalized(value: str) -> str:
+def normalize_canon_name(value: str) -> str:
+    """Canon names match case-insensitively with collapsed whitespace."""
     return " ".join(value.casefold().split())
+
+
+def _normalized(value: str) -> str:
+    return normalize_canon_name(value)
+
+
+def normalized_non_cast_voice_names(world_bible: WorldBible) -> frozenset[str]:
+    """Names canon accepts as voices without treating them as cast."""
+    return frozenset(
+        _normalized(value)
+        for voice in world_bible.non_cast_voices
+        for value in voice.names()
+    )
 
 
 class CanonValidationService:
@@ -42,6 +56,7 @@ class CanonValidationService:
             for location in world_bible.locations
             for value in (location.id, location.name, *location.aliases)
         }
+        non_cast = normalized_non_cast_voice_names(world_bible)
 
         for scene in script.scenes:
             if _normalized(scene.location) not in locations:
@@ -57,6 +72,8 @@ class CanonValidationService:
             for name in scene.characters:
                 bible = characters.get(_normalized(name))
                 if bible is None:
+                    if _normalized(name) in non_cast:
+                        continue
                     violations.append(
                         CanonViolation(
                             CanonViolationCode.UNKNOWN_CHARACTER,
@@ -97,6 +114,8 @@ class CanonValidationService:
             for line in scene.dialogue:
                 speaker = characters.get(_normalized(line.speaker))
                 if speaker is None:
+                    if _normalized(line.speaker) in non_cast:
+                        continue
                     violations.append(
                         CanonViolation(
                             CanonViolationCode.UNKNOWN_CHARACTER,

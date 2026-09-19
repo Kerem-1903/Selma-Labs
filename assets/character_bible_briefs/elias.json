@@ -1,0 +1,43 @@
+{
+  "character_id": "elias",
+  "display_name": "Elias",
+  "visual": {
+    "eye_color": "pale grey",
+    "hair": "dark brown, short and pushed back, visibly unwashed after four sleepless days",
+    "facial_geometry": "narrow angular face with sunken cheeks and a straight nose",
+    "body_proportions": "lean adult proportions, slightly stooped from fatigue",
+    "silhouette": "clinical grey coat over a dark underlayer, an empty lanyard clip at the neck and no access card",
+    "outfit": "clinical grey coat over a dark shirt and dark trousers, empty lanyard clip",
+    "base_style": "clean cinematic anime character design with the selma-anime-v1 series finish",
+    "trigger_prompt": "elias_researcher",
+    "immutable_marks": [
+      "no access card at the neck, only an empty lanyard clip",
+      "a fine tremor in the left hand",
+      "pale grey eyes"
+    ],
+    "color_palette": ["clinical grey", "pale grey", "dark charcoal", "cold white"],
+    "negative_prompts": [
+      "identity drift",
+      "different face",
+      "multiple characters",
+      "second figure",
+      "character sheet",
+      "cropped head",
+      "cropped feet",
+      "text",
+      "watermark"
+    ]
+  },
+  "narrative": {
+    "canonical_names": ["Elias", "Elias Rhen"],
+    "motivation": "Carry the LIMEN-80 evidence out of MNEMOS and into human hands before the machine can erase the eighty names inside it.",
+    "backstory": "A Saint Ora clinic researcher who watched FHD-80 take facial recognition apart from inside a sealed ward. He stopped sleeping on day four and began testing his own reflection, then exposed himself deliberately so that nobody could dismiss the record as second-hand testimony.",
+    "voice_traits": ["exact", "clinical", "guarded"],
+    "allowed_abilities": [
+      "reads FHD-80 progression from a person's behaviour rather than their face",
+      "counts elapsed time to the second without consulting a clock"
+    ],
+    "forbidden_behaviors": ["hands the evidence back to MNEMOS"],
+    "forbidden_voice_phrases": ["I don't know what it does"]
+  }
+}

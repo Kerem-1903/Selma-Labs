@@ -1,0 +1,301 @@
+{
+  "unet": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "flux-2-klein-4b-fp8.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "SELMA locked diffusion model",
+      "selma_role": "diffusion_model"
+    }
+  },
+  "clip": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen_3_4b.safetensors",
+      "type": "flux2",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "SELMA locked text encoder",
+      "selma_role": "text_encoder"
+    }
+  },
+  "vae": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "_meta": {
+      "title": "SELMA locked VAE",
+      "selma_role": "vae"
+    }
+  },
+  "load_source": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "selma-source.png",
+      "upload": "image"
+    },
+    "_meta": {
+      "title": "SELMA Picture 1 (approved source)",
+      "selma_role": "reference_image",
+      "selma_index": 0
+    }
+  },
+  "load_neighbor": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "selma-neighbor.png",
+      "upload": "image"
+    },
+    "_meta": {
+      "title": "SELMA Picture 2 (accepted neighbour view)",
+      "selma_role": "reference_image",
+      "selma_index": 1
+    }
+  },
+  "load_neighbor2": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "selma-neighbor2.png",
+      "upload": "image"
+    },
+    "_meta": {
+      "title": "SELMA Picture 3 (second accepted neighbour view)",
+      "selma_role": "reference_image",
+      "selma_index": 2
+    }
+  },
+  "scale_source": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": ["load_source", 0],
+      "upscale_method": "nearest-exact",
+      "megapixels": 1.0,
+      "resolution_steps": 1
+    },
+    "_meta": {
+      "title": "SELMA reference scale (Picture 1)",
+      "selma_role": "reference_scale"
+    }
+  },
+  "scale_neighbor": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": ["load_neighbor", 0],
+      "upscale_method": "nearest-exact",
+      "megapixels": 1.0,
+      "resolution_steps": 1
+    },
+    "_meta": {
+      "title": "SELMA reference scale (Picture 2)",
+      "selma_role": "reference_scale"
+    }
+  },
+  "scale_neighbor2": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": ["load_neighbor2", 0],
+      "upscale_method": "nearest-exact",
+      "megapixels": 1.0,
+      "resolution_steps": 1
+    },
+    "_meta": {
+      "title": "SELMA reference scale (Picture 3)",
+      "selma_role": "reference_scale"
+    }
+  },
+  "encode_source": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": ["scale_source", 0],
+      "vae": ["vae", 0]
+    },
+    "_meta": {
+      "title": "SELMA reference latent (Picture 1)",
+      "selma_role": "reference_latent"
+    }
+  },
+  "encode_neighbor": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": ["scale_neighbor", 0],
+      "vae": ["vae", 0]
+    },
+    "_meta": {
+      "title": "SELMA reference latent (Picture 2)",
+      "selma_role": "reference_latent"
+    }
+  },
+  "encode_neighbor2": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": ["scale_neighbor2", 0],
+      "vae": ["vae", 0]
+    },
+    "_meta": {
+      "title": "SELMA reference latent (Picture 3)",
+      "selma_role": "reference_latent"
+    }
+  },
+  "positive": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "clip": ["clip", 0],
+      "text": "Edit Picture 1. Change only the viewpoint: keep the current strict front view."
+    },
+    "_meta": {
+      "title": "SELMA edit instruction",
+      "selma_role": "positive_prompt"
+    }
+  },
+  "negative": {
+    "class_type": "ConditioningZeroOut",
+    "inputs": {
+      "conditioning": ["positive", 0]
+    },
+    "_meta": {
+      "title": "SELMA negative branch (inert at cfg 1.0)",
+      "selma_role": "negative_prompt"
+    }
+  },
+  "positive_reference": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": ["positive", 0],
+      "latent": ["encode_source", 0]
+    },
+    "_meta": {
+      "title": "SELMA bind Picture 1",
+      "selma_role": "reference_binding"
+    }
+  },
+  "positive_reference_neighbor": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": ["positive_reference", 0],
+      "latent": ["encode_neighbor", 0]
+    },
+    "_meta": {
+      "title": "SELMA bind Picture 2",
+      "selma_role": "reference_binding"
+    }
+  },
+  "positive_reference_neighbor2": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": ["positive_reference_neighbor", 0],
+      "latent": ["encode_neighbor2", 0]
+    },
+    "_meta": {
+      "title": "SELMA bind Picture 3",
+      "selma_role": "reference_binding"
+    }
+  },
+  "negative_reference": {
+    "class_type": "ReferenceLatent",
+    "inputs": {
+      "conditioning": ["negative", 0],
+      "latent": ["encode_source", 0]
+    },
+    "_meta": {
+      "title": "SELMA bind Picture 1 (negative branch)",
+      "selma_role": "reference_binding"
+    }
+  },
+  "latent": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": 768,
+      "height": 1152,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "SELMA target canvas",
+      "selma_role": "empty_latent"
+    }
+  },
+  "noise": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 0
+    },
+    "_meta": {
+      "title": "SELMA noise seed",
+      "selma_role": "noise"
+    }
+  },
+  "guider": {
+    "class_type": "CFGGuider",
+    "inputs": {
+      "model": ["unet", 0],
+      "positive": ["positive_reference_neighbor2", 0],
+      "negative": ["negative_reference", 0],
+      "cfg": 1.0
+    },
+    "_meta": {
+      "title": "SELMA guider",
+      "selma_role": "guider"
+    }
+  },
+  "sampler": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "SELMA sampler",
+      "selma_role": "sampler_select"
+    }
+  },
+  "sigmas": {
+    "class_type": "Flux2Scheduler",
+    "inputs": {
+      "steps": 4,
+      "width": 768,
+      "height": 1152
+    },
+    "_meta": {
+      "title": "SELMA sigma schedule",
+      "selma_role": "scheduler"
+    }
+  },
+  "sample": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": ["noise", 0],
+      "guider": ["guider", 0],
+      "sampler": ["sampler", 0],
+      "sigmas": ["sigmas", 0],
+      "latent_image": ["latent", 0]
+    },
+    "_meta": {
+      "title": "SELMA sample",
+      "selma_role": "sample"
+    }
+  },
+  "decode": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["sample", 0],
+      "vae": ["vae", 0]
+    },
+    "_meta": {
+      "title": "SELMA decode",
+      "selma_role": "decode"
+    }
+  },
+  "save": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": ["decode", 0],
+      "filename_prefix": "selma_flux2_edit"
+    },
+    "_meta": {
+      "title": "SELMA output",
+      "selma_role": "output"
+    }
+  }
+}

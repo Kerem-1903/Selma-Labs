@@ -1,0 +1,39 @@
+{
+  "character_id": "lena",
+  "display_name": "Lena",
+  "visual": {
+    "eye_color": "warm brown",
+    "hair": "shoulder-length dark auburn hair worn loose",
+    "facial_geometry": "soft rounded face with high cheekbones and a calm brow",
+    "body_proportions": "average adult proportions",
+    "silhouette": "long grey coat over a dark dress, one hand resting on the door frame as she enters",
+    "outfit": "long grey coat over a dark dress",
+    "base_style": "clean cinematic anime character design with the selma-anime-v1 series finish",
+    "trigger_prompt": "lena_rhen",
+    "immutable_marks": [
+      "warm brown eyes",
+      "one hand resting against the door frame when she steps into a room"
+    ],
+    "color_palette": ["warm brown", "soft grey", "dark navy"],
+    "negative_prompts": [
+      "identity drift",
+      "different face",
+      "multiple characters",
+      "second figure",
+      "character sheet",
+      "cropped head",
+      "cropped feet",
+      "text",
+      "watermark"
+    ]
+  },
+  "narrative": {
+    "canonical_names": ["Lena", "Lena Rhen"],
+    "motivation": "Reach her husband through the voice he still recognizes, now that his eyes no longer tell him who she is.",
+    "backstory": "Elias Rhen's wife. On day seven she walked into the isolation ward carrying the face he had known for years and watched it mean nothing to him. She kept her voice level rather than let him watch her break, and she has not yet told him how much of the fear she is holding down.",
+    "voice_traits": ["steady", "reassuring", "restrained"],
+    "allowed_abilities": ["keeps her voice level while under severe strain"],
+    "forbidden_behaviors": ["abandons Elias"],
+    "forbidden_voice_phrases": ["You are not yourself"]
+  }
+}

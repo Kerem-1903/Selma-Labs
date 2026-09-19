@@ -11,7 +11,8 @@
     "expected_orientation",
     "back_view_no_face",
     "signature_mark_face_closeup",
-    "provenance_hashes"
+    "provenance_hashes",
+    "consistency_contract_bound"
   ],
   "human_checks": [
     {
@@ -39,16 +40,33 @@
       "label": "body proportions and clothing layers remain consistent"
     },
     {
+      "id": "style_line_and_shading_consistent",
+      "label": "clean anime line art and restrained two-step cel shading remain consistent in all seven views"
+    },
+    {
+      "id": "palette_and_materials_consistent",
+      "label": "charcoal, black, muted gray and limited cobalt palette remain consistent"
+    },
+    {
+      "id": "neutral_studio_background_consistent",
+      "label": "neutral studio background with a soft blue-grey gradient and neutral lighting remain consistent; no street scene or dramatic lighting"
+    },
+    {
       "id": "single_person_no_collage_no_text",
       "label": "no extra person, duplicate body, collage, text or watermark"
     },
     {
       "id": "back_view_no_face",
       "label": "back view contains no visible face or looking-back pose"
+    },
+    {
+      "id": "profile_views_are_true_side_views",
+      "label": "both profile views are true side views (single eye line, nose at the silhouette, no visible far cheek), not three-quarter views"
     }
   ],
   "required_evidence": [
     "canonical-approval.json",
+    "drift-report.json",
     "face_anchor.png",
     "fullbody_anchor.png",
     "view-pack.json",

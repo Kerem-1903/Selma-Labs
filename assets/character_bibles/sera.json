@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "character_bible": {
+    "character_id": "sera",
+    "identity_constraints": {
+      "eye_color": "cold grey-green",
+      "hair": "straight black hair cut level at the jaw",
+      "facial_geometry": "sharp symmetrical anime face with a level, unreadable expression",
+      "body_proportions": "tall adult proportions",
+      "silhouette": "fitted dark investigator coat with a high collar and no insignia",
+      "trigger_prompt": "sera_veyl",
+      "immutable_marks": [
+        "a silver ring on the right hand",
+        "taps the ring against a screen edge in an even rhythm while thinking"
+      ],
+      "structured_marks": []
+    },
+    "style_profile": {
+      "base_style": "clean cinematic anime character design with the selma-anime-v1 series finish",
+      "lighting_preferences": [],
+      "color_palette": [
+        "silver",
+        "cold grey-green",
+        "dark slate",
+        "black"
+      ],
+      "negative_prompts": [
+        "identity drift",
+        "different face",
+        "multiple characters",
+        "second figure",
+        "character sheet",
+        "cropped head",
+        "cropped feet",
+        "text",
+        "watermark"
+      ]
+    },
+    "reference_pack": {},
+    "outfit_catalog": [
+      {
+        "id": "sera-default",
+        "character_id": "sera",
+        "description": "fitted dark investigator coat with a high collar over dark trousers",
+        "reference_image_keys": []
+      }
+    ],
+    "narrative_profile": {
+      "canonical_names": [
+        "Sera",
+        "Sera Veyl"
+      ],
+      "motivation": "Recover the stolen cold case and find out whose authority is buried inside the order that lost it.",
+      "backstory": "A MNEMOS field investigator who reads records before she reads people, because a record does not lie about its own edits. On the missing-crate case she found a Continuity Directorate signature where a routine delivery order should have been, and watched the line delete itself before she could capture it.",
+      "voice_traits": [
+        "precise",
+        "level",
+        "withholding"
+      ],
+      "allowed_abilities": [
+        "reconstructs a delivery chain from its audit trail alone"
+      ],
+      "forbidden_behaviors": [
+        "files an unexplained authority code without reading it first"
+      ],
+      "forbidden_voice_phrases": [
+        "The order is legitimate"
+      ],
+      "locked": true
+    }
+  }
+}

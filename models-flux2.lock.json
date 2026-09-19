@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "comfyui_root": "C:/Users/LOQ/Desktop/ComfyUI",
+  "models": [
+    {
+      "role": "diffusion_model",
+      "filename": "flux-2-klein-4b-fp8.safetensors",
+      "relative_path": "models/diffusion_models/flux-2-klein-4b-fp8.safetensors",
+      "sha256": "97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6",
+      "size_bytes": 4070624520,
+      "required": true,
+      "note": "Official FLUX.2 Klein 4B FP8 step-distilled base. Only checkpoint allowed to change when this lock is compared against a larger variant."
+    },
+    {
+      "role": "text_encoder",
+      "filename": "qwen_3_4b.safetensors",
+      "relative_path": "models/text_encoders/qwen_3_4b.safetensors",
+      "sha256": "6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+      "size_bytes": 8044982048,
+      "required": true,
+      "note": "FLUX.2's own Qwen3-4B text encoder. This is NOT the abandoned Qwen Image Edit model."
+    },
+    {
+      "role": "vae",
+      "filename": "flux2-vae.safetensors",
+      "relative_path": "models/vae/flux2-vae.safetensors",
+      "sha256": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
+      "size_bytes": 336211292,
+      "required": true,
+      "note": "FLUX.2 VAE. Shared across FLUX.2 variants, so it stays constant in a model tournament."
+    },
+    {
+      "role": "face_detector",
+      "filename": "face_yolov8m.pt",
+      "relative_path": "models/detectors/face_yolov8m.pt",
+      "sha256": "717923c19b3f4bbf5250b728f1fa6b2cb72a33aed1d236ea9caf0e21ad943e5f",
+      "size_bytes": 52026019,
+      "required": true,
+      "note": "Automatic view QC detector; the edit dialect still passes through CharacterViewQualityGate."
+    },
+    {
+      "role": "pose_detector",
+      "filename": "yolov8n-pose.pt",
+      "relative_path": "models/detectors/yolov8n-pose.pt",
+      "sha256": "c6fa93dd1ee4a2c18c900a45c1d864a1c6f7aba75d84f91648a30b7fb641d212",
+      "size_bytes": 6832633,
+      "required": true,
+      "note": "Automatic view QC detector; the edit dialect still passes through CharacterViewQualityGate."
+    }
+  ]
+}

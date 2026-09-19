@@ -42,7 +42,8 @@ def run_benchmark(model_path):
             process = psutil.Process()
             memory_info = process.memory_info()
             vram_mb = memory_info.rss / (1024 * 1024)
-        except:
+        except Exception:
+            # psutil may be missing or refuse access; VRAM is best-effort here.
             vram_mb = 0
 
         results[res["name"]] = {

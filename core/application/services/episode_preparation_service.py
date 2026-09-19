@@ -146,9 +146,9 @@ class EpisodePreparationService:
                     if shot.character_id == requirement.character_id
                 ),
                 reason=(
-                    "All five pose assets are resolved."
+                    "All three pose assets are resolved."
                     if not missing
-                    else "Generate the missing five-pose character pack."
+                    else "Generate the missing three-pose character pack."
                 ),
             )
             jobs.append(self._resume_job(base, previous_jobs, retry_ids))

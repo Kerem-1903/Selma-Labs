@@ -1,47 +1,42 @@
 {
+  "aliases": [
+    {
+      "canonical": "pose_back_v5.png",
+      "filename": "pose_back.png",
+      "note": "Byte-identical to the BACK template. Kept because character_design_service still resolves this key.",
+      "sha256": "2a910c67471382957774eb13bb2cea8548737dcacccf063940d518663017f0da"
+    }
+  ],
+  "generator": "scripts/make_pose_templates.py -- one yaw-projected rig, no per-view special cases",
   "schema_version": 1,
   "templates": [
     {
-      "view": "FRONT",
       "filename": "pose_front.png",
+      "height": 1152,
       "sha256": "55f79b33b73ca4b674cb6d6df0fd89b7e1ec039600981bd0850b52b085279f6b",
-      "width": 768,
-      "height": 1152
+      "view": "FRONT",
+      "width": 768
     },
     {
-      "view": "PROFILE_LEFT",
       "filename": "pose_profile_left.png",
-      "sha256": "7a57691680491dd921fae5df752056061bf4d2881492cf8d94b35ae9f5030743",
-      "width": 768,
-      "height": 1152
+      "height": 1152,
+      "sha256": "36524af3b5760be954757be42d9d775ec5b373506193f1bdad93c6606b5813a5",
+      "view": "PROFILE_LEFT",
+      "width": 768
     },
     {
-      "view": "PROFILE_RIGHT",
       "filename": "pose_profile_right.png",
-      "sha256": "cdaab5ccd86aa6a84b0439b046ee215db3eb3a0c6c5a330de916eed40fba8b96",
-      "width": 768,
-      "height": 1152
+      "height": 1152,
+      "sha256": "becde622c1f32c19db6d34582ea722071bfa674afa111744e074082c4cb2ada1",
+      "view": "PROFILE_RIGHT",
+      "width": 768
     },
     {
-      "view": "THREE_QUARTER_LEFT",
-      "filename": "pose_three_quarter_left.png",
-      "sha256": "5aeee784ce45b222b9f3d4dfc4a48a9e859c0b5a59a99516ea7febb420528564",
-      "width": 768,
-      "height": 1152
-    },
-    {
-      "view": "THREE_QUARTER_RIGHT",
-      "filename": "pose_three_quarter_right.png",
-      "sha256": "5d3a7d0876ce4aebefe0dc43bf85a7ee8b8b4f8ebcf763fc1e7910f5367946f0",
-      "width": 768,
-      "height": 1152
-    },
-    {
+      "filename": "pose_back_v5.png",
+      "height": 1152,
+      "sha256": "2a910c67471382957774eb13bb2cea8548737dcacccf063940d518663017f0da",
       "view": "BACK",
-      "filename": "pose_back.png",
-      "sha256": "55f79b33b73ca4b674cb6d6df0fd89b7e1ec039600981bd0850b52b085279f6b",
-      "width": 768,
-      "height": 1152
+      "width": 768
     }
   ]
 }

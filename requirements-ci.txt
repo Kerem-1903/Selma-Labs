@@ -20,3 +20,7 @@ google-auth-oauthlib>=1.2.0
 fastapi>=0.100.0
 python-multipart>=0.0.6
 jinja2>=3.1.0
+# Static analysis. Ruff owns the blocking correctness gate; mypy runs advisory
+# until its baseline is clean (see docs/CODE_REVIEW.md).
+ruff>=0.16.0
+mypy>=1.11.0

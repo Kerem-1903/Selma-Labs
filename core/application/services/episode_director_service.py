@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from core.application.services.canon_validation_service import normalize_canon_name
+from core.domain.entities.direction_bible import NonCastVoice
 from core.domain.entities.episode_script import EpisodeScript
 from core.domain.value_objects.episode_director_decision import EpisodeDirectorDecision, EpisodeSceneDecision
 from core.domain.entities.location_bible import LocationBible
@@ -142,6 +145,7 @@ class EpisodeDirectorService:
         pose_packs: Mapping[str, CharacterPosePackManifest] | None = None,
         background_packs: Mapping[str, BackgroundCandidatePack] | None = None,
         episode_id: str | None = None,
+        non_cast_voices: Sequence[NonCastVoice] = (),
         decisions: Sequence[EpisodeSceneDecision] = (),
         decision_mode: str = "RULE_FALLBACK",
         decision_provider: str | None = None,
@@ -165,6 +169,7 @@ class EpisodeDirectorService:
             locations=locations,
             pose_packs=pose_packs or {},
             background_packs=background_packs or {},
+            non_cast_voices=non_cast_voices,
             provider=decision_provider or "rules:episode-director-v1",
             decisions=decisions,
             decision_mode=decision_mode,
@@ -180,6 +185,7 @@ class EpisodeDirectorService:
         locations: Sequence[LocationBible] = (),
         pose_packs: Mapping[str, CharacterPosePackManifest] | None = None,
         background_packs: Mapping[str, BackgroundCandidatePack] | None = None,
+        non_cast_voices: Sequence[NonCastVoice] = (),
         decisions: Sequence[EpisodeSceneDecision] = (),
         decision_mode: str = "RULE_FALLBACK",
         decision_provider: str | None = None,
@@ -193,6 +199,7 @@ class EpisodeDirectorService:
             locations=locations,
             pose_packs=pose_packs or {},
             background_packs=background_packs or {},
+            non_cast_voices=non_cast_voices,
             provider=decision_provider or "rules:episode-director-v1",
             decisions=decisions,
             decision_mode=decision_mode,
@@ -208,6 +215,7 @@ class EpisodeDirectorService:
         locations: Sequence[LocationBible],
         pose_packs: Mapping[str, CharacterPosePackManifest],
         background_packs: Mapping[str, BackgroundCandidatePack],
+        non_cast_voices: Sequence[NonCastVoice] = (),
         provider: str,
         decisions: Sequence[EpisodeSceneDecision] = (),
         decision_mode: str = "RULE_FALLBACK",
@@ -215,6 +223,7 @@ class EpisodeDirectorService:
         if not scenes:
             raise PreProductionValidationError("Episode screenplay contains no scenes.")
 
+        voice_names = self._non_cast_voice_names(non_cast_voices)
         character_lookup = self._character_lookup(character_bibles)
         location_lookup = {location.location_id.casefold(): location for location in locations}
         background_plans: dict[str, BackgroundProductionPlan] = {}
@@ -225,6 +234,8 @@ class EpisodeDirectorService:
                     f"Scene '{scene.scene_id}' needs at least one character."
                 )
             for character in scene.characters:
+                if normalize_canon_name(character) in voice_names:
+                    continue
                 character_names.add(self._character_id(character, character_lookup))
             if scene.location_id.casefold() in location_lookup:
                 background_plans[scene.location_id] = self._background_plan(
@@ -350,7 +361,7 @@ class EpisodeDirectorService:
         if not locations:
             warnings.append("No Location Bible was supplied; background prompts are provisional recipes.")
         if not pose_packs:
-            warnings.append("No pose-pack manifests were supplied; all five pose assets remain provisional references.")
+            warnings.append("No pose-pack manifests were supplied; all three pose assets remain provisional references.")
 
         if not background_packs:
             warnings.append("No background candidate packs were supplied; background assets remain provisional recipes.")
@@ -455,6 +466,13 @@ class EpisodeDirectorService:
     def _character_id(cls, name: str, lookup: Mapping[str, str]) -> str:
         value = str(name).strip()
         return lookup.get(value.casefold(), cls._safe_id(value, "character"))
+
+    @staticmethod
+    def _non_cast_voice_names(voices: Sequence[NonCastVoice]) -> frozenset[str]:
+        """Ambient voices canon accepts but never casts, so never renders."""
+        return frozenset(
+            normalize_canon_name(value) for voice in voices for value in voice.names()
+        )
 
     @staticmethod
     def _location_id(value: str, locations: Sequence[LocationBible]) -> str:
@@ -615,9 +633,9 @@ class EpisodeDirectorService:
         if beat == "setup":
             return "FRONT_NEUTRAL"
         if beat in {"conflict", "reveal"}:
-            return "THREE_QUARTER_LEFT" if index % 2 else "PROFILE_LEFT"
+            return "PROFILE_LEFT"
         if beat == "reaction":
-            return "THREE_QUARTER_RIGHT"
+            return "FRONT_NEUTRAL"
         if beat in {"transition", "payoff"} or index == line_count:
             return "BACK_FULL_BODY"
         return "FRONT_NEUTRAL"
@@ -667,7 +685,7 @@ class EpisodeDirectorService:
 
     @staticmethod
     def _camera_angle(pose: str) -> str:
-        return {"FRONT_NEUTRAL": "front", "THREE_QUARTER_LEFT": "left three-quarter", "PROFILE_LEFT": "left profile", "THREE_QUARTER_RIGHT": "right three-quarter", "BACK_FULL_BODY": "reverse"}[pose]
+        return {"FRONT_NEUTRAL": "front", "PROFILE_LEFT": "left profile", "BACK_FULL_BODY": "reverse"}[pose]
 
     @staticmethod
     def _camera_movement(beat: str, index: int) -> str:
@@ -686,7 +704,19 @@ class EpisodeDirectorService:
 
     @staticmethod
     def _safe_id(value: str, field_name: str) -> str:
-        normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", str(value).strip())
+        # Accented letters must be transliterated, never deleted. Deleting them
+        # turned "SAINT ORA KLINIGI - NOROLOJI IZOLASYON ODASI" into
+        # "saint-ora-kl-n-n-roloj-zolasyon-odasi": the location name is lost, and
+        # two locations that differ only by their accents collapse onto one
+        # storage id. Mirrors the transliteration CharacterCreationBrief uses for
+        # a character id.
+        folded = str(value).translate(str.maketrans({"ı": "i", "İ": "I"}))
+        folded = (
+            unicodedata.normalize("NFKD", folded)
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
+        normalized = re.sub(r"[^A-Za-z0-9._-]+", "-", folded.strip())
         normalized = re.sub(r"-+", "-", normalized).strip("-")
         if not normalized or not EpisodeDirectorService._SAFE_ID.fullmatch(normalized):
             raise PreProductionValidationError(f"{field_name} must be a storage-safe identifier.")

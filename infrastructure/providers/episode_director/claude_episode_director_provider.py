@@ -22,7 +22,7 @@ from core.domain.value_objects.episode_director_decision import (
 )
 
 SYSTEM_PROMPT = """You are an episode director. Return ONLY JSON with this shape:
-{"decisions":[{"scene_id":"string","purpose":"string","story_beat":"setup|context|conflict|reveal|reaction|transition|payoff","emotional_intent":"string","character_actions":{"character_id":"observable action"},"pose_preferences":{"character_id":"FRONT_NEUTRAL|THREE_QUARTER_LEFT|PROFILE_LEFT|THREE_QUARTER_RIGHT|BACK_FULL_BODY"},"shot_sizes":["wide|medium|close_up|profile|insert"],"background_direction":"string"}],"rationale":"string"}
+{"decisions":[{"scene_id":"string","purpose":"string","story_beat":"setup|context|conflict|reveal|reaction|transition|payoff","emotional_intent":"string","character_actions":{"character_id":"observable action"},"pose_preferences":{"character_id":"FRONT_NEUTRAL|PROFILE_LEFT|BACK_FULL_BODY"},"shot_sizes":["wide|medium|close_up|profile|insert"],"background_direction":"string"}],"rationale":"string"}
 Return one decision for each screenplay scene, preserving scene IDs. Keep actions observable and background direction concise."""
 
 

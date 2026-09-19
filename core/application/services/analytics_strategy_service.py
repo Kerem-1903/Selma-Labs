@@ -93,6 +93,9 @@ class AnalyticsStrategyService:
                 "best_format": best_format
             }
         except Exception:
+            logger.exception(
+                "Dashboard statistics could not be computed; reporting no data."
+            )
             return {"total_videos": 0, "avg_view_rate": "0%", "best_format": "Veri Yok"}
 
 analytics_strategy_service = AnalyticsStrategyService()

@@ -11,7 +11,19 @@
       {"id": "saint-ora-clinic", "name": "Saint Ora Neuroimmune Clinic", "aliases": ["Ora Clinic", "Threshold Lab"]},
       {"id": "red-line", "name": "Red Line Transit and Service Tunnels", "aliases": ["Red Line", "Service Veins"]},
       {"id": "old-market", "name": "Old Market Mutual-Aid Quarter", "aliases": ["Old Market", "Voice Market"]},
-      {"id": "cold-vault", "name": "LIMEN Cold Archive", "aliases": ["Vault 80", "Cold Archive"]}
+      {"id": "cold-vault", "name": "LIMEN Cold Archive", "aliases": ["Vault 80", "Cold Archive"]},
+      {"id": "saint-ora-neurology-isolation", "name": "SAINT ORA KLİNİĞİ - NÖROLOJİ İZOLASYON ODASI", "aliases": ["Saint Ora Clinic Neurology Isolation Room", "NÖROLOJİ İZOLASYON ODASI"]},
+      {"id": "saint-ora-loading-bay", "name": "SAINT ORA KLİNİĞİ - YÜKLEME BÖLMESİ", "aliases": ["Saint Ora Clinic Loading Bay", "YÜKLEME BÖLMESİ"]},
+      {"id": "red-line-roof-service-route", "name": "KIRMIZI HAT - ÇATI SERVİS ROTASI", "aliases": ["Red Line Roof Service Route", "KIRMIZI HAT ÇATI SERVİS ROTASI"]},
+      {"id": "north-ring-akira-mina-apartment", "name": "KUZEY HALKA - AKIRA VE MİNA'NIN DAİRESİ", "aliases": ["North Ring Akira and Mina Apartment", "AKIRA VE MİNA'NIN DAİRESİ"]},
+      {"id": "north-ring-apartment-service-corridor", "name": "KUZEY HALKA - APARTMAN SERVİS KORİDORU", "aliases": ["North Ring Apartment Service Corridor", "APARTMAN SERVİS KORİDORU"]},
+      {"id": "north-ring-apartment-corridor", "name": "KUZEY HALKA - APARTMAN KORİDORU", "aliases": ["North Ring Apartment Corridor", "APARTMAN KORİDORU"]},
+      {"id": "mnemos-spire-field-lab", "name": "MNEMOS KULESİ - SAHA LABORATUVARI", "aliases": ["MNEMOS Field Laboratory", "MNEMOS SAHA LABORATUVARI"]},
+      {"id": "old-market-passage", "name": "ESKİ PAZAR GEÇİDİ", "aliases": ["Old Market Passage"]}
+    ],
+    "non_cast_voices": [
+      {"id": "mnemos", "name": "MNEMOS", "kind": "SYSTEM", "aliases": [], "description": "The city's civic identity infrastructure. It announces, authenticates and suspends privileges; it has no body, no face and no motive of its own, so it is never cast and never rendered."},
+      {"id": "security-detail", "name": "Güvenlik Görevlileri", "kind": "CROWD", "aliases": ["GÜVENLİK GÖREVLİSİ", "Güvenlik Görevlisi"], "description": "Faceless city security officers who move and speak as one unit. An officer who becomes an individual is cast under their own name, as Ivo Kern is."}
     ],
     "rules": [
       {"id": "fhd-not-zombie", "description": "FHD-80 is a fictional neuroinvasive disease, not a zombie agent; infected people retain personhood and moral agency until severe delirium or coma.", "forbidden_phrases": ["becomes a zombie", "infected horde", "monster transformation"]},

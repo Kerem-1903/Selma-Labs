@@ -8,7 +8,15 @@ import json
 import sys
 from contextlib import suppress
 from pathlib import Path
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
+
+if TYPE_CHECKING:
+    from core.application.orchestration.pipeline_orchestrator import (
+        PipelineOrchestrator,
+    )
+    from core.domain.ports.audio_inbox_port import AudioInboxPort
+    from core.domain.ports.run_repository_port import RunRepositoryPort
+    from core.domain.value_objects.audio_inbox_job import AudioInboxJob
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -709,7 +717,10 @@ async def _renew_inbox_lease(
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Parse CLI arguments, execute the async factory, and color the result."""
+    from config.settings import get_settings, warn_if_offline_test_profile
+
     arguments = build_arg_parser().parse_args(argv)
+    warn_if_offline_test_profile(get_settings())
     try:
         output_path = asyncio.run(run(arguments))
     except Exception as error:  # noqa: BLE001 - top-level CLI boundary

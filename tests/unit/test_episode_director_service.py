@@ -166,6 +166,31 @@ def test_director_uses_location_recipe_but_keeps_background_provisional_without_
         EpisodeDirectorService().plan_text("", episode_id="empty")
 
 
+def test_location_ids_transliterate_accented_names_instead_of_deleting_them():
+    """Non-ASCII letters must be folded, never dropped.
+
+    Deleting them turned "SAINT ORA KLINIGI - NOROLOJI IZOLASYON ODASI" into
+    "saint-ora-kl-n-n-roloj-zolasyon-odasi": the location name is lost, and any
+    two locations that differ only by their accents collapse onto one storage id.
+    """
+    safe_id = EpisodeDirectorService._safe_id
+
+    assert safe_id("SAINT ORA KLİNİĞİ - NÖROLOJİ İZOLASYON ODASI", "location") == (
+        "saint-ora-klinigi-noroloji-izolasyon-odasi"
+    )
+    assert safe_id("KIRMIZI HAT - ÇATI SERVİS ROTASI", "location") == (
+        "kirmizi-hat-cati-servis-rotasi"
+    )
+    assert safe_id("MNEMOS KULESİ - SAHA LABORATUVARI", "location") == (
+        "mnemos-kulesi-saha-laboratuvari"
+    )
+    # Accents change the spelling; they must never fold two names onto one id.
+    assert safe_id("ESKİ PAZAR GEÇİDİ", "location") == "eski-pazar-gecidi"
+    assert safe_id("GÖZ", "location") == "goz"
+    assert safe_id("IŞIK", "location") == "isik"
+    assert safe_id("IJSSELMEER", "location") == "ijsselmeer"
+
+
 def test_unapproved_assets_remain_provisional_even_when_complete():
     pose = _pose_pack()
     from dataclasses import replace

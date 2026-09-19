@@ -3,10 +3,16 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from core.application.services.vision_safety_gate import VisionSafetyGate
+    from core.domain.ports.video_generation_port import VideoGenerationPort
+    from core.domain.ports.youtube_upload_port import YoutubeUploadPort
 
 from core.application.orchestration.run_executor import RunExecutor
 from core.application.services.alignment_quality_service import AlignmentQualityService
@@ -898,7 +904,7 @@ class PipelineOrchestrator:
         selected_asset_ids: set[str] = set()
         last_selected_asset_id: str | None = None
         asset_usages: list[AssetUsage] = []
-        for intent in visual_intents:
+        for index, intent in enumerate(visual_intents):
             # Explanatory beats need footage that supports the stated action,
             # not merely generic footage of the topic. Context-only beats keep
             # the compact subject query to avoid over-constraining stock search.
@@ -962,14 +968,19 @@ class PipelineOrchestrator:
                         duration_sec = 5.0
                     try:
                         req = VideoGenerationRequest(
-                            shot_contract_id=f"intent_{i}",
+                            shot_contract_id=f"intent_{index}",
                             target_duration_seconds=duration_sec,
                             generation_constraints={"prompt": intent.generation_prompt}
                         )
                         gen_asset = await self._video_generation_port.generate_video(req)
                         accepted_asset = ScoredAsset(asset=gen_asset, score=AssetScore(final_score=1.0))
-                    except Exception as e:
-                        pass # Fallback to stock reuse if T2V fails
+                    except Exception as error:
+                        # Fallback to stock reuse if T2V fails; never silent.
+                        logging.getLogger(__name__).warning(
+                            "Text-to-video generation failed for intent; "
+                            "falling back to stock reuse: %s",
+                            error,
+                        )
 
                 # If still not accepted, do the stock fallback
                 if not accepted_asset:

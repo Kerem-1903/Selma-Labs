@@ -1,6 +1,9 @@
+import logging
 import psutil
 import subprocess
 import shutil
+
+logger = logging.getLogger(__name__)
 
 def get_system_stats():
     """
@@ -32,7 +35,7 @@ def get_system_stats():
                         gpu_texts.append(f"GPU {idx}: {name} | Kullanım: {util}% | VRAM: {mem_used}MB / {mem_total}MB")
                 if gpu_texts:
                     stats["gpu_info"] = "\n".join(gpu_texts)
-        except Exception:
-            pass
+        except (subprocess.SubprocessError, OSError) as error:
+            logger.debug("nvidia-smi probe failed; reporting no GPU: %s", error)
 
     return stats

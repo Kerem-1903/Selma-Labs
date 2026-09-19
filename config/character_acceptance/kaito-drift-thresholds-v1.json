@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "character_id": "kaito",
+  "character_version": 1,
+  "calibration": {
+    "method": "observed spread of an already rendered pack, widened by margin",
+    "command": "character drift-report --calibrate",
+    "source": "output/production/characters/kaito/v5/canonical_source.png",
+    "reference_pack": "output/diagnostics/flux2-kaito-turnaround-v2",
+    "margin": 1.35,
+    "note": "Only the tolerance band is calibrated. Signature-mark thresholds are fixed on purpose: the reference pack is where the streak was lost, so calibrating the mark band against it would bake the defect in."
+  },
+  "subject_height_ratio_delta": 0.02,
+  "subject_width_ratio_delta": 0.03,
+  "palette_distance": 0.11482535288361917,
+  "accent_fraction_delta": 0.009070409952807319,
+  "mark_presence_ratio": 0.35,
+  "mark_mirror_ratio": 0.45,
+  "line_density_ratio_delta": 0.1
+}

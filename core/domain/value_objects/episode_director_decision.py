@@ -8,7 +8,7 @@ from typing import Any, Mapping
 from core.domain.exceptions import PreProductionValidationError
 
 _ALLOWED_BEATS = frozenset({"setup", "context", "conflict", "reveal", "reaction", "transition", "payoff"})
-_ALLOWED_POSES = frozenset({"FRONT_NEUTRAL", "THREE_QUARTER_LEFT", "PROFILE_LEFT", "THREE_QUARTER_RIGHT", "BACK_FULL_BODY"})
+_ALLOWED_POSES = frozenset({"FRONT_NEUTRAL", "PROFILE_LEFT", "BACK_FULL_BODY"})
 _ALLOWED_SHOTS = frozenset({"wide", "medium", "close_up", "profile", "insert"})
 
 

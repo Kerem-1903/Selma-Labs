@@ -56,6 +56,12 @@ class ModelLock:
     schema_version: int
     comfyui_root: str
     entries: tuple[ModelLockEntry, ...] = ()
+    # Retired locks describe a path we deliberately abandoned. They must never be
+    # selected for production: their weights may be deleted from disk, so running
+    # one would fail late. Preflight fails loudly (see verify_model_lock) instead
+    # of letting a stale pointer look like a usable configuration.
+    retired: bool = False
+    retired_reason: str = ""
 
     def entry(self, role: str) -> ModelLockEntry:
         matches = [entry for entry in self.entries if entry.role == role]
@@ -64,11 +70,15 @@ class ModelLock:
         return matches[0]
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "schema_version": self.schema_version,
             "comfyui_root": self.comfyui_root,
             "models": [entry.to_dict() for entry in self.entries],
         }
+        if self.retired:
+            payload["retired"] = True
+            payload["retired_reason"] = self.retired_reason
+        return payload
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ModelLock:
@@ -76,6 +86,8 @@ class ModelLock:
             schema_version=int(data.get("schema_version", 1)),
             comfyui_root=data.get("comfyui_root", ""),
             entries=tuple(ModelLockEntry.from_dict(e) for e in data.get("models", [])),
+            retired=bool(data.get("retired", False)),
+            retired_reason=str(data.get("retired_reason", "")),
         )
 
 

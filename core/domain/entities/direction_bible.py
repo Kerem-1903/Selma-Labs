@@ -133,6 +133,45 @@ class LocationDefinition:
         return {"id": self.id, "name": self.name, "aliases": list(self.aliases)}
 
 
+class NonCastVoiceKind(str, Enum):
+    SYSTEM = "SYSTEM"
+    CROWD = "CROWD"
+
+
+@dataclass(frozen=True)
+class NonCastVoice:
+    """A voice that speaks in the world without being a cast character.
+
+    MNEMOS announces over city infrastructure and a security detail answers as
+    one faceless group. Requiring a Character Bible for either would put a
+    system and a crowd on the cast list, and a cast entry is what orders a
+    five-pose pack -- five renders for something that has no face.
+    """
+
+    id: str
+    name: str
+    kind: NonCastVoiceKind
+    aliases: tuple[str, ...] = ()
+    description: str = ""
+
+    def __post_init__(self) -> None:
+        _required(self.id, "non-cast voice id")
+        _required(self.name, "non-cast voice name")
+        object.__setattr__(self, "aliases", _items(self.aliases))
+
+    def names(self) -> tuple[str, ...]:
+        return (self.name, *self.aliases)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "kind": self.kind.value,
+            "aliases": list(self.aliases),
+            "description": self.description,
+        }
+
+
 @dataclass(frozen=True)
 class WorldBible:
     id: str
@@ -141,6 +180,7 @@ class WorldBible:
     premise: str
     locations: tuple[LocationDefinition, ...]
     rules: tuple[WorldRule, ...]
+    non_cast_voices: tuple[NonCastVoice, ...] = ()
     status: BibleStatus = BibleStatus.DRAFT
 
     @classmethod
@@ -152,6 +192,7 @@ class WorldBible:
         premise: str,
         locations: tuple[LocationDefinition, ...],
         rules: tuple[WorldRule, ...],
+        non_cast_voices: tuple[NonCastVoice, ...] = (),
     ) -> WorldBible:
         if version < 1 or not locations:
             raise PreProductionValidationError(
@@ -159,8 +200,11 @@ class WorldBible:
             )
         location_ids = [location.id.casefold() for location in locations]
         rule_ids = [rule.id.casefold() for rule in rules]
-        if len(location_ids) != len(set(location_ids)) or len(rule_ids) != len(
-            set(rule_ids)
+        voice_ids = [voice.id.casefold() for voice in non_cast_voices]
+        if (
+            len(location_ids) != len(set(location_ids))
+            or len(rule_ids) != len(set(rule_ids))
+            or len(voice_ids) != len(set(voice_ids))
         ):
             raise PreProductionValidationError(
                 "World bible identifiers must be unique."
@@ -172,6 +216,7 @@ class WorldBible:
             _required(premise, "premise"),
             tuple(locations),
             tuple(rules),
+            tuple(non_cast_voices),
         )
 
     def lock(self) -> WorldBible:
@@ -185,6 +230,7 @@ class WorldBible:
             "premise": self.premise,
             "locations": [location.to_dict() for location in self.locations],
             "rules": [rule.to_dict() for rule in self.rules],
+            "non_cast_voices": [voice.to_dict() for voice in self.non_cast_voices],
             "status": self.status.value,
         }
 
@@ -212,6 +258,16 @@ class WorldBible:
                     ),
                 )
                 for item in data.get("rules", [])
+            ),
+            non_cast_voices=tuple(
+                NonCastVoice(
+                    id=str(item["id"]),
+                    name=str(item["name"]),
+                    kind=NonCastVoiceKind(str(item["kind"])),
+                    aliases=tuple(str(value) for value in item.get("aliases", [])),
+                    description=str(item.get("description", "")),
+                )
+                for item in data.get("non_cast_voices", [])
             ),
             status=BibleStatus(str(data["status"])),
         )

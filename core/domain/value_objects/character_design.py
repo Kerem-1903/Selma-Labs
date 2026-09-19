@@ -27,6 +27,7 @@ class CharacterDesignCandidate:
     width: int
     height: int
     run_id: str
+    source_type: str = "GENERATED_DESIGN"
     prompt_hash: str = ""
     workflow_hash: str = ""
     qc_report: Mapping[str, Any] | None = None
@@ -57,6 +58,7 @@ class CharacterDesignCandidate:
             "width": self.width,
             "height": self.height,
             "run_id": self.run_id,
+            "source_type": self.source_type,
             "prompt_hash": self.prompt_hash,
             "workflow_hash": self.workflow_hash,
             "qc_report": dict(self.qc_report) if self.qc_report else None,
@@ -73,6 +75,7 @@ class CharacterDesignCandidate:
             width=int(data.get("width", 0)),
             height=int(data.get("height", 0)),
             run_id=data.get("run_id", "legacy"),
+            source_type=str(data.get("source_type", "GENERATED_DESIGN")),
             prompt_hash=str(data.get("prompt_hash", "")),
             workflow_hash=str(data.get("workflow_hash", "")),
             qc_report=(
@@ -249,6 +252,10 @@ class CharacterCanonicalApproval:
     fullbody_anchor: CharacterAnchorArtifact | None = None
     anchor_provider: str = ""
     anchor_workflow_version: str = ""
+    identity_source: str = "GENERATED_DESIGN"
+    identity_source_hash: str = ""
+    brief_consistency_confirmed: bool = False
+    identity_contract_hash: str = ""
 
     def __post_init__(self) -> None:
         if self.schema_version != 1:
@@ -314,6 +321,10 @@ class CharacterCanonicalApproval:
             ),
             "anchor_provider": self.anchor_provider,
             "anchor_workflow_version": self.anchor_workflow_version,
+            "identity_source": self.identity_source,
+            "identity_source_hash": self.identity_source_hash,
+            "brief_consistency_confirmed": self.brief_consistency_confirmed,
+            "identity_contract_hash": self.identity_contract_hash,
         }
 
     @classmethod
@@ -347,6 +358,10 @@ class CharacterCanonicalApproval:
             ),
             anchor_provider=data.get("anchor_provider", ""),
             anchor_workflow_version=data.get("anchor_workflow_version", ""),
+            identity_source=str(data.get("identity_source", "GENERATED_DESIGN")),
+            identity_source_hash=str(data.get("identity_source_hash", "")),
+            brief_consistency_confirmed=bool(data.get("brief_consistency_confirmed", False)),
+            identity_contract_hash=str(data.get("identity_contract_hash", "")),
         )
 
 
@@ -461,6 +476,9 @@ class CharacterReferenceDraftPack:
     quarantined: tuple[CharacterViewQuarantineArtifact, ...] = ()
     contact_sheet_storage_key: str = ""
     contact_sheet_content_hash: str = ""
+    #: Views the run could not produce, with the reasons it gave up. Carried
+    #: on the pack itself so an incomplete pack never looks like a short one.
+    blocked_views: Mapping[str, tuple[str, ...]] | None = None
 
     def __post_init__(self) -> None:
         expected = {
@@ -476,9 +494,11 @@ class CharacterReferenceDraftPack:
         if self.schema_version != 1 or self.status not in {
             "PENDING_HUMAN_REVIEW",
             "BLOCKED",
+            "APPROVED",
+            "READY",
         }:
             raise PreProductionValidationError("Invalid reference view-pack state.")
-        if self.status == "PENDING_HUMAN_REVIEW" and (
+        if self.status in {"PENDING_HUMAN_REVIEW", "APPROVED", "READY"} and (
             actual != expected or len(self.drafts) != 7
         ):
             raise PreProductionValidationError(
@@ -488,7 +508,7 @@ class CharacterReferenceDraftPack:
             raise PreProductionValidationError("A complete view pack cannot be blocked.")
         if len(actual) != len(self.drafts):
             raise PreProductionValidationError("Reference view names must be unique.")
-        if self.status == "PENDING_HUMAN_REVIEW" and (
+        if self.status in {"PENDING_HUMAN_REVIEW", "APPROVED", "READY"} and (
             not self.contact_sheet_storage_key or not self.contact_sheet_content_hash
         ):
             raise PreProductionValidationError(
@@ -502,12 +522,16 @@ class CharacterReferenceDraftPack:
             "character_version": self.character_version,
             "brief_hash": self.brief_hash,
             "canonical_storage_key": self.canonical_storage_key,
-            "human_approved": False,
+            "human_approved": self.status in {"APPROVED", "READY"},
             "status": self.status,
             "next_gate": self.status,
             "contact_sheet_storage_key": self.contact_sheet_storage_key,
             "contact_sheet_content_hash": self.contact_sheet_content_hash,
             "quarantined": [item.to_dict() for item in self.quarantined],
+            "blocked_views": {
+                str(view): list(reasons)
+                for view, reasons in dict(self.blocked_views or {}).items()
+            },
             "views": [draft.to_dict() for draft in self.drafts],
         }
 
@@ -535,6 +559,15 @@ class CharacterReferenceDraftPack:
             ),
             contact_sheet_content_hash=str(
                 data.get("contact_sheet_content_hash", "")
+            ),
+            blocked_views=(
+                {
+                    str(view): tuple(str(reason) for reason in reasons)
+                    for view, reasons in data["blocked_views"].items()
+                    if isinstance(reasons, (list, tuple))
+                }
+                if isinstance(data.get("blocked_views"), Mapping)
+                else None
             ),
         )
 

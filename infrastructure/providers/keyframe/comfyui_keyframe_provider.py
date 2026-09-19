@@ -94,9 +94,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         self._workflow_path = Path(workflow_path)
         self._storage = storage
         self._model_lock = model_lock
-        locked_checkpoint = (
-            model_lock.entry("checkpoint").filename if model_lock is not None else ""
-        )
+        locked_checkpoint = self._locked_checkpoint_name(model_lock)
         if checkpoint_name.strip() and locked_checkpoint and checkpoint_name.strip() != locked_checkpoint:
             raise ValueError("Configured checkpoint conflicts with models.lock.json.")
         self._checkpoint_name = locked_checkpoint or checkpoint_name.strip()
@@ -138,7 +136,9 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         if latent_mode not in {"reference", "empty"}:
             raise ProviderError("latent_mode must be 'reference' or 'empty'.")
         selected_references = self._select_character_references(request)
-        reference_nodes = self._connected_reference_nodes(workflow)
+        reference_nodes = self._select_reference_slots(
+            workflow, reference_count=len(selected_references)
+        )
         if selected_references and len(reference_nodes) < len(selected_references):
             raise ProviderError(
                 "ComfyUI workflow does not contain enough connected SELMA reference nodes."
@@ -310,6 +310,16 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
                 failures = ", ".join(check.name for check in report.failures)
                 raise ProviderError(f"{BLOCKED_PREFLIGHT}: {failures}")
 
+    def _locked_checkpoint_name(self, model_lock: ModelLock | None) -> str:
+        """Return the locked base model for this workflow dialect."""
+        return model_lock.entry("checkpoint").filename if model_lock is not None else ""
+
+    def _seed_slot(
+        self, workflow: dict[str, Any]
+    ) -> tuple[tuple[str, dict[str, Any]] | None, str]:
+        """Return the node and input key a watchdog retry must reseed."""
+        return self._node_for_role(workflow, "sampler", "KSampler"), "seed"
+
     def _inject_locked_models(self, workflow: dict[str, Any]) -> None:
         if self._model_lock is None:
             checkpoint = self._node_for_role(
@@ -360,16 +370,18 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             "owned": set(),
             "peak_vram_mb": None,
         }
-        sampler = self._node_for_role(workflow, "sampler", "KSampler")
-        original_seed = int(sampler[1]["inputs"]["seed"]) if sampler else 0
+        seed_node, seed_key = self._seed_slot(workflow)
+        original_seed = (
+            int(seed_node[1]["inputs"].get(seed_key, 0)) if seed_node else 0
+        )
 
         async def submit(attempt: int) -> str:
             active = state["socket"]
             if active is not None:
                 await active.close()
             state["socket"] = await session.ws_connect(socket_url)
-            if sampler is not None:
-                sampler[1]["inputs"]["seed"] = original_seed + attempt * 10_000
+            if seed_node is not None:
+                seed_node[1]["inputs"][seed_key] = original_seed + attempt * 10_000
             prompt_id = await self._queue_prompt(
                 session, workflow, client_id=client_id
             )
@@ -853,6 +865,22 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
 
     def _connected_reference_nodes(self, workflow: dict[str, Any]) -> list[str]:
         return self._connected_nodes_for_role(workflow, "reference_image")
+
+    def _select_reference_slots(
+        self, workflow: dict[str, Any], *, reference_count: int
+    ) -> list[str]:
+        """Return the reference loader nodes this request will actually drive.
+
+        The adapter dialect blends a fixed set of reference nodes and simply
+        ignores the surplus, so the default keeps every connected slot. A
+        dialect that *chains* references (FLUX.2 ``ReferenceLatent``) cannot do
+        that: an untouched slot keeps its template placeholder filename, which
+        either fails queue validation or -- far worse -- silently conditions on
+        whatever image happens to already sit under that name. Such dialects
+        override this hook to drop the slots they do not use.
+        """
+        del reference_count
+        return self._connected_reference_nodes(workflow)
 
     def _inject_reference_weights(
         self,

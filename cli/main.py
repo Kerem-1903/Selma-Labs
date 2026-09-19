@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import os
 import sys
@@ -12,10 +13,14 @@ from pathlib import Path
 from typing import Any
 
 from config.container import AnimationContainer, create_container
+from core.application.services.hierarchical_shot_planning_service import (
+    HierarchicalShotPlanningService,
+)
 from core.application.services.script_breakdown_service import ScriptBreakdownService
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.entities.episode_script import EpisodeScript
 from core.domain.entities.shot_animation import ShotPlan
+from core.domain.value_objects.story_review import StoryDevelopmentResult
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -64,6 +69,33 @@ def build_parser() -> argparse.ArgumentParser:
     series_lock_create.add_argument("--cfg", type=float, default=5.0)
     series_lock_create.add_argument("--denoise", type=float, default=0.65)
     series_lock_create.add_argument("--lock-version", type=int, default=1)
+    series_lock_smoke = series_commands.add_parser(
+        "smoke-production-lock",
+        help=(
+            "Render one frame through the pending production lock and write its "
+            "smoke-test receipt"
+        ),
+    )
+    series_lock_smoke.add_argument(
+        "--project", default="config/series/selma-anime-v1.json"
+    )
+    series_lock_smoke.add_argument(
+        "--workflow", default="assets/comfyui_keyframe_workflow.json"
+    )
+    series_lock_smoke.add_argument(
+        "--receipt", required=True, help="Where to write the smoke-test receipt JSON"
+    )
+    series_lock_smoke.add_argument(
+        "--image", help="Smoke frame path; defaults beside the receipt"
+    )
+    series_lock_smoke.add_argument(
+        "--seed", type=int, help="Override the deterministic smoke seed"
+    )
+    series_lock_smoke.add_argument(
+        "--full-model-hash",
+        action="store_true",
+        help="Hash every locked weight instead of checking size only",
+    )
     series_lock_compatible = series_commands.add_parser(
         "mark-production-compatible",
         help="Attach a real smoke-test receipt and enable production",
@@ -98,6 +130,29 @@ def build_parser() -> argparse.ArgumentParser:
     )
     character_init.add_argument("--brief", required=True)
     character_init.add_argument("--output", required=True)
+    character_lock_narrative = character_commands.add_parser(
+        "lock-narrative",
+        help=(
+            "Lock a character's narrative canon on its own, without "
+            "producing or claiming any visual asset"
+        ),
+    )
+    character_lock_narrative.add_argument(
+        "--input", required=True, help="Character Bible JSON"
+    )
+    character_lock_narrative.add_argument(
+        "--approved-by", required=True, help="Named human locking this narrative canon"
+    )
+    character_lock_narrative.add_argument(
+        "--output", required=True, help="Character Bible JSON to write back"
+    )
+    character_lock_narrative.add_argument(
+        "--receipt",
+        help=(
+            "Approval receipt path; defaults to "
+            "output/preproduction/narrative-locks/<character_id>.json"
+        ),
+    )
     character_create = character_commands.add_parser(
         "create", help="Generate canonical design choices from a character brief"
     )
@@ -123,11 +178,53 @@ def build_parser() -> argparse.ArgumentParser:
         default=0.35,
         help="IP-Adapter weight for the style seed (0 < weight <= 1; default 0.35)",
     )
+    character_import = character_commands.add_parser(
+        "import-image", help="Register a supplied front-view image as an unapproved canonical candidate"
+    )
+    character_import.add_argument("--brief", required=True)
+    character_import.add_argument("--image", required=True)
+    character_import.add_argument("--manifest", required=True)
+    character_import.add_argument("--output-prefix", default="characters")
+    character_import.add_argument("--run-id")
     character_benchmark = character_commands.add_parser(
         "benchmark-validate",
         help="Validate a versioned character quality benchmark and its image",
     )
     character_benchmark.add_argument("--benchmark", required=True)
+    character_tournament = character_commands.add_parser(
+        "turnaround-tournament",
+        help=(
+            "Render one approved source through several model locks and "
+            "compare drift to decide local vs rented compute"
+        ),
+    )
+    character_tournament.add_argument("--benchmark", required=True)
+    character_tournament.add_argument("--brief", required=True)
+    character_tournament.add_argument(
+        "--source-storage-key",
+        required=True,
+        help="Approved canonical image inside the keyframe storage root",
+    )
+    character_tournament.add_argument(
+        "--model-lock",
+        action="append",
+        dest="model_locks",
+        required=True,
+        help="Model lock to test; repeat for each checkpoint",
+    )
+    character_tournament.add_argument("--output", required=True)
+    character_tournament.add_argument(
+        "--seeds",
+        type=int,
+        default=3,
+        help="Seeds rendered per view (1-6); each variant sees the identical set",
+    )
+    character_tournament.add_argument("--seed-base", type=int, default=42)
+    character_tournament.add_argument("--run-id")
+    character_tournament.add_argument(
+        "--output-prefix", default="benchmarks/turnaround"
+    )
+    character_tournament.add_argument("--thresholds")
     character_benchmark_run = character_commands.add_parser(
         "benchmark-run",
         help="Run a fair text-only character quality tournament across model locks",
@@ -147,6 +244,79 @@ def build_parser() -> argparse.ArgumentParser:
         "--run-id",
         help="Stable tournament run id; generated automatically when omitted",
     )
+    character_consistency = character_commands.add_parser(
+        "view-consistency-report",
+        help="Audit existing character view-pack consistency evidence",
+    )
+    character_consistency.add_argument("--view-pack", required=True)
+    character_consistency.add_argument("--brief", required=True)
+    character_consistency.add_argument("--manifest")
+    character_consistency.add_argument("--human-review")
+    character_consistency.add_argument("--output")
+    character_drift = character_commands.add_parser(
+        "drift-report",
+        help=(
+            "Measure advisory pixel drift between an approved source and a "
+            "generated turnaround pack"
+        ),
+    )
+    character_drift.add_argument("--source", required=True)
+    character_drift.add_argument(
+        "--pack",
+        help="Turnaround directory to read VIEW.png files from",
+    )
+    character_drift.add_argument(
+        "--view",
+        action="append",
+        dest="drift_views",
+        help="Explicit VIEW=path entry; repeat per view",
+    )
+    character_drift.add_argument(
+        "--accent-colour",
+        default=None,
+        help=(
+            "#RRGGBB accent used for signature-mark and accent-fraction "
+            "metrics; defaults to the configured accent, pass an empty value "
+            "to disable those metrics"
+        ),
+    )
+    character_drift.add_argument(
+        "--mark-side",
+        default=None,
+        choices=["", "left", "right"],
+        help=(
+            "Body side the signature mark is bound to, for mirror detection; "
+            "defaults to the configured side, pass an empty value to disable "
+            "the mark checks"
+        ),
+    )
+    character_drift.add_argument(
+        "--thresholds", help="Previously calibrated thresholds JSON"
+    )
+    character_drift.add_argument(
+        "--calibrate",
+        action="store_true",
+        help="Derive thresholds from an already accepted pack instead of reporting",
+    )
+    character_drift.add_argument("--margin", type=float, default=1.35)
+    character_drift.add_argument("--output")
+    character_qc_calibration = character_commands.add_parser(
+        "qc-calibration-create",
+        help="Create a human-labelled character QC calibration manifest",
+    )
+    character_qc_calibration.add_argument("--storage-root", default="output/production")
+    character_qc_calibration.add_argument(
+        "--benchmark-prefix", default="benchmarks/akira-quality-v1"
+    )
+    character_qc_calibration.add_argument("--output", required=True)
+    character_qc_calibration.add_argument("--minimum-images", type=int, default=50)
+    character_qc_calibration.add_argument("--maximum-images", type=int, default=100)
+    character_qc_summary = character_commands.add_parser(
+        "qc-calibration-summarize",
+        help="Summarize completed human labels in a QC calibration manifest",
+    )
+    character_qc_summary.add_argument("--manifest", required=True)
+    character_qc_summary.add_argument("--output")
     character_approve_design = character_commands.add_parser(
         "approve-design", help="Lock one generated design as the canonical character"
     )
@@ -157,6 +327,11 @@ def build_parser() -> argparse.ArgumentParser:
     character_approve_design.add_argument("--output", required=True)
     character_approve_design.add_argument("--output-prefix", default="characters")
     character_approve_design.add_argument("--version", type=int, default=1)
+    character_approve_design.add_argument(
+        "--confirm-brief-consistency",
+        action="store_true",
+        help="Explicitly confirm that a supplied image does not conflict with the brief",
+    )
     character_turnaround = character_commands.add_parser(
         "turnaround",
         help="Generate the seven neutral reference drafts from an approved design",
@@ -165,6 +340,45 @@ def build_parser() -> argparse.ArgumentParser:
     character_turnaround.add_argument("--approval", required=True)
     character_turnaround.add_argument("--manifest", required=True)
     character_turnaround.add_argument("--output-prefix", default="characters")
+    character_turnaround.add_argument(
+        "--seeds",
+        type=int,
+        default=1,
+        help=(
+            "Render this many seeds per view and keep the least-drifted one "
+            "(1-6; only meaningful for the source-led edit dialect)"
+        ),
+    )
+    character_turnaround.add_argument(
+        "--view",
+        action="append",
+        dest="rerender_views",
+        default=[],
+        help=(
+            "Re-render only this view inside an existing pack and keep every "
+            "other view byte-identical; repeat per view. The replaced render is "
+            "archived as quarantine evidence, and the new attempt uses a seed "
+            "block that has never been drawn"
+        ),
+    )
+    character_turnaround.add_argument(
+        "--restore-superseded",
+        action="store_true",
+        help=(
+            "Undo a targeted re-render for the named --view entries: put the "
+            "archived render back and file the render it displaces. Nothing is "
+            "drawn"
+        ),
+    )
+    character_turnaround.add_argument(
+        "--restored-by",
+        help="Human whose verdict restores the archived renders (required with --restore-superseded)",
+    )
+    character_turnaround.add_argument(
+        "--reason",
+        default="",
+        help="Why the archived render is preferred; recorded in the restore receipt",
+    )
     pose_pack = character_commands.add_parser(
         "pose-pack", help="Generate or approve the five-pose pre-animation character pack"
     )
@@ -193,6 +407,45 @@ def build_parser() -> argparse.ArgumentParser:
         "--check", action="append", dest="checks", default=[],
         help="Confirm one pose-pack check; repeat for all five checks",
     )
+    pose_pack_reject = pose_pack_commands.add_parser(
+        "reject",
+        help=(
+            "Record a human refusal of a pose pack; a rejected pack can never "
+            "be approved afterwards"
+        ),
+    )
+    pose_pack_reject.add_argument("--manifest", required=True)
+    pose_pack_reject.add_argument("--rejected-by", required=True)
+    pose_pack_reject.add_argument(
+        "--reason", required=True, help="Why the pack was refused; stored verbatim"
+    )
+    pose_pack_reject.add_argument(
+        "--superseded-by-version",
+        type=int,
+        help="Character version that replaces this one, when already known",
+    )
+    pose_pack_rerender = pose_pack_commands.add_parser(
+        "rerender",
+        help=(
+            "Redraw only the poses whose pose guide changed, in place, and file "
+            "the displaced bytes as quarantine evidence"
+        ),
+    )
+    pose_pack_rerender.add_argument("--brief", required=True)
+    pose_pack_rerender.add_argument("--approval", required=True)
+    pose_pack_rerender.add_argument(
+        "--manifest",
+        required=True,
+        help="Storage key of the pose-pack manifest, as recorded in the pack",
+    )
+    pose_pack_rerender.add_argument("--authorized-by", required=True)
+    pose_pack_rerender.add_argument(
+        "--reason", required=True, help="Why the redraw is allowed; stored verbatim"
+    )
+    pose_pack_rerender.add_argument(
+        "--output",
+        help="Optional path to write the redrawn manifest receipt to",
+    )
     pose_pack_batch = pose_pack_commands.add_parser(
         "batch", help="Run resumable pose-pack generation for a JSON job list"
     )
@@ -209,6 +462,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Workflow whose hash is verified against the production style lock",
     )
     pose_pack_batch.add_argument("--stop-on-error", action="store_true")
+    character_reject_views = character_commands.add_parser(
+        "reject-view-pack",
+        help=(
+            "Record a human refusal of a view pack; a rejected pack can never "
+            "be approved afterwards"
+        ),
+    )
+    character_reject_views.add_argument("--character", required=True)
+    character_reject_views.add_argument("--version", default="v1")
+    character_reject_views.add_argument("--rejected-by", required=True)
+    character_reject_views.add_argument(
+        "--reason", required=True, help="Why the pack was refused; stored verbatim"
+    )
+    character_reject_views.add_argument("--output")
+    character_reject_views.add_argument("--output-prefix", default="characters")
+    character_reject_views.add_argument(
+        "--superseded-by-version",
+        type=int,
+        help="Character version that replaces this one, when already known",
+    )
     character_approve_views = character_commands.add_parser(
         "approve-view-pack",
         help="Human-approve a complete QC-passed seven-view pack",
@@ -418,6 +691,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="Location Bible JSON; repeat for every available location",
     )
     episode_plan.add_argument(
+        "--world-bible",
+        help=(
+            "World Bible JSON; its non-cast voices speak without joining the "
+            "cast, so they never order a pose pack"
+        ),
+    )
+    episode_plan.add_argument(
         "--pose-pack", action="append", dest="pose_packs", default=[],
         help="Generated five-pose manifest JSON; repeat for every available character",
     )
@@ -441,6 +721,13 @@ def build_parser() -> argparse.ArgumentParser:
     episode_prepare.add_argument(
         "--location-bible", action="append", dest="location_bibles", default=[],
         help="Location Bible JSON; repeat for every available location",
+    )
+    episode_prepare.add_argument(
+        "--world-bible",
+        help=(
+            "World Bible JSON; its non-cast voices speak without joining the "
+            "cast, so they never order a pose pack"
+        ),
     )
     episode_prepare.add_argument(
         "--pose-pack", action="append", dest="pose_packs", default=[],
@@ -520,6 +807,64 @@ def build_parser() -> argparse.ArgumentParser:
         "--render-output", help="MP4 output path used with --render",
     )
 
+    pilot = commands.add_parser(
+        "pilot", help="Run the narrow Akira/Kaito anime pilot golden path"
+    )
+    pilot_commands = pilot.add_subparsers(dest="pilot_command", required=True)
+    pilot_init = pilot_commands.add_parser(
+        "init", help="Create the editable 30–60 second pilot screenplay template"
+    )
+    pilot_init.add_argument("--output", required=True, help="Output .fountain screenplay")
+    pilot_init.add_argument("--pilot-id", default="kirik-kayit-pilot-v1")
+    pilot_init.add_argument("--title", default="Kırık Kayıt — Pilot")
+    pilot_check = pilot_commands.add_parser(
+        "check", help="Validate pilot duration, characters, location and 24 FPS constraints"
+    )
+    pilot_check.add_argument("--input", required=True, help="Pilot .fountain screenplay")
+    pilot_check.add_argument("--output", help="Optional readiness report JSON")
+    pilot_plan = pilot_commands.add_parser(
+        "plan", help="Convert a validated pilot screenplay into a 24 FPS shot plan"
+    )
+    pilot_plan.add_argument("--input", required=True, help="Pilot .fountain screenplay")
+    pilot_plan.add_argument("--output", required=True, help="Episode director plan JSON")
+    pilot_smoke = pilot_commands.add_parser(
+        "smoke", help="Render a five-second canonical-anchor media smoke test"
+    )
+    pilot_smoke.add_argument(
+        "--akira-image",
+        default="characters/akira/v5/canonical_source.png",
+        help="Canonical Akira anchor key under --storage-root",
+    )
+    pilot_smoke.add_argument(
+        "--kaito-image",
+        default="characters/kaito/v5/canonical_source.png",
+        help="Canonical Kaito anchor key under --storage-root",
+    )
+    pilot_smoke.add_argument(
+        "--storage-root", default="output/production",
+        help="Storage root containing canonical anchor files",
+    )
+    pilot_smoke.add_argument(
+        "--output", required=True, help="Smoke result JSON path"
+    )
+    pilot_smoke.add_argument(
+        "--motion-public-dir", default="motion/public",
+        help="Remotion public directory used for exported props",
+    )
+    pilot_smoke.add_argument(
+        "--render", action="store_true",
+        help="Render and ffprobe the five-second MP4",
+    )
+    pilot_smoke.add_argument(
+        "--browser-executable",
+        default="C:/Program Files/Google/Chrome/Application/chrome.exe",
+        help="Chrome/Chromium executable used by Remotion render",
+    )
+    pilot_smoke.add_argument(
+        "--render-output", default="output/pilot-anchor-smoke-5s.mp4",
+        help="MP4 output path used with --render",
+    )
+
     trailer = commands.add_parser("trailer", help="Plan and inspect a locked 180-second trailer")
     trailer_commands = trailer.add_subparsers(dest="trailer_command", required=True)
     trailer_init = trailer_commands.add_parser("init", help="Write the locked EŞİK//80 trailer brief")
@@ -557,6 +902,43 @@ def build_parser() -> argparse.ArgumentParser:
     breakdown.add_argument("--character-bible", required=True)
     breakdown.add_argument("--script-id", required=True)
     breakdown.add_argument("--output", help="Optional JSON output file")
+
+    story = commands.add_parser(
+        "story",
+        help="Review a screenplay against locked canon and record human approval",
+    )
+    story_commands = story.add_subparsers(dest="story_command", required=True)
+    for name, help_text in (
+        ("review", "Gate an existing screenplay through canon and story reviewers"),
+        ("approve", "Lock a review-ready screenplay under a named human approver"),
+    ):
+        story_command = story_commands.add_parser(name, help=help_text)
+        story_command.add_argument(
+            "--input", required=True, help="EpisodeScript JSON or Fountain screenplay"
+        )
+        story_command.add_argument(
+            "--episode-id",
+            default="episode-001",
+            help="Script id used when normalizing a Fountain screenplay",
+        )
+        story_command.add_argument(
+            "--title",
+            default="Untitled episode",
+            help="Episode title used when normalizing a Fountain screenplay",
+        )
+    story_commands.choices["approve"].add_argument(
+        "--approved-by", required=True, help="Named human approving the locked script"
+    )
+    story_commands.choices["review"].add_argument(
+        "--output", help="Optional JSON review report path; prints to stdout otherwise"
+    )
+    story_commands.choices["approve"].add_argument(
+        "--output",
+        help=(
+            "Optional locked-screenplay path, written only when the gate "
+            "passes; prints to stdout otherwise"
+        ),
+    )
 
     render = commands.add_parser("render", help="Render approved anime shots")
     render_commands = render.add_subparsers(dest="render_command", required=True)
@@ -620,6 +1002,15 @@ def build_parser() -> argparse.ArgumentParser:
         "plan", help="Convert an approved EpisodeScript JSON into a shot hierarchy"
     )
     production_plan.add_argument("--input", required=True)
+    production_plan.add_argument(
+        "--character-id",
+        required=True,
+        help=(
+            "Locked Character Bible that conditions the breakdown. Required on "
+            "purpose: a defaulted identity would silently label every shot with "
+            "the wrong character state."
+        ),
+    )
     production_plan.add_argument("--output", required=True)
 
     keyframe = commands.add_parser("keyframe", help="Keyframe generation tools")
@@ -654,45 +1045,85 @@ def main(
     container_factory: Callable[[], AnimationContainer] = create_container,
 ) -> int:
     arguments = build_parser().parse_args(argv)
+    from config.settings import get_settings, warn_if_offline_test_profile
+
+    warn_if_offline_test_profile(get_settings())
     try:
         if arguments.command == "series":
-            return _run_series_command(arguments)
+            from cli.series_commands import run_series_command
+
+            return run_series_command(arguments)
         if arguments.command == "character":
             if arguments.character_command == "show":
                 _show_character(_load_character_bible(arguments.input))
             elif arguments.character_command == "init":
                 _initialize_character(arguments)
+            elif arguments.character_command == "lock-narrative":
+                _lock_character_narrative(arguments)
             elif arguments.character_command == "plan":
                 _plan_character(arguments)
-            elif arguments.character_command == "dataset":
-                return _build_character_dataset(arguments)
-            elif arguments.character_command == "audit-dataset":
-                return _audit_character_dataset(arguments)
-            elif arguments.character_command == "review-template":
-                return _create_character_review_template(arguments)
-            elif arguments.character_command == "train":
-                return asyncio.run(_train_character_lora(arguments))
+            elif arguments.character_command in {
+                "dataset",
+                "audit-dataset",
+                "review-template",
+                "view-consistency-report",
+                "drift-report",
+                "qc-calibration-create",
+                "qc-calibration-summarize",
+                "train",
+                "benchmark-validate",
+            }:
+                from cli.character_quality_commands import (
+                    run_character_quality_command,
+                )
+
+                return run_character_quality_command(
+                    arguments,
+                    write_json=_write_json,
+                    load_character_bible=_load_character_bible,
+                    load_creation_brief=_load_character_creation_brief,
+                )
             else:
+                from cli.character_asset_commands import (
+                    run_character_asset_command,
+                )
+
                 return asyncio.run(
-                    _run_character_generation(arguments, container_factory())
+                    run_character_asset_command(
+                        arguments,
+                        container_factory(),
+                        write_json=_write_json,
+                        load_character_bible=_load_character_bible,
+                        load_creation_brief=_load_character_creation_brief,
+                        container_factory=container_factory,
+                    )
                 )
         elif arguments.command == "background":
-            if arguments.background_command == "init":
-                _initialize_background(arguments)
-            elif arguments.background_command == "plan":
-                _plan_background(arguments)
-            elif arguments.background_command == "approve":
-                _approve_backgrounds(arguments)
-            else:
-                return asyncio.run(
-                    _generate_backgrounds(arguments, container_factory())
-                )
+            from cli.background_commands import run_background_command
+
+            return run_background_command(
+                arguments,
+                write_json=_write_json,
+                container_factory=container_factory,
+            )
         elif arguments.command == "episode":
             return _run_episode_command(arguments, container_factory=container_factory)
+        elif arguments.command == "pilot":
+            from cli.pilot_commands import run_pilot_command
+
+            return run_pilot_command(
+                arguments,
+                write_json=_write_json,
+                awaitable_run=awaitable_run,
+            )
         elif arguments.command == "trailer":
             return _run_trailer_command(arguments)
         elif arguments.command == "script":
             _break_down_script(arguments)
+        elif arguments.command == "story":
+            return asyncio.run(
+                _run_story_commands(arguments, container_factory())
+            )
         elif arguments.command == "render":
             asyncio.run(_render_shot(arguments, container_factory()))
         elif arguments.command == "blender":
@@ -709,104 +1140,6 @@ def main(
     except Exception as error:  # noqa: BLE001 - CLI boundary
         print(f"SELMA command failed: {error}", file=sys.stderr)
         return 1
-
-
-def _run_series_command(arguments: argparse.Namespace) -> int:
-    from core.application.services.series_project_service import SeriesProjectService
-    from core.application.services.series_style_lock_service import (
-        SeriesStyleLockService,
-    )
-
-    workspace_root = Path(__file__).resolve().parents[1]
-    service = SeriesProjectService(workspace_root)
-    if arguments.series_command == "approve-style":
-        checks = tuple(arguments.checks or ("creative-style-reviewed",))
-        receipt = SeriesStyleLockService(workspace_root).write_style_approval(
-            arguments.project,
-            approved_by=arguments.approved_by,
-            approval_criteria=checks,
-        )
-        print(json.dumps(receipt.to_dict(), ensure_ascii=False, indent=2))
-        return 0
-    if arguments.series_command == "promote-style":
-        receipt = SeriesStyleLockService(workspace_root).promote_style(
-            arguments.project
-        )
-        print(json.dumps(receipt.to_dict(), ensure_ascii=False, indent=2))
-        return 0
-    if arguments.series_command == "create-production-lock":
-        lock = SeriesStyleLockService(workspace_root).write_production_lock(
-            arguments.project,
-            workflow_path=arguments.workflow,
-            style_approval_receipt_sha256=arguments.receipt_sha256,
-            width=arguments.width,
-            height=arguments.height,
-            sampler=arguments.sampler,
-            steps=arguments.steps,
-            cfg=arguments.cfg,
-            denoise=arguments.denoise,
-            lock_version=arguments.lock_version,
-        )
-        print(json.dumps(lock.to_dict(), ensure_ascii=False, indent=2))
-        return 0
-    if arguments.series_command == "mark-production-compatible":
-        lock = SeriesStyleLockService(workspace_root).mark_production_compatible(
-            arguments.project,
-            smoke_test_receipt_path=arguments.smoke_receipt,
-        )
-        print(json.dumps(lock.to_dict(), ensure_ascii=False, indent=2))
-        return 0
-    if arguments.series_command == "register-character":
-        registry = service.register_character(
-            project_path=arguments.project,
-            bible_path=arguments.bible,
-            role=arguments.role,
-            version=arguments.version,
-            status=arguments.status,
-        )
-        print(json.dumps(registry.to_dict(), ensure_ascii=False, indent=2))
-        return 0
-    project, registry = service.load(arguments.project)
-    style_lock_payload: dict[str, Any]
-    try:
-        snapshot = SeriesStyleLockService(workspace_root).resolve_production(
-            arguments.project,
-            workflow_path=workspace_root / "assets/comfyui_keyframe_workflow.json",
-        )
-    except Exception as error:  # noqa: BLE001 - status reports readiness without hiding it
-        reason = getattr(error, "reason", "STYLE_LOCK_INVALID")
-        detail = getattr(error, "detail", str(error))
-        style_lock_payload = {
-            "status": "BLOCKED",
-            "blocking_reason": reason,
-            "detail": detail,
-        }
-    else:
-        style_lock_payload = {
-            "status": "READY",
-            "blocking_reason": "",
-            "snapshot": snapshot.to_dict(),
-        }
-    print(
-        json.dumps(
-            {
-                "status": "VALID",
-                "series": project.to_dict(),
-                "cast": registry.to_dict(),
-                "cast_size": len(registry.members),
-                "production_ready": style_lock_payload["status"] == "READY",
-                "style_lock": style_lock_payload,
-                "next_gate": (
-                    "REGISTER_FIRST_CHARACTER"
-                    if not registry.members
-                    else "VALIDATE_CAST_DISTINCTIVENESS"
-                ),
-            },
-            ensure_ascii=False,
-            indent=2,
-        )
-    )
-    return 0
 
 
 def _show_character(bible: CharacterBible) -> None:
@@ -830,6 +1163,56 @@ def _initialize_character(arguments: argparse.Namespace) -> None:
             {"schema_version": 1, "character_bible": bible.to_dict()},
         )
     )
+
+
+def _lock_character_narrative(arguments: argparse.Namespace) -> None:
+    """Lock narrative canon alone; a visual reference pack is a separate claim.
+
+    The story gate needs narrative canon, not rendered assets. Requiring a
+    reference pack to lock a profile would force artwork before the screenplay
+    is approved, so this records the human signature on its own.
+    """
+    from dataclasses import replace
+
+    bible = _load_character_bible(arguments.input)
+    profile = bible.narrative_profile
+    if profile is None:
+        raise ValueError("Character has no narrative profile to lock.")
+    if profile.locked:
+        raise ValueError(
+            "Character narrative profile is already locked. Changing locked "
+            "canon needs an explicit revision, not a silent re-lock."
+        )
+    approver = arguments.approved_by.strip()
+    if not approver:
+        raise ValueError("approved_by must not be empty.")
+
+    locked_bible = replace(bible, narrative_profile=replace(profile, locked=True))
+    _write_json(
+        arguments.output,
+        {"schema_version": 1, "character_bible": locked_bible.to_dict()},
+    )
+
+    canon_payload = {**profile.to_dict(), "locked": False}
+    receipt = _write_json(
+        arguments.receipt
+        or Path("output/preproduction/narrative-locks")
+        / f"{bible.character_id}.json",
+        {
+            "schema_version": 1,
+            "character_id": bible.character_id,
+            "approved_by": approver,
+            "approved_at": datetime.now(timezone.utc).isoformat(),
+            "narrative_locked": True,
+            "narrative_hash": hashlib.sha256(
+                json.dumps(canon_payload, ensure_ascii=False, sort_keys=True).encode(
+                    "utf-8"
+                )
+            ).hexdigest(),
+            "visual_readiness_claimed": False,
+        },
+    )
+    print(str(receipt))
 
 
 def _load_character_bible(path: str | Path) -> CharacterBible:
@@ -888,141 +1271,8 @@ def _write_json(path: str | Path, payload: dict[str, Any]) -> Path:
         raise
     return target.resolve()
 
-
-def _initialize_background(arguments: argparse.Namespace) -> None:
-    from core.application.services.location_bible_factory_service import (
-        LocationBibleFactoryService,
-    )
-
-    brief = json.loads(Path(arguments.brief).read_text(encoding="utf-8"))
-    if not isinstance(brief, dict):
-        raise TypeError("Location brief JSON must contain an object.")
-    location = LocationBibleFactoryService().create(brief)
-    print(
-        _write_json(
-            arguments.output,
-            {"schema_version": 1, "location_bible": location.to_dict()},
-        )
-    )
-
-
-def _load_location_bible(path: str | Path):
-    from core.domain.entities.location_bible import LocationBible
-
-    payload = json.loads(Path(path).read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise TypeError("Location Bible JSON must contain an object.")
-    data = payload.get("location_bible", payload)
-    if not isinstance(data, dict):
-        raise TypeError("location_bible must contain an object.")
-    return LocationBible.from_dict(data)
-
-
-def _plan_background(arguments: argparse.Namespace) -> None:
-    from core.application.services.background_factory_service import (
-        BackgroundFactoryService,
-    )
-
-    plan = BackgroundFactoryService.plan(_load_location_bible(arguments.input))
-    print(_write_json(arguments.output, plan.to_dict()))
-
-
-async def _generate_backgrounds(
-    arguments: argparse.Namespace,
-    container: AnimationContainer,
-) -> int:
-    pack = await container.background_factory_service.generate(
-        _load_location_bible(arguments.input),
-        output_prefix=arguments.output_prefix,
-    )
-    print(_write_json(arguments.manifest, pack.to_dict()))
-    return 0
-
-
-def _approve_backgrounds(arguments: argparse.Namespace) -> None:
-    from dataclasses import replace
-
-    from core.application.services.asset_approval_service import AssetApprovalService
-
-    location = _load_location_bible(arguments.input)
-    manifest = json.loads(Path(arguments.manifest).read_text(encoding="utf-8"))
-    if not isinstance(manifest, dict):
-        raise TypeError("Background manifest must contain an object.")
-    if str(manifest.get("location_id")) != location.location_id:
-        raise ValueError("Background manifest does not belong to this Location Bible.")
-    candidates = manifest.get("candidates")
-    if not isinstance(candidates, list) or len(candidates) != 12:
-        raise ValueError("Background approval requires all 12 coverage candidates.")
-    keys: list[str] = []
-    for raw in candidates:
-        if not isinstance(raw, dict):
-            raise TypeError("Every background candidate must contain an object.")
-        key = str(raw.get("storage_key", ""))
-        quality = raw.get("quality")
-        if "/source/" not in key or not key.endswith(".png"):
-            raise ValueError("Only accepted source PNGs may be approved.")
-        if quality is not None and (
-            not isinstance(quality, dict) or not bool(quality.get("passed"))
-        ):
-            raise ValueError("A failed automatic quality result cannot be approved.")
-        keys.append(key)
-    if len(keys) != len(set(keys)):
-        raise ValueError("Background approval contains duplicate candidates.")
-    locked = replace(location, locked=True)
-    from core.domain.value_objects.background_production import (
-        BackgroundCandidate,
-        BackgroundCandidatePack,
-    )
-
-    candidate_pack = BackgroundCandidatePack(
-        location_id=location.location_id,
-        candidates=tuple(
-            BackgroundCandidate(
-                recipe_id=str(item.get("recipe_id", "")),
-                storage_key=str(item.get("storage_key", "")),
-                width=int(item.get("width", 0)),
-                height=int(item.get("height", 0)),
-                attempt=int(item.get("attempt", 1)),
-                content_hash=str(item.get("content_hash", "")),
-            )
-            for item in candidates
-        ),
-        quarantined=(),
-    )
-    pack_payload = candidate_pack.to_dict()
-    receipt = None
-    try:
-        asset_hashes = [candidate.content_hash for candidate in candidate_pack.candidates]
-        receipt = AssetApprovalService.receipt(
-            asset_id=location.location_id,
-            asset_hash=AssetApprovalService.asset_set_digest(asset_hashes),
-            manifest_payload=pack_payload,
-            approved_by=arguments.approved_by,
-        ).to_dict()
-    except Exception:
-        # A legacy manifest may still lock the Location Bible, but without
-        # content hashes it cannot claim production asset approval.
-        receipt = None
-    print(
-        _write_json(
-            arguments.output,
-            {
-                "schema_version": 1,
-                "approval": {
-                    "approved_by": arguments.approved_by,
-                    "background_pack_approved": receipt is not None,
-                    "approved_storage_keys": keys,
-                },
-                "location_bible": locked.to_dict(),
-                "candidates": candidates,
-                "quarantined": [],
-                "approval_receipt": receipt,
-                "human_approved": receipt is not None,
-            },
-        )
-    )
-
 def _plan_character(arguments: argparse.Namespace) -> None:
+
     from core.application.services.character_onboarding_service import (
         CharacterOnboardingService,
     )
@@ -1253,12 +1503,13 @@ async def _run_character_generation(
             raise ValueError(
                 "Selected design candidate is not present in the manifest."
             )
-        approval = await container.character_design_service.approve_candidate(
+        approval = await container.character_canonical_approval_service.approve_candidate(
             brief,
             CharacterDesignCandidate.from_dict(selected),
             approved_by=arguments.approved_by,
             character_version=arguments.version,
             output_prefix=arguments.output_prefix,
+            brief_consistency_confirmed=bool(arguments.confirm_brief_consistency),
         )
         print(_write_json(arguments.output, approval.to_dict()))
         return 0
@@ -1271,16 +1522,19 @@ async def _run_character_generation(
         raw_approval = json.loads(Path(arguments.approval).read_text(encoding="utf-8"))
         if not isinstance(raw_approval, dict):
             raise TypeError("Canonical approval receipt must contain an object.")
-        pack = await container.character_design_service.generate_reference_drafts(
+        pack = await container.character_view_pack_generation_service.generate_canonical_views(
             brief,
             CharacterCanonicalApproval.from_dict(raw_approval),
             output_prefix=arguments.output_prefix,
+            # Without this the --seeds flag was accepted and then ignored, so a
+            # requested sweep silently rendered a single seed per view.
+            view_candidate_count=arguments.seeds,
         )
         print(_write_json(arguments.manifest, pack.to_dict()))
         return 0
     if arguments.character_command == "approve-view-pack":
         raw_version = str(arguments.version).strip().casefold().removeprefix("v")
-        approval = await container.character_design_service.approve_view_pack(
+        approval = await container.character_view_pack_generation_service.approve_view_pack(
             character_id=arguments.character,
             character_version=int(raw_version),
             approved_by=arguments.approved_by,
@@ -1455,6 +1709,8 @@ def _load_episode_plan_inputs(arguments: argparse.Namespace):
     )
 
     characters = [_load_character_bible(path) for path in arguments.character_bibles]
+    from cli.background_commands import _load_location_bible
+
     locations = [_load_location_bible(path) for path in arguments.location_bibles]
     pose_packs = {}
     for path in arguments.pose_packs:
@@ -1542,7 +1798,16 @@ def _load_episode_plan_inputs(arguments: argparse.Namespace):
             except Exception:
                 pass
         background_packs[pack.location_id] = pack
-    return characters, locations, pose_packs, background_packs
+    non_cast_voices: tuple[Any, ...] = ()
+    if getattr(arguments, "world_bible", None):
+        from core.domain.entities.direction_bible import WorldBible
+
+        world_payload = _load_json_object(arguments.world_bible)
+        world = WorldBible.from_dict(
+            dict(world_payload.get("world_bible", world_payload))
+        )
+        non_cast_voices = world.non_cast_voices
+    return characters, locations, pose_packs, background_packs, non_cast_voices
 
 
 def _episode_director_provider(arguments: argparse.Namespace):
@@ -1685,7 +1950,14 @@ def _run_episode_command(
     from core.domain.value_objects.episode_director_plan import EpisodeDirectorPlan
 
     if arguments.episode_command == "animatic":
-        return _run_episode_animatic(arguments)
+        from cli.episode_commands import run_episode_animatic_command
+
+        return run_episode_animatic_command(
+            arguments,
+            load_json_object=_load_json_object,
+            write_json=_write_json,
+            awaitable_run=awaitable_run,
+        )
 
     if arguments.episode_command == "inspect":
         payload = _load_json_object(arguments.input)
@@ -1713,7 +1985,13 @@ def _run_episode_command(
     is_prepare = arguments.episode_command == "prepare"
     from core.application.services.episode_director_service import EpisodeDirectorService
 
-    characters, locations, pose_packs, background_packs = _load_episode_plan_inputs(arguments)
+    (
+        characters,
+        locations,
+        pose_packs,
+        background_packs,
+        non_cast_voices,
+    ) = _load_episode_plan_inputs(arguments)
     source = Path(arguments.input)
     raw = _load_json_object(source) if source.suffix.lower() == ".json" else None
     director = EpisodeDirectorService()
@@ -1727,6 +2005,7 @@ def _run_episode_command(
             "locations": locations,
             "pose_packs": pose_packs,
             "background_packs": background_packs,
+            "non_cast_voices": non_cast_voices,
             "episode_id": arguments.episode_id if arguments.episode_id != "episode-001" else None,
         }
         plan = awaitable_run(director.plan_with_provider(script, provider, **plan_kwargs)) if provider else director.plan_episode(script, **plan_kwargs)
@@ -1736,6 +2015,7 @@ def _run_episode_command(
             "locations": locations,
             "pose_packs": pose_packs,
             "background_packs": background_packs,
+            "non_cast_voices": non_cast_voices,
         }
         if source.suffix.lower() == ".fountain":
             from core.application.services.screenplay_normalization_service import (
@@ -1888,81 +2168,6 @@ def awaitable_run(awaitable):
     return asyncio.run(awaitable)
 
 
-def _run_episode_animatic(arguments: argparse.Namespace) -> int:
-    from core.application.services.episode_animatic_service import EpisodeAnimaticService
-    from core.domain.value_objects.episode_director_plan import EpisodeDirectorPlan
-    from infrastructure.storage.local_fs_storage import LocalFsStorage
-
-    payload = _load_json_object(arguments.input)
-    raw_plan = payload.get("episode_director_plan", payload)
-    if not isinstance(raw_plan, dict):
-        raise TypeError("Episode input must contain an episode director plan object.")
-    plan = EpisodeDirectorPlan.from_dict(raw_plan)
-    audio_keys: dict[str, str] = {}
-    if arguments.audio_map:
-        audio_payload = _load_json_object(arguments.audio_map)
-        raw_audio = audio_payload.get("audio", audio_payload)
-        if not isinstance(raw_audio, dict):
-            raise TypeError("Audio map must contain a shot-id to storage-key object.")
-        audio_keys = {str(key): str(value) for key, value in raw_audio.items()}
-    result = awaitable_run(
-        EpisodeAnimaticService(LocalFsStorage(arguments.storage_root)).build(
-            plan,
-            dialogue_audio_keys=audio_keys,
-            mode=arguments.mode,
-        )
-    )
-    if result.status == "BLOCKED":
-        print(_write_json(arguments.output, result.to_dict()))
-        return 2
-    output = result.to_dict()
-    if result.project is not None and arguments.export:
-        from infrastructure.providers.render.remotion_animatic_exporter import (
-            RemotionAnimaticExporter,
-        )
-
-        props_path = awaitable_run(
-            RemotionAnimaticExporter(
-                LocalFsStorage(arguments.storage_root),
-                arguments.motion_public_dir,
-            ).export(result.project)
-        )
-        output["remotion_props_path"] = str(props_path)
-        if arguments.render:
-            from core.application.services.animatic_render_service import (
-                AnimaticRenderService,
-            )
-            from infrastructure.providers.render.ffprobe_media_inspection_provider import (
-                FfprobeMediaInspectionProvider,
-            )
-            render_output = arguments.render_output or str(
-                Path(arguments.output).with_suffix(".mp4")
-            )
-            render_result = awaitable_run(
-                AnimaticRenderService(
-                    motion_directory="motion",
-                    inspector=FfprobeMediaInspectionProvider(),
-                ).render(
-                    result.project,
-                    props_path=props_path,
-                    output_path=render_output,
-                )
-            )
-            output["render"] = render_result.to_dict()
-            if render_result.status != "READY_FOR_REVIEW":
-                print(_write_json(arguments.output, output))
-                return 3
-    elif arguments.render:
-        output["render"] = {
-            "status": "BLOCKED",
-            "error": "MP4 render requires a resolved animatic project; use PLACEHOLDER mode for a review render.",
-        }
-        print(_write_json(arguments.output, output))
-        return 3
-    print(_write_json(arguments.output, output))
-    return 0
-
-
 def _break_down_script(arguments: argparse.Namespace) -> None:
     source = Path(arguments.input)
     script_text = source.read_text(encoding="utf-8")
@@ -1981,6 +2186,133 @@ def _break_down_script(arguments: argparse.Namespace) -> None:
         print(str(output.resolve()))
     else:
         print(serialized)
+
+
+def _load_episode_script_input(
+    path: str | Path, *, episode_id: str, title: str
+) -> EpisodeScript:
+    """Accept a normalized EpisodeScript JSON or a Fountain screenplay."""
+    source = Path(path)
+    if not source.is_file():
+        raise FileNotFoundError(f"Screenplay input does not exist: {source}")
+    suffix = source.suffix.lower()
+    if suffix == ".json":
+        payload = _load_json_object(source)
+        script_payload = payload.get("episode_script", payload)
+        if not isinstance(script_payload, dict):
+            raise TypeError("episode_script must contain an object.")
+        return EpisodeScript.from_dict(dict(script_payload))
+    if suffix == ".fountain":
+        from core.application.services.screenplay_normalization_service import (
+            ScreenplayNormalizationService,
+        )
+
+        return ScreenplayNormalizationService().from_fountain(
+            source.read_text(encoding="utf-8"),
+            script_id=episode_id,
+            title=title,
+        )
+    raise ValueError(
+        f"Unsupported screenplay input '{source.suffix}'. Use .json or .fountain."
+    )
+
+
+def _story_review_report(
+    script: EpisodeScript, result: StoryDevelopmentResult, *, source: str
+) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "input": source,
+        "episode_script_id": script.id,
+        "status": result.script.status.value,
+        "ready_for_approval": result.ready_for_approval,
+        "canon_report": {
+            "passed": result.canon_report.passed,
+            "violations": [
+                {
+                    "code": violation.code.value,
+                    "message": violation.message,
+                    "scene_id": violation.scene_id,
+                    "evidence": violation.evidence,
+                }
+                for violation in result.canon_report.violations
+            ],
+        },
+        "reviews": [
+            {
+                "reviewer": report.reviewer,
+                "passed": report.passed,
+                "issues": [
+                    {
+                        "code": issue.code,
+                        "message": issue.message,
+                        "severity": issue.severity.value,
+                        "scene_id": issue.scene_id,
+                    }
+                    for issue in report.issues
+                ],
+            }
+            for report in result.reviews
+        ],
+    }
+
+
+async def _run_story_commands(
+    arguments: argparse.Namespace,
+    container: AnimationContainer,
+) -> int:
+    """Refuse to lock a screenplay that has not passed canon and story review."""
+    script = _load_episode_script_input(
+        arguments.input,
+        episode_id=arguments.episode_id,
+        title=arguments.title,
+    )
+    engine = container.story_engine_service
+    result = await engine.review(script)
+    report = _story_review_report(
+        script, result, source=str(Path(arguments.input).resolve())
+    )
+    if arguments.story_command == "review":
+        _emit_story_report(report, arguments.output)
+        return 0 if result.ready_for_approval else 1
+
+    if not result.ready_for_approval:
+        report["locked"] = False
+        report["blocked_reason"] = (
+            "Blocking canon violations or reviewer findings must be resolved "
+            "before a human can lock this screenplay."
+        )
+        # --output means the locked screenplay. A blocked run must never leave
+        # a file where a caller expects to find one.
+        _emit_story_report(report, None)
+        return 1
+
+    locked = await engine.approve(result, approved_by=arguments.approved_by)
+    payload = {
+        "schema_version": 1,
+        "episode_script": locked.to_dict(),
+        "story_review": {
+            **report,
+            "status": locked.status.value,
+            "locked": True,
+            "approved_by": locked.approved_by,
+            "approved_at": locked.approved_at.isoformat()
+            if locked.approved_at
+            else None,
+        },
+    }
+    if arguments.output:
+        print(str(_write_json(arguments.output, payload)))
+    else:
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0
+
+
+def _emit_story_report(report: dict[str, Any], output: str | None) -> None:
+    if output:
+        print(str(_write_json(output, report)))
+    else:
+        print(json.dumps(report, ensure_ascii=False, indent=2))
 
 
 async def _render_shot(
@@ -2110,7 +2442,22 @@ async def _run_preproduction_commands(
         source = json.loads(Path(arguments.input).read_text(encoding="utf-8"))
         script_payload = source.get("episode_script", source)
         script = EpisodeScript.from_dict(dict(script_payload))
-        plan = container.hierarchical_shot_planning_service.plan(script)
+        # The breakdown service needs a concrete bible, and the container is
+        # built once for every command, so the identity is selected here rather
+        # than injected. Nothing else built a bible, which is why this command
+        # used to be reachable only from tests.
+        characters = await container.canon_repository.get_character_bibles()
+        matches = [
+            item for item in characters if item.character_id == arguments.character_id
+        ]
+        if len(matches) != 1:
+            raise ValueError(
+                f"The locked Character Bible '{arguments.character_id}' "
+                "was not found exactly once."
+            )
+        plan = HierarchicalShotPlanningService(
+            ScriptBreakdownService(matches[0])
+        ).plan(script)
         target = Path(arguments.output)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(

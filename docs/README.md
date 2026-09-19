@@ -27,6 +27,9 @@ provider defaults, or milestones.
 
 ## Operations and delivery
 
+- [Pre-animation layer operating order](operations/pre-animation-layer.md)
+- [Phase 1 roadmap — unlocking the animation orchestrator (TR)](PHASE_1_ORCHESTRATOR_UNLOCK_ROADMAP_TR.md)
+- [Phase 1 pre-animation closure report (TR)](PHASE_1_PRE_ANIMATION_CLOSURE_REPORT_TR.md)
 - [Runbook](operations/runbook.md)
 - [Assets and Git LFS policy](operations/assets-and-lfs.md)
 - [Local factory release notes](LOCAL_FACTORY_RELEASE_NOTES.md)
@@ -40,6 +43,7 @@ provider defaults, or milestones.
 - [Principal code audit](PRINCIPAL_CODE_AUDIT.md)
 - [Integration report](INTEGRATION_REPORT.md)
 - [Source-control safety](SOURCE_CONTROL_SAFETY.md)
+- [Code review and balanced roadmap](CODE_REVIEW.md)
 
 ## Archive
 

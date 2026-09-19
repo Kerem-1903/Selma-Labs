@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -164,14 +165,14 @@ def test_cli_generates_and_approves_canonical_design_from_brief(tmp_path, capsys
     pose_root.mkdir(parents=True, exist_ok=True)
     for _pose_name in (
         "pose_front.png",
-        "pose_back.png",
+        "pose_back_v5.png",
         "pose_profile_left.png",
         "pose_profile_right.png",
-        "pose_three_quarter_left.png",
-        "pose_three_quarter_right.png",
     ):
         (pose_root / _pose_name).write_bytes(
-            (Path(__file__).parents[2] / "assets" / "pose_templates" / _pose_name).read_bytes()
+            (
+                Path(__file__).parents[2] / "assets" / "pose_templates" / _pose_name
+            ).read_bytes()
         )
 
     assert (
@@ -322,9 +323,7 @@ def test_cli_generates_and_approves_canonical_design_from_brief(tmp_path, capsys
     assert (asset_root / "characters/mira/v1/view-pack-approval.json").is_file()
 
 
-def test_cli_approve_view_pack_fails_closed_without_signed_acceptance(
-    tmp_path, capsys
-):
+def test_cli_approve_view_pack_fails_closed_without_signed_acceptance(tmp_path, capsys):
     brief_path = tmp_path / "brief.json"
     manifest_path = tmp_path / "designs.json"
     approval_path = tmp_path / "canonical-approval.json"
@@ -358,14 +357,14 @@ def test_cli_approve_view_pack_fails_closed_without_signed_acceptance(
     pose_root.mkdir(parents=True, exist_ok=True)
     for _pose_name in (
         "pose_front.png",
-        "pose_back.png",
+        "pose_back_v5.png",
         "pose_profile_left.png",
         "pose_profile_right.png",
-        "pose_three_quarter_left.png",
-        "pose_three_quarter_right.png",
     ):
         (pose_root / _pose_name).write_bytes(
-            (Path(__file__).parents[2] / "assets" / "pose_templates" / _pose_name).read_bytes()
+            (
+                Path(__file__).parents[2] / "assets" / "pose_templates" / _pose_name
+            ).read_bytes()
         )
 
     assert (
@@ -517,15 +516,141 @@ def test_preproduction_status_and_locked_episode_plan_commands(tmp_path, capsys)
 
     assert (
         main(
-            ["preproduction", "plan", "--input", str(source), "--output", str(output)],
+            [
+                "preproduction",
+                "plan",
+                "--input",
+                str(source),
+                "--character-id",
+                "akira",
+                "--output",
+                str(output),
+            ],
             container_factory=factory,
         )
         == 0
     )
     plan = json.loads(output.read_text(encoding="utf-8"))
-    assert (
-        len(plan["episode_production_plan"]["sequences"][0]["scenes"][0]["shots"]) == 2
+    shots = plan["episode_production_plan"]["sequences"][0]["scenes"][0]["shots"]
+    assert len(shots) == 2
+    assert {shot["plan"]["character_state"]["character_id"] for shot in shots} == {
+        "akira"
+    }
+
+
+def test_preproduction_plan_refuses_an_unresolvable_character_bible(tmp_path, capsys):
+    """The plan command used to be reachable only from tests.
+
+    Nothing in the CLI ever handed a Character Bible to the container, so the
+    breakdown service always refused. The identity is now selected explicitly
+    and resolved from canon, and an unresolvable one must refuse instead of
+    silently planning every shot against whatever bible happened to be wired.
+    """
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path / "storage"),
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
     )
+
+    def factory():
+        # Deliberately no character_bible: this is how production builds it.
+        return create_container(
+            settings=settings,
+            storage=LocalFsStorage(str(tmp_path / "storage")),
+            comfyui_client=FakeComfyClient(),
+        )
+
+    scene = EpisodeScene(
+        "scene-1",
+        "Signal",
+        "Rain Rooftop",
+        "Akira follows the signal.",
+        ("Akira",),
+        (DialogueLine("Akira", "Stay behind me."),),
+    )
+    script = (
+        EpisodeScript.create(
+            title="Signal",
+            logline="Akira hears a stolen memory.",
+            episode_number=1,
+            provider_used="test",
+            sequences=(EpisodeSequence("seq-1", "Opening", (scene,)),),
+        )
+        .with_status(EpisodeScriptStatus.READY_FOR_APPROVAL)
+        .lock("Kerem")
+    )
+    source = tmp_path / "episode.json"
+    output = tmp_path / "plan.json"
+    source.write_text(json.dumps(script.to_dict()), encoding="utf-8")
+
+    assert (
+        main(
+            [
+                "preproduction",
+                "plan",
+                "--input",
+                str(source),
+                "--character-id",
+                "no-such-character",
+                "--output",
+                str(output),
+            ],
+            container_factory=factory,
+        )
+        == 1
+    )
+    assert "was not found exactly once" in capsys.readouterr().err
+    assert not output.exists()
+
+
+def test_preproduction_plan_refuses_a_draft_script(tmp_path, capsys):
+    """An unlocked screenplay must never reach the shot hierarchy."""
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path / "storage"),
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+    )
+
+    def factory():
+        return create_container(settings=settings, storage=LocalFsStorage(str(tmp_path / "storage")))
+
+    scene = EpisodeScene(
+        "scene-1",
+        "Signal",
+        "Rain Rooftop",
+        "Akira follows the signal.",
+        ("Akira",),
+        (DialogueLine("Akira", "Stay behind me."),),
+    )
+    script = EpisodeScript.create(
+        title="Signal",
+        logline="Akira hears a stolen memory.",
+        episode_number=1,
+        provider_used="test",
+        sequences=(EpisodeSequence("seq-1", "Opening", (scene,)),),
+    )
+    source = tmp_path / "draft.json"
+    output = tmp_path / "plan.json"
+    source.write_text(json.dumps(script.to_dict()), encoding="utf-8")
+
+    assert (
+        main(
+            [
+                "preproduction",
+                "plan",
+                "--input",
+                str(source),
+                "--character-id",
+                "akira",
+                "--output",
+                str(output),
+            ],
+            container_factory=factory,
+        )
+        == 1
+    )
+    assert "locked episode script" in capsys.readouterr().err
+    assert not output.exists()
 
 
 def test_preproduction_golden_set_blocks_without_approved_reference_pack(
@@ -594,3 +719,373 @@ def test_rig_validate_returns_nonzero_for_invalid_rig(capsys):
     assert exit_code == 2
     assert payload["is_valid"] is False
     assert "No armature found." in payload["errors"]
+
+
+def _prepared_turnaround_workspace(tmp_path):
+    """Create a brief plus an approved canonical design, ready for a turnaround."""
+    brief_path = tmp_path / "brief.json"
+    manifest_path = tmp_path / "designs.json"
+    approval_path = tmp_path / "canonical-approval.json"
+    asset_root = tmp_path / "assets"
+    brief_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "name": "Mira",
+                "concept": "Underground courier who manipulates sound",
+                "hair": "black bob with one red lock",
+                "outfit": "cropped courier jacket",
+            }
+        ),
+        encoding="utf-8",
+    )
+    settings = Settings(
+        _env_file=None,
+        storage_root_dir=str(tmp_path / "runtime"),
+        keyframe_storage_root_dir=str(asset_root),
+        keyframe_candidate_db_path=str(tmp_path / "candidates.db"),
+    )
+
+    def factory():
+        return create_container(settings=settings)
+
+    pose_root = asset_root / "characters" / "_pose_templates"
+    pose_root.mkdir(parents=True, exist_ok=True)
+    for pose_name in (
+        "pose_front.png",
+        "pose_back_v5.png",
+        "pose_profile_left.png",
+        "pose_profile_right.png",
+    ):
+        (pose_root / pose_name).write_bytes(
+            (Path(__file__).parents[2] / "assets" / "pose_templates" / pose_name).read_bytes()
+        )
+
+    assert (
+        main(
+            ["character", "create", "--brief", str(brief_path), "--manifest", str(manifest_path)],
+            container_factory=factory,
+        )
+        == 0
+    )
+    selected_key = json.loads(manifest_path.read_text(encoding="utf-8"))["candidates"][0][
+        "storage_key"
+    ]
+    assert (
+        main(
+            [
+                "character",
+                "approve-design",
+                "--brief",
+                str(brief_path),
+                "--manifest",
+                str(manifest_path),
+                "--candidate-key",
+                selected_key,
+                "--approved-by",
+                "Kerem",
+                "--output",
+                str(approval_path),
+            ],
+            container_factory=factory,
+        )
+        == 0
+    )
+    return brief_path, approval_path, asset_root, factory
+
+
+def _turnaround_fixture(tmp_path):
+    """Prepare a workspace plus the brief/approval objects a run needs."""
+    from cli.character_asset_commands import _load_object
+    from cli.main import _load_character_creation_brief
+    from core.domain.value_objects.character_design import CharacterCanonicalApproval
+
+    brief_path, approval_path, asset_root, factory = _prepared_turnaround_workspace(
+        tmp_path
+    )
+    return (
+        _load_character_creation_brief(brief_path),
+        CharacterCanonicalApproval.from_dict(_load_object(approval_path)),
+        asset_root,
+        factory,
+    )
+
+
+def test_cli_turnaround_forwards_the_seed_sweep(tmp_path, capsys):
+    """`--seeds` used to be parsed and then dropped on the floor."""
+    _brief_path, approval_path, asset_root, factory = _prepared_turnaround_workspace(
+        tmp_path
+    )
+    container = factory()
+    observed: dict[str, object] = {}
+    original = container.character_view_pack_generation_service.generate_canonical_views
+
+    async def spy(
+        brief,
+        approval,
+        *,
+        output_prefix="characters",
+        view_candidate_count=None,
+        rerender_views=None,
+    ):
+        observed["count"] = view_candidate_count
+        observed["rerender_views"] = rerender_views
+        return await original(
+            brief,
+            approval,
+            output_prefix=output_prefix,
+            view_candidate_count=view_candidate_count,
+            rerender_views=rerender_views,
+        )
+
+    container.character_view_pack_generation_service.generate_canonical_views = spy
+
+    assert (
+        main(
+            [
+                "character",
+                "turnaround",
+                "--brief",
+                str(_brief_path),
+                "--approval",
+                str(approval_path),
+                "--manifest",
+                str(tmp_path / "turnaround.json"),
+                "--seeds",
+                "3",
+            ],
+            container_factory=lambda: container,
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    assert observed["count"] == 3
+    # A full turnaround must not accidentally enter targeted re-render mode.
+    assert observed["rerender_views"] in (None, ())
+    assert (asset_root / "characters/mira/v1/view-pack.json").is_file()
+
+
+def test_cli_turnaround_forwards_the_targeted_rerender_views(tmp_path, capsys):
+    """`--view` must reach the service, or the flag would silently do nothing."""
+    brief_path, approval_path, asset_root, factory = _prepared_turnaround_workspace(
+        tmp_path
+    )
+    container = factory()
+    observed: dict[str, object] = {}
+    original = container.character_view_pack_generation_service.generate_canonical_views
+
+    async def spy(
+        brief,
+        approval,
+        *,
+        output_prefix="characters",
+        view_candidate_count=None,
+        rerender_views=None,
+    ):
+        observed["rerender_views"] = rerender_views
+        return await original(
+            brief,
+            approval,
+            output_prefix=output_prefix,
+            view_candidate_count=view_candidate_count,
+            rerender_views=rerender_views,
+        )
+
+    container.character_view_pack_generation_service.generate_canonical_views = spy
+
+    # A targeted re-render needs a pack to draw into, so draw one first.
+    assert (
+        main(
+            [
+                "character",
+                "turnaround",
+                "--brief",
+                str(brief_path),
+                "--approval",
+                str(approval_path),
+                "--manifest",
+                str(tmp_path / "turnaround.json"),
+            ],
+            container_factory=lambda: container,
+        )
+        == 0
+    )
+    capsys.readouterr()
+    observed.clear()
+
+    assert (
+        main(
+            [
+                "character",
+                "turnaround",
+                "--brief",
+                str(brief_path),
+                "--approval",
+                str(approval_path),
+                "--manifest",
+                str(tmp_path / "turnaround.json"),
+                "--view",
+                "three_quarter_right",
+                "--view",
+                "profile_right",
+            ],
+            container_factory=lambda: container,
+        )
+        == 0
+    )
+    capsys.readouterr()
+
+    # The CLI forwards what the operator typed; the service is where view names
+    # are folded to their canonical spelling.
+    assert observed["rerender_views"] == ["three_quarter_right", "profile_right"]
+    pack = json.loads(
+        (asset_root / "characters/mira/v1/view-pack.json").read_text(encoding="utf-8")
+    )
+    superseded = {
+        item["view"]
+        for item in pack["quarantined"]
+        if item["reasons"] == ["superseded_by_targeted_rerender"]
+    }
+    assert superseded == {"THREE_QUARTER_RIGHT", "PROFILE_RIGHT"}
+
+
+def test_turnaround_seed_sweep_renders_every_seed(tmp_path):
+    """The service, not just the CLI, must honour the seed count."""
+
+    def renders(tmp: Path, seeds: int) -> dict[str, int]:
+        tmp.mkdir(parents=True, exist_ok=True)
+        brief, approval, _asset_root, factory = _turnaround_fixture(tmp)
+        service = factory().character_view_pack_generation_service
+        tally: dict[str, int] = {}
+        original = service._generator.generate_keyframe
+
+        async def counting(request):
+            key = str(
+                request.visual_constraints.get("view")
+                or request.shot_contract_id
+                or "unknown"
+            )
+            tally[key] = tally.get(key, 0) + 1
+            return await original(request)
+
+        service._generator.generate_keyframe = counting
+        asyncio.run(
+            service.generate_canonical_views(
+                brief, approval, view_candidate_count=seeds
+            )
+        )
+        return tally
+
+    single = renders(tmp_path / "one", 1)
+    triple = renders(tmp_path / "three", 3)
+
+    assert sum(single.values()) > 0
+    assert sum(triple.values()) == 3 * sum(single.values())
+    # The views that are copied from an approved artifact by contract have
+    # nothing to choose between; sweeping them would burn renders on output that
+    # is thrown away, so they are never swept and never drawn at all.
+    assert "FACE_CLOSEUP" not in triple
+    assert "FRONT" not in triple
+
+
+def _unlocked_brief(character_id: str = "elias") -> dict:
+    return {
+        "character_id": character_id,
+        "display_name": "Elias",
+        "visual": {
+            "eye_color": "grey",
+            "hair": "dark brown, swept back",
+            "facial_geometry": "angular face with a straight nose",
+            "body_proportions": "average adult proportions",
+            "silhouette": "grey medical coat over dark trousers",
+            "outfit": "grey medical coat and dark trousers",
+            "base_style": "clean cinematic anime character design",
+        },
+        "narrative": {
+            "motivation": "Prove what the infection does before it erases everyone he knows.",
+            "backstory": (
+                "A researcher who stopped sleeping on day four, when his own "
+                "reflection stopped feeling like someone he knew."
+            ),
+        },
+    }
+
+
+def test_narrative_lock_records_the_approver_without_claiming_visual_readiness(
+    tmp_path,
+):
+    """Narrative canon must be lockable without rendering a single frame."""
+    from core.application.services.character_bible_factory_service import (
+        CharacterBibleFactoryService,
+    )
+
+    bible = CharacterBibleFactoryService().create(_unlocked_brief())
+    assert bible.narrative_profile is not None
+    assert bible.narrative_profile.locked is False
+    source = tmp_path / "elias.json"
+    source.write_text(
+        json.dumps(
+            {"schema_version": 1, "character_bible": bible.to_dict()},
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "elias-locked.json"
+    receipt = tmp_path / "elias-receipt.json"
+
+    exit_code = main(
+        [
+            "character",
+            "lock-narrative",
+            "--input",
+            str(source),
+            "--approved-by",
+            "LOQ",
+            "--output",
+            str(output),
+            "--receipt",
+            str(receipt),
+        ]
+    )
+
+    assert exit_code == 0
+    locked = json.loads(output.read_text(encoding="utf-8"))["character_bible"]
+    assert locked["narrative_profile"]["locked"] is True
+    recorded = json.loads(receipt.read_text(encoding="utf-8"))
+    assert recorded["character_id"] == "elias"
+    assert recorded["approved_by"] == "LOQ"
+    assert recorded["narrative_locked"] is True
+    assert recorded["narrative_hash"]
+    assert recorded["visual_readiness_claimed"] is False
+
+
+def test_narrative_lock_refuses_to_silently_relock_locked_canon(tmp_path):
+    source = tmp_path / "locked.json"
+    output = tmp_path / "never-written.json"
+    source.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "character_bible": CharacterBible.akira().to_dict(),
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "character",
+            "lock-narrative",
+            "--input",
+            str(source),
+            "--approved-by",
+            "LOQ",
+            "--output",
+            str(output),
+        ]
+    )
+
+    assert exit_code == 1
+    assert not output.exists()

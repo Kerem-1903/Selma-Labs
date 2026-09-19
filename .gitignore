@@ -21,3 +21,4 @@ motion/public/anime-animatic/
 .coverage
 htmlcov/
 .freebuff/
+tmp/

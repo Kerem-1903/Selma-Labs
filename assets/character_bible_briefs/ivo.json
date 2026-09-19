@@ -1,0 +1,39 @@
+{
+  "character_id": "ivo",
+  "display_name": "Ivo",
+  "visual": {
+    "eye_color": "warm hazel",
+    "hair": "dark hair worn short and loose, flattened by rain",
+    "facial_geometry": "broad friendly anime face with an easy smile line",
+    "body_proportions": "solid adult proportions",
+    "silhouette": "rain-soaked field officer jacket with the hood down and a loose shoulder unit",
+    "outfit": "rain-soaked field officer jacket and dark service trousers",
+    "base_style": "clean cinematic anime character design with the selma-anime-v1 series finish",
+    "trigger_prompt": "ivo_kern",
+    "immutable_marks": [
+      "still smiling while soaked through",
+      "field officer shoulder unit worn loose instead of buttoned"
+    ],
+    "color_palette": ["warm hazel", "field khaki", "rain grey", "dark brown"],
+    "negative_prompts": [
+      "identity drift",
+      "different face",
+      "multiple characters",
+      "second figure",
+      "character sheet",
+      "cropped head",
+      "cropped feet",
+      "text",
+      "watermark"
+    ]
+  },
+  "narrative": {
+    "canonical_names": ["Ivo", "Ivo Kern"],
+    "motivation": "Keep his partner out of trouble without lying to her, and never walk past someone who is falling.",
+    "backstory": "A MNEMOS field officer who answers a question with a question so that people keep talking to him. He hides nothing from Sera, which is exactly why his choice at the Old Market passage costs him more than a reprimand would have: he reached for the man going down instead of the crate.",
+    "voice_traits": ["easy", "talkative", "direct"],
+    "allowed_abilities": ["talks a tense scene down without reaching for a weapon"],
+    "forbidden_behaviors": ["leaves a falling person behind to secure the objective"],
+    "forbidden_voice_phrases": ["I didn't see anything"]
+  }
+}

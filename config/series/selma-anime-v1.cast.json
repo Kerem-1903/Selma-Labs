@@ -1,5 +1,13 @@
 {
   "schema_version": 1,
   "series_id": "selma-anime-v1",
-  "members": []
+  "members": [
+    {
+      "character_id": "kaito",
+      "version": 1,
+      "role": "protagonist",
+      "bible_path": "assets/character_bibles/kaito.json",
+      "status": "CANONICAL"
+    }
+  ]
 }

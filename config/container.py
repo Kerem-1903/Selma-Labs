@@ -22,7 +22,13 @@ from core.application.services.background_factory_service import (
 from core.application.services.candidate.candidate_evaluation_service import (
     CandidateEvaluationService,
 )
+from core.application.services.character_canonical_approval_service import (
+    CharacterCanonicalApprovalService,
+)
 from core.application.services.character_design_service import CharacterDesignService
+from core.application.services.character_identity_prompt_service import (
+    CharacterIdentityPromptService,
+)
 from core.application.services.character_golden_set_service import (
     CharacterGoldenSetService,
 )
@@ -31,6 +37,20 @@ from core.application.services.character_onboarding_service import (
 )
 from core.application.services.character_pose_pack_service import (
     CharacterPosePackService,
+)
+from core.application.services.character_view_pack_approval_service import (
+    CharacterViewPackApprovalService,
+)
+from core.application.services.character_view_pack_asset_service import (
+    CharacterViewPackAssetService,
+)
+from core.application.services.character_turnaround_drift_service import (
+    CharacterTurnaroundDriftService,
+    load_drift_thresholds,
+)
+from core.domain.value_objects.generation_capability import GenerationCapability
+from core.application.services.character_view_pack_generation_service import (
+    CharacterViewPackGenerationService,
 )
 from core.application.services.character_view_quality_gate import (
     CharacterViewQualityGate,
@@ -62,6 +82,7 @@ from core.application.services.structured_mark_validation_service import (
 from core.application.services.view_framing_gate import ViewFramingGate
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.ports.canon_repository_port import CanonRepositoryPort
+from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
 from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.render_config import RenderConfig
 from infrastructure.compositor.layered_compositor import LayeredCompositor
@@ -111,11 +132,16 @@ from infrastructure.storage.local_fs_storage import LocalFsStorage
 class AnimationContainer:
     character_bible: CharacterBible | None
     storage: StoragePort
+    keyframe_storage: StoragePort
     script_breakdown_service: ScriptBreakdownService
     animation_orchestrator_service: AnimationOrchestratorService
     story_engine_service: StoryEngineService
     character_golden_set_service: CharacterGoldenSetService
     character_design_service: CharacterDesignService
+    character_canonical_approval_service: CharacterCanonicalApprovalService
+    character_view_pack_generation_service: CharacterViewPackGenerationService
+    character_view_pack_asset_service: CharacterViewPackAssetService
+    character_view_pack_approval_service: CharacterViewPackApprovalService
     character_onboarding_service: CharacterOnboardingService
     character_pose_pack_service: CharacterPosePackService
     style_lock_service: SeriesStyleLockService
@@ -128,6 +154,9 @@ class AnimationContainer:
     canon_repository: CanonRepositoryPort
     episode_director_service: EpisodeDirectorService
     keyframe_generation_service: KeyframeGenerationService
+    #: The engine that runs the series' locked production dialect. Exposed so
+    #: the style-lock smoke can render through the same engine the lock pins.
+    keyframe_generation_provider: KeyframeGenerationPort
 
     def __getitem__(self, name: str) -> Any:
         """Keep dictionary-style access for early CLI consumers."""
@@ -135,6 +164,25 @@ class AnimationContainer:
             return getattr(self, name)
         except AttributeError as error:
             raise KeyError(name) from error
+
+
+def _drift_band(settings: Settings) -> dict[str, Any]:
+    """Resolve the calibrated drift band, failing closed when it is configured.
+
+    A configured band that is missing or corrupt stops container creation
+    instead of silently measuring against the looser built-in defaults; that
+    fallback is how a calibrated gate turns back into an uncalibrated one.
+    """
+    configured = str(getattr(settings, "character_drift_thresholds_path", "") or "")
+    if not configured.strip():
+        return {}
+    try:
+        band, source = load_drift_thresholds(configured)
+    except (OSError, TypeError, ValueError) as error:
+        raise ValueError(
+            f"Character drift thresholds are configured but unusable: {error}"
+        ) from error
+    return {"thresholds": band, "threshold_source": source}
 
 
 def create_container(
@@ -196,12 +244,14 @@ def create_container(
         api_url=resolved.ollama_api_url,
         model=resolved.story_development_model,
         reviewer_name="story-architect",
+        timeout_seconds=resolved.story_development_timeout_seconds,
     )
     reviewers = tuple(
         OllamaStoryDevelopmentProvider(
             api_url=resolved.ollama_api_url,
             model=resolved.story_development_model,
             reviewer_name=role,
+            timeout_seconds=resolved.story_development_timeout_seconds,
         )
         for role in ("continuity-reviewer", "character-voice-reviewer", "final-editor")
     )
@@ -240,7 +290,11 @@ def create_container(
         )
     golden_set = CharacterGoldenSetService(
         GoldenSetKeyframeAdapter(
-            get_keyframe_generation_provider(resolved, storage=preproduction_storage),
+            get_keyframe_generation_provider(
+                resolved,
+                capability=GenerationCapability.GOLDEN_SET,
+                storage=preproduction_storage,
+            ),
             preproduction_storage,
             output_prefix=resolved.golden_set_output_prefix,
             character_lora_active=bool(resolved.comfyui_character_lora_name),
@@ -248,12 +302,53 @@ def create_container(
         golden_evaluator,
     )
     hierarchical = HierarchicalShotPlanningService(breakdown)
-    keyframe_generator = get_keyframe_generation_provider(
-        resolved, storage=keyframe_storage
+    # One engine cannot serve every workload: text-only design candidates,
+    # source-led turnaround edits, pose-conditioned packs, storyboard keyframes
+    # and golden-set evaluation are distinct capabilities. Resolving per
+    # capability is what lets the turnaround run on FLUX.2 while storyboard
+    # keyframes stay on the pose-conditioned SDXL dialect.
+    def _capability_generator(capability: GenerationCapability):
+        return get_keyframe_generation_provider(
+            resolved, capability=capability, storage=keyframe_storage
+        )
+
+    design_generator = _capability_generator(GenerationCapability.CHARACTER_DESIGN)
+    onboarding_generator = _capability_generator(
+        GenerationCapability.CHARACTER_ONBOARDING
     )
+    turnaround_generator = _capability_generator(
+        GenerationCapability.CHARACTER_TURNAROUND
+    )
+    pose_pack_generator = _capability_generator(
+        GenerationCapability.CHARACTER_POSE_PACK
+    )
+    keyframe_generator = _capability_generator(
+        GenerationCapability.STORYBOARD_KEYFRAME
+    )
+    identity_prompt_service = CharacterIdentityPromptService()
+    production_manifest = ProductionManifestService(
+        resolved.keyframe_storage_root_dir
+    )
+    canonical_approval_service = CharacterCanonicalApprovalService(
+        keyframe_storage,
+        production_manifest=production_manifest,
+    )
+    edit_dialect = turnaround_generator.name == "comfyui:flux2-edit"
     character_view_quality_gate = None
-    if not keyframe_generator.name.startswith("fake:"):
-        model_lock = load_model_lock(resolved.comfyui_model_lock_path)
+    real_generators = (
+        design_generator,
+        onboarding_generator,
+        turnaround_generator,
+        pose_pack_generator,
+        keyframe_generator,
+    )
+    if any(not item.name.startswith("fake:") for item in real_generators):
+        # The detector roles live in whichever lock backs the turnaround engine.
+        model_lock = load_model_lock(
+            resolved.comfyui_flux2_model_lock_path
+            if edit_dialect
+            else resolved.comfyui_model_lock_path
+        )
         model_root = Path(model_lock.comfyui_root).expanduser()
         character_view_quality_gate = CharacterViewQualityGate(
             UltralyticsCharacterViewDetector(
@@ -266,36 +361,73 @@ def create_container(
         get_vision_provider(resolved)
     )
     character_design_service = CharacterDesignService(
-        keyframe_generator,
+        design_generator,
         keyframe_storage,
         quality_gate=character_view_quality_gate,
         max_view_attempts=resolved.character_view_max_attempts,
-        production_manifest=ProductionManifestService(
-            resolved.keyframe_storage_root_dir
+        production_manifest=production_manifest,
+        prompt_service=identity_prompt_service,
+    )
+    character_view_pack_approval_service = CharacterViewPackApprovalService(
+        keyframe_storage,
+        acceptance_dir=resolved.character_acceptance_dir
+        if hasattr(resolved, "character_acceptance_dir")
+        else None,
+    )
+    character_view_pack_asset_service = CharacterViewPackAssetService(
+        keyframe_storage,
+        production_manifest=production_manifest,
+    )
+    character_view_pack_service = CharacterViewPackGenerationService(
+        turnaround_generator,
+        keyframe_storage,
+        quality_gate=character_view_quality_gate,
+        max_view_attempts=resolved.character_view_max_attempts,
+        production_manifest=production_manifest,
+        prompt_service=identity_prompt_service,
+        approval_service=character_view_pack_approval_service,
+        asset_service=character_view_pack_asset_service,
+        edit_dialect=edit_dialect,
+        # Advisory drift evidence is written by both real dialects: the two
+        # measurable defects (prop scale/recolour, mark lost or mirrored) are a
+        # property of any render, not of FLUX.2 in particular. Offline fake runs
+        # skip it -- synthetic double images carry no studio framing to measure.
+        drift_service=(
+            None
+            if turnaround_generator.name.startswith("fake:")
+            else CharacterTurnaroundDriftService(
+                accent_colour=resolved.character_drift_accent_colour,
+                mark_side=resolved.character_drift_mark_side,
+                **_drift_band(resolved),
+            )
         ),
+        view_candidate_count=resolved.character_view_candidate_count,
     )
     style_lock_service = SeriesStyleLockService(
         Path(__file__).resolve().parents[1]
     )
+
+    async def require_view_pack(character_id: str, character_version: int) -> object:
+        return await character_view_pack_service.load_approved_view_pack(
+            character_id=character_id,
+            character_version=character_version,
+        )
+
     character_pose_pack_service = CharacterPosePackService(
-        keyframe_generator,
+        pose_pack_generator,
         keyframe_storage,
         quality_gate=character_view_quality_gate,
         max_attempts=resolved.character_pose_pack_max_attempts,
         pose_width=resolved.character_pose_pack_width,
         pose_height=resolved.character_pose_pack_height,
-        require_real_provenance=not keyframe_generator.name.startswith("fake:"),
+        require_real_provenance=not pose_pack_generator.name.startswith("fake:"),
         style_lock_resolver=style_lock_service,
         active_series_path=resolved.active_series_path,
         production_workflow_path=resolved.comfyui_keyframe_workflow_path,
         default_mode="PRODUCTION",
+        prompt_service=identity_prompt_service,
+        view_pack_approval_guard=require_view_pack,
     )
-
-    async def require_view_pack(character_id: str, character_version: int) -> object:
-        return await character_design_service.load_approved_view_pack(
-            character_id=character_id,
-            character_version=character_version,
-        )
 
     keyframe_service = KeyframeGenerationService(
         generator=keyframe_generator,
@@ -351,13 +483,18 @@ def create_container(
     return AnimationContainer(
         character_bible=character_bible,
         storage=asset_storage,
+        keyframe_storage=keyframe_storage,
         script_breakdown_service=breakdown,
         animation_orchestrator_service=orchestrator,
         story_engine_service=story_engine,
         character_golden_set_service=golden_set,
         character_design_service=character_design_service,
+        character_canonical_approval_service=canonical_approval_service,
+        character_view_pack_generation_service=character_view_pack_service,
+        character_view_pack_asset_service=character_view_pack_asset_service,
+        character_view_pack_approval_service=character_view_pack_approval_service,
         character_onboarding_service=CharacterOnboardingService(
-            keyframe_generator,
+            onboarding_generator,
             keyframe_storage,
             preproduction_evaluator,
             streak_pre_gate=(
@@ -381,4 +518,5 @@ def create_container(
         canon_repository=canon_repository,
         episode_director_service=EpisodeDirectorService(),
         keyframe_generation_service=keyframe_service,
+        keyframe_generation_provider=keyframe_generator,
     )

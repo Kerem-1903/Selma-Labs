@@ -1,0 +1,43 @@
+{
+  "character_id": "mina",
+  "display_name": "Mina",
+  "visual": {
+    "eye_color": "dark brown",
+    "hair": "black hair tied back short and practical",
+    "facial_geometry": "young round face with a small chin and quick, direct eyes",
+    "body_proportions": "small young-adult proportions",
+    "silhouette": "apartment clothes under an oversized utility jacket, one earbud in and a copper radio tag on a cord at the neck",
+    "outfit": "apartment clothes under an oversized utility jacket",
+    "base_style": "clean cinematic anime character design with the selma-anime-v1 series finish",
+    "trigger_prompt": "mina_arel",
+    "immutable_marks": [
+      "one earbud worn in a single ear",
+      "a copper radio tag on a cord at the neck",
+      "answers the three-note door melody with two knocks"
+    ],
+    "color_palette": ["copper", "warm brown", "dark green", "worn charcoal"],
+    "negative_prompts": [
+      "identity drift",
+      "different face",
+      "multiple characters",
+      "second figure",
+      "character sheet",
+      "cropped head",
+      "cropped feet",
+      "text",
+      "watermark"
+    ]
+  },
+  "narrative": {
+    "canonical_names": ["Mina", "Mina Arel"],
+    "motivation": "Keep her brother's twenty-fifth birthday ordinary for one night, and keep recording the missing-person calls that nobody will let her report.",
+    "backstory": "Akira's younger sister and a district radio apprentice, raised on the habit of greeting people by voice and knock before face. She salvaged the copper radio tag from the station and keeps a receive chain alive with parts the city wrote off.",
+    "voice_traits": ["dry", "quick", "warm"],
+    "allowed_abilities": [
+      "recognizes people by voice, knock and habit before sight",
+      "holds a working radio receive chain together with salvage parts"
+    ],
+    "forbidden_behaviors": ["blames Akira for failing to recognize her"],
+    "forbidden_voice_phrases": ["You forgot me"]
+  }
+}

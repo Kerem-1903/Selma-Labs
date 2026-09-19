@@ -60,7 +60,6 @@ class VideoMasteringService:
             output_video_path
         ])
 
-        import os
         kwargs = {}
         if os.name == "posix":
             kwargs["start_new_session"] = True

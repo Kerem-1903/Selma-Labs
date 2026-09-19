@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "character_id": "kaito",
+  "character_version": 7,
+  "brief_hash": "7a398fec879cb66ffe3e77abae918a3f7c519f7e47a7280633adf6b5b0cd8fb8",
+  "blocking_policy": "Every automatic check and every human check must pass before view-pack approval.",
+  "automatic_checks": [
+    "exactly_one_person",
+    "head_inside_frame",
+    "feet_inside_frame",
+    "expected_orientation",
+    "back_view_no_face",
+    "signature_mark_face_closeup",
+    "provenance_hashes",
+    "consistency_contract_bound"
+  ],
+  "human_checks": [
+    {
+      "id": "same_facial_identity",
+      "label": "same facial identity in all seven views"
+    },
+    {
+      "id": "hair_black_single_cobalt_streak",
+      "label": "short black hair with exactly one narrow cobalt streak"
+    },
+    {
+      "id": "streak_character_left_never_mirrored",
+      "label": "streak remains on character-left and is never mirrored"
+    },
+    {
+      "id": "bag_character_right_never_mirrored",
+      "label": "messenger bag remains on character-right hip and is never mirrored"
+    },
+    {
+      "id": "outfit_layers_consistent",
+      "label": "charcoal jacket, blue trim, black cargo trousers and black boots remain consistent"
+    },
+    {
+      "id": "body_proportions_consistent",
+      "label": "body proportions and clothing layers remain consistent"
+    },
+    {
+      "id": "style_line_and_shading_consistent",
+      "label": "clean anime line art and restrained two-step cel shading remain consistent in all seven views"
+    },
+    {
+      "id": "palette_and_materials_consistent",
+      "label": "charcoal, black, muted gray and limited cobalt palette remain consistent"
+    },
+    {
+      "id": "neutral_studio_background_consistent",
+      "label": "neutral studio background with a soft blue-grey gradient and neutral lighting remain consistent; no street scene or dramatic lighting"
+    },
+    {
+      "id": "single_person_no_collage_no_text",
+      "label": "no extra person, duplicate body, collage, text or watermark"
+    },
+    {
+      "id": "back_view_no_face",
+      "label": "back view contains no visible face or looking-back pose"
+    },
+    {
+      "id": "profile_views_are_true_side_views",
+      "label": "both profile views are true side views (single eye line, nose at the silhouette, no visible far cheek), not three-quarter views"
+    }
+  ],
+  "required_evidence": [
+    "canonical-approval.json",
+    "drift-report.json",
+    "face_anchor.png",
+    "fullbody_anchor.png",
+    "view-pack.json",
+    "contact-sheets/views.png",
+    "view-pack-approval.json",
+    "manifest.json"
+  ]
+}

@@ -21,9 +21,7 @@ def frame_to_ms(frame: int, fps: int = TIMELINE_FPS) -> int:
 
 POSE_IDS = (
     "FRONT_NEUTRAL",
-    "THREE_QUARTER_LEFT",
     "PROFILE_LEFT",
-    "THREE_QUARTER_RIGHT",
     "BACK_FULL_BODY",
 )
 

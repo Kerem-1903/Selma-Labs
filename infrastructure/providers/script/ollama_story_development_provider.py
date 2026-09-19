@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import replace
 
@@ -99,14 +100,22 @@ class OllamaStoryDevelopmentProvider(
         self, script: EpisodeScript, creative_direction, world_bible, character_bibles
     ) -> StoryReviewReport:
         payload = await self._complete(
-            f"You are the {self._reviewer_name}. Find concrete story defects. "
-            "Use BLOCKING only when the script must not advance. Return JSON only.",
+            f"You are the {self._reviewer_name}. You are reviewing an anime "
+            "SCREENPLAY as text, not an image prompt and not a render. Judge "
+            "causality, character voice, originality, pacing and payoff only. "
+            "Never report missing artwork, missing rendering or an absent visual "
+            "identity mark: nothing has been drawn yet. Use BLOCKING only when "
+            "the script itself must not advance. Return JSON only.",
             {
-                "task": "Review causality, character voice, originality, pacing, and payoff.",
+                "task": "Review this screenplay text: causality, character voice, originality, pacing, and payoff.",
                 "script": script.to_dict(),
                 "creative_direction": creative_direction.to_dict(),
                 "world_bible": world_bible.to_dict(),
-                "characters": [bible.to_dict() for bible in character_bibles],
+                "characters": [
+                    self._narrative_context(bible)
+                    for bible in character_bibles
+                    if bible.narrative_profile
+                ],
                 "output_schema": {
                     "issues": [
                         {
@@ -124,8 +133,8 @@ class OllamaStoryDevelopmentProvider(
                 StoryReviewIssue(
                     code=str(item["code"]),
                     message=str(item["message"]),
-                    severity=ReviewSeverity(str(item["severity"]).upper()),
-                    scene_id=str(item["scene_id"]) if item.get("scene_id") else None,
+                    severity=self._severity(item),
+                    scene_id=self._scene_id(item),
                 )
                 for item in payload.get("issues", [])
             )
@@ -134,6 +143,56 @@ class OllamaStoryDevelopmentProvider(
                 "Story reviewer returned invalid issue JSON."
             ) from error
         return StoryReviewReport(self._reviewer_name, issues)
+
+    @staticmethod
+    def _narrative_context(bible) -> dict:
+        """Give a story reviewer narrative canon, not artwork constraints.
+
+        Sending raw Character Bibles handed the reviewer hair streaks and eye
+        colours, and it reported those as missing from a screenplay that has no
+        art at all -- including marks belonging to a character who is not in the
+        episode. A story verdict needs voices and motivations, not palettes.
+        """
+        profile = bible.narrative_profile
+        return {
+            "character_id": bible.character_id,
+            "canonical_names": list(profile.canonical_names),
+            "voice_traits": list(profile.voice_traits),
+            "motivation": profile.motivation,
+            "forbidden_behaviors": list(profile.forbidden_behaviors),
+            "forbidden_voice_phrases": list(profile.forbidden_voice_phrases),
+        }
+
+    @staticmethod
+    def _severity(item: dict) -> ReviewSeverity:
+        """Read a severity a small local model may have written elsewhere.
+
+        A missing severity must never drop a finding, and must never downgrade
+        one either: models here sometimes answer with
+        ``{"code": "BLOCKING", "message": ...}`` and no severity key at all, so
+        the severity is recovered from the finding's own identifier fields.
+        Prose is never scanned: "this is not a blocking issue" contains the word
+        and must not escalate itself. A finding that names no severity falls
+        back to NOTE and is still reported in full.
+        """
+        for field in ("severity", "code"):
+            try:
+                candidate = str(item[field]).strip().upper()
+            except (KeyError, TypeError):
+                continue
+            for severity in ReviewSeverity:
+                if severity.value in candidate:
+                    return severity
+        return ReviewSeverity.NOTE
+
+    @staticmethod
+    def _scene_id(item: dict) -> str | None:
+        value = item.get("scene_id")
+        if value is None:
+            return None
+        text = str(value).strip()
+        # A model asked for "string|null" sometimes answers with the literal.
+        return None if text.casefold() in {"", "null", "none", "n/a"} else text
 
     async def _complete(self, system: str, user_payload: dict) -> dict:
         request = {
@@ -155,7 +214,7 @@ class OllamaStoryDevelopmentProvider(
                         f"Ollama story request returned {response.status}."
                     )
                 envelope = await response.json()
-        except TimeoutError as error:
+        except (TimeoutError, asyncio.TimeoutError) as error:
             raise ProviderTimeoutError("Ollama story request timed out.") from error
         except aiohttp.ClientError as error:
             raise ProviderConnectionError(

@@ -111,6 +111,17 @@ def verify_model_lock(
     warnings; required missing/mismatched files fail."""
     root = Path(comfyui_root or lock.comfyui_root).expanduser()
     checks: list[PreflightCheck] = []
+    if lock.retired:
+        checks.append(
+            PreflightCheck(
+                name="model_lock:retired",
+                passed=False,
+                detail=(
+                    "lock is retired and must not be used for production: "
+                    f"{lock.retired_reason or 'abandoned approach'}"
+                ),
+            )
+        )
     for entry in lock.entries:
         path = root / Path(entry.relative_path)
         started = time.monotonic()

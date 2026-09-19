@@ -74,6 +74,87 @@ def test_visual_readiness_fails_closed_on_unapproved_style_and_empty_cast(tmp_pa
     }
 
 
+def test_visual_readiness_counts_only_canonical_cast_members(tmp_path):
+    style = tmp_path / "style.png"
+    style.write_bytes(b"style")
+    _write_json(
+        tmp_path / "requirements.json",
+        {
+            "required_tools": [],
+            "required_model_roles": [],
+            "required_workflows": [],
+        },
+    )
+    project = {
+        "schema_version": 1,
+        "series_id": "series-one",
+        "title": "Series One",
+        "style_bible": {
+            "style_id": "style-one",
+            "reference_asset": "style.png",
+            "reference_sha256": hashlib.sha256(b"style").hexdigest(),
+            "width": 1,
+            "height": 1,
+            "status": "APPROVED",
+            "rendering_rules": ["rule"],
+            "composition_rules": ["rule"],
+            "identity_policy": ["rule"],
+        },
+        "character_registry": "cast.json",
+        "model_lock": "models.lock.json",
+        "production_root": "output/series-one",
+        "style_approval_receipt": "approval.json",
+        "production_style_lock": "lock.json",
+    }
+    _write_json(tmp_path / "series.json", project)
+    _write_json(tmp_path / "approval.json", {"approved": True})
+    _write_json(tmp_path / "lock.json", {"status": "PRODUCTION_COMPATIBLE"})
+    _write_json(
+        tmp_path / "models.lock.json",
+        {"schema_version": 1, "comfyui_root": str(tmp_path), "models": []},
+    )
+    _write_json(tmp_path / "kaito.json", {"character_bible": {}})
+    draft_member = {
+        "character_id": "kaito",
+        "version": 1,
+        "role": "protagonist",
+        "bible_path": "kaito.json",
+        "status": "DRAFT",
+    }
+    _write_json(
+        tmp_path / "cast.json",
+        {"schema_version": 1, "series_id": "series-one", "members": [draft_member]},
+    )
+
+    service = AnimeProductionReadinessService(tmp_path)
+    draft_report = service.evaluate(
+        VISUAL,
+        series_project="series.json",
+        requirements_path="requirements.json",
+    )
+    assert "canonical_cast" in {check.name for check in draft_report.failures}
+
+    canonical_member = {**draft_member, "status": "CANONICAL"}
+    _write_json(
+        tmp_path / "cast.json",
+        {
+            "schema_version": 1,
+            "series_id": "series-one",
+            "members": [canonical_member],
+        },
+    )
+    canonical_report = service.evaluate(
+        VISUAL,
+        series_project="series.json",
+        requirements_path="requirements.json",
+    )
+    assert "canonical_cast" not in {check.name for check in canonical_report.failures}
+    assert any(
+        check.name == "character_bible:kaito:v1" and check.status == "PASS"
+        for check in canonical_report.checks
+    )
+
+
 def test_animation_readiness_lists_worker_and_episode_package_blockers(tmp_path):
     _write_json(
         tmp_path / "requirements.json",

@@ -945,3 +945,92 @@ async def test_provider_rejects_workflow_with_disconnected_reference_node(tmp_pa
 
     with pytest.raises(ProviderError, match="connected SELMA reference"):
         await provider.generate_keyframe(_request())
+
+
+# The pose dialect is produced by CharacterIdentityPromptService, but until now
+# only an offline pose provider ever consumed it. The two real contracts it must
+# satisfy are structural: the SDXL production workflow owns exactly two identity
+# adapters, and the provider selects one reference per conditioning entry unless
+# the request names its chain with ``reference_views``. A pose request that
+# declared three references, or named none, was rejected before rendering --
+# which is why the pose pack could never be produced on the real pipeline.
+async def test_real_pose_request_chains_both_locked_anchors_with_declared_weights():
+    from core.application.services.character_identity_prompt_service import (
+        CharacterIdentityPromptService,
+    )
+    from core.domain.value_objects.character_creation_brief import (
+        CharacterCreationBrief,
+    )
+
+    brief = CharacterCreationBrief.from_dict(
+        {
+            "schema_version": 1,
+            "name": "Kaito",
+            "concept": "Disciplined courier",
+            "gender_presentation": "masculine",
+            "body_type": "athletic adult",
+            "face": "angular anime face",
+            "eyes": "steel blue eyes",
+            "hair": "short black hair with one cobalt streak",
+            "outfit": "charcoal courier jacket with blue trim",
+            "props": ["messenger bag on character-right hip"],
+            "palette": ["charcoal", "black", "cobalt blue"],
+            "style_preset": "selma-anime-v1",
+            "avoid": ["chibi proportions"],
+        }
+    )
+    request = CharacterIdentityPromptService().build_pose_request(
+        brief,
+        style_key="series-style/selma/seed.png",
+        style_hash="a" * 64,
+        pose_id="FRONT_NEUTRAL",
+        expected_view="FRONT",
+        seed=14,
+        face_anchor_key="characters/kaito/v7/face_anchor.png",
+        face_anchor_hash="b" * 64,
+        fullbody_anchor_key="characters/kaito/v7/fullbody_anchor.png",
+        fullbody_anchor_hash="c" * 64,
+        pose_template_key="characters/_pose_templates/pose_front.png",
+    )
+
+    workflow = json.loads(WORKFLOW_PATH.read_text(encoding="utf-8"))
+    adapters = [
+        node_id
+        for node_id, node in workflow.items()
+        if isinstance(node, dict)
+        and node.get("_meta", {}).get("selma_role") == "identity_adapter"
+    ]
+    weights = request.visual_constraints["identity_reference_weights"]
+    assert len(weights) == len(request.visual_constraints["reference_views"])
+    assert len(weights) <= len(adapters)
+
+    storage = MemoryStorage(
+        {
+            "characters/kaito/v7/face_anchor.png": PNG_BYTES,
+            "characters/kaito/v7/fullbody_anchor.png": PNG_BYTES,
+            "characters/_pose_templates/pose_front.png": PNG_BYTES,
+        }
+    )
+    session = FakeSession()
+    provider = ComfyUIKeyframeProvider(
+        api_url="http://127.0.0.1:8188",
+        workflow_path=WORKFLOW_PATH,
+        storage=storage,
+        session_factory=lambda **kwargs: session,
+    )
+
+    generated = await provider.generate_keyframe(request)
+
+    assert [str(weight) for weight in weights] == ["0.75", "0.5"]
+    assert len(session.uploaded_forms) == 3
+    weights_by_node = [
+        workflow_node["inputs"]["weight"]
+        for node_id, workflow_node in session.queued_workflow.items()
+        if node_id in adapters
+    ]
+    assert sorted(weights_by_node) == [0.5, 0.75]
+    assert generated.metadata["reference_storage_keys"] == [
+        "characters/kaito/v7/face_anchor.png",
+        "characters/kaito/v7/fullbody_anchor.png",
+    ]
+    assert session.queued_workflow["22"]["inputs"]["strength"] == 0.88

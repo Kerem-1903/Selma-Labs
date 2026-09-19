@@ -55,6 +55,11 @@ class CharacterBibleFactoryService:
         palette = self._strings(visual.get("color_palette", []))
         negative_prompts = self._strings(visual.get("negative_prompts", []))
         voice_traits = self._strings(narrative.get("voice_traits", []))
+        # A screenplay uses the short name while the writer board uses the full
+        # one; both are canon, so both are accepted by the validator.
+        canonical_names = self._strings(narrative.get("canonical_names", [])) or (
+            display_name,
+        )
         return CharacterBible(
             character_id=character_id,
             identity_constraints=IdentityConstraints(
@@ -83,7 +88,7 @@ class CharacterBibleFactoryService:
                 )
             ],
             narrative_profile=CharacterNarrativeProfile(
-                canonical_names=(display_name,),
+                canonical_names=tuple(canonical_names),
                 motivation=self._text(narrative, "motivation"),
                 backstory=self._text(narrative, "backstory"),
                 voice_traits=voice_traits,

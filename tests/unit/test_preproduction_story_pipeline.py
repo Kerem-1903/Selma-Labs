@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+import json
+
 import pytest
 
 from core.application.services.canon_validation_service import CanonValidationService
@@ -23,15 +26,24 @@ from core.domain.entities.episode_script import (
     EpisodeSequence,
     StoryBrief,
 )
-from core.domain.exceptions import StoryApprovalError, StoryDevelopmentError
+from core.domain.exceptions import (
+    ProviderTimeoutError,
+    StoryApprovalError,
+    StoryDevelopmentError,
+)
 from core.domain.ports.approval_repository_port import ApprovalRepositoryPort
 from core.domain.ports.canon_repository_port import CanonRepositoryPort
 from core.domain.ports.dialogue_generator_port import DialogueGeneratorPort
 from core.domain.ports.story_generator_port import StoryGeneratorPort
 from core.domain.ports.story_reviewer_port import StoryReviewerPort
-from core.domain.value_objects.canon_validation import CanonViolationCode
+from core.domain.value_objects.canon_validation import (
+    CanonValidationReport,
+    CanonViolation,
+    CanonViolationCode,
+)
 from core.domain.value_objects.story_review import (
     ReviewSeverity,
+    StoryDevelopmentResult,
     StoryReviewIssue,
     StoryReviewReport,
 )
@@ -301,6 +313,192 @@ async def test_local_structured_story_adapter_writes_refines_and_reviews():
     assert review.passed and review.issues[0].severity is ReviewSeverity.WARNING
 
 
+class _StubEngine:
+    """Records what the CLI hands it, without touching a model or a file."""
+
+    def __init__(self, result):
+        self._result = result
+        self.approved = []
+
+    async def review(self, script):
+        return self._result
+
+    async def approve(self, result, *, approved_by):
+        locked = result.script.lock(approved_by)
+        self.approved.append(locked)
+        return locked
+
+
+class _StubContainer:
+    def __init__(self, engine):
+        self.story_engine_service = engine
+
+
+def _story_result(script, *, ready):
+    canon_report = (
+        CanonValidationReport(())
+        if ready
+        else CanonValidationReport(
+            (
+                CanonViolation(
+                    CanonViolationCode.UNKNOWN_CHARACTER,
+                    "Scene uses unknown character 'Ghost'.",
+                    "scene-1",
+                    "Ghost",
+                ),
+            )
+        )
+    )
+    status = (
+        EpisodeScriptStatus.READY_FOR_APPROVAL
+        if ready
+        else EpisodeScriptStatus.CHANGES_REQUIRED
+    )
+    return StoryDevelopmentResult(script.with_status(status), canon_report, ())
+
+
+def _write_episode_script(path, script):
+    path.write_text(
+        json.dumps(
+            {"schema_version": 1, "episode_script": script.to_dict()},
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_story_approve_writes_no_lock_when_the_gate_is_closed(tmp_path):
+    """A blocked screenplay must not leave a locked artifact behind."""
+    from cli.main import main
+
+    script = _script()
+    source = tmp_path / "episode.json"
+    _write_episode_script(source, script)
+    output = tmp_path / "locked.json"
+    engine = _StubEngine(_story_result(script, ready=False))
+
+    exit_code = main(
+        [
+            "story",
+            "approve",
+            "--input",
+            str(source),
+            "--approved-by",
+            "LOQ",
+            "--output",
+            str(output),
+        ],
+        container_factory=lambda: _StubContainer(engine),
+    )
+
+    assert exit_code == 1
+    assert not output.exists()
+    assert engine.approved == []
+
+
+def test_story_approve_locks_and_records_only_a_ready_screenplay(tmp_path):
+    from cli.main import main
+
+    script = _script()
+    source = tmp_path / "episode.json"
+    _write_episode_script(source, script)
+    output = tmp_path / "locked.json"
+    engine = _StubEngine(_story_result(script, ready=True))
+
+    exit_code = main(
+        [
+            "story",
+            "approve",
+            "--input",
+            str(source),
+            "--approved-by",
+            "LOQ",
+            "--output",
+            str(output),
+        ],
+        container_factory=lambda: _StubContainer(engine),
+    )
+
+    assert exit_code == 0
+    assert len(engine.approved) == 1
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["episode_script"]["status"] == "LOCKED"
+    assert payload["episode_script"]["approved_by"] == "LOQ"
+    assert payload["episode_script"]["approved_at"]
+    assert payload["story_review"]["locked"] is True
+
+
+@pytest.mark.asyncio
+async def test_reviewer_recovers_a_severity_filed_under_the_wrong_key():
+    """Captured verbatim from qwen3:8b: the severity arrived in ``code``.
+
+    One missing key used to fail the entire review, and because the reviewers
+    run concurrently that made the gate non-deterministic -- a provider defect
+    dressed up as a verdict on the script.
+    """
+    provider = _OfflineOllamaStory(
+        [
+            {
+                "issues": [
+                    {
+                        "code": "BLOCKING",
+                        "message": "Forbidden phrase detected.",
+                        "scene_id": "null",
+                    }
+                ]
+            }
+        ]
+    )
+
+    review = await provider.review(
+        _script(), _direction().lock(), _world().lock(), (CharacterBible.akira(),)
+    )
+
+    assert not review.passed
+    assert review.issues[0].severity is ReviewSeverity.BLOCKING
+    assert review.issues[0].scene_id is None
+
+
+@pytest.mark.asyncio
+async def test_reviewer_never_drops_a_finding_that_omits_its_severity():
+    provider = _OfflineOllamaStory(
+        [{"issues": [{"code": "PACING", "message": "Act two repeats itself."}]}]
+    )
+
+    review = await provider.review(
+        _script(), _direction().lock(), _world().lock(), (CharacterBible.akira(),)
+    )
+
+    assert review.passed
+    assert len(review.issues) == 1
+    assert review.issues[0].severity is ReviewSeverity.NOTE
+    assert review.issues[0].message == "Act two repeats itself."
+
+
+@pytest.mark.asyncio
+async def test_reviewer_does_not_escalate_on_a_severity_named_in_prose():
+    """Prose mentioning "blocking" must not turn a note into a blocker."""
+    provider = _OfflineOllamaStory(
+        [
+            {
+                "issues": [
+                    {
+                        "code": "PACING",
+                        "message": "This is not a blocking issue, only a note.",
+                    }
+                ]
+            }
+        ]
+    )
+
+    review = await provider.review(
+        _script(), _direction().lock(), _world().lock(), (CharacterBible.akira(),)
+    )
+
+    assert review.passed
+    assert review.issues[0].severity is ReviewSeverity.NOTE
+
+
 @pytest.mark.asyncio
 async def test_human_story_approval_is_written_as_an_audit_artifact(tmp_path):
     locked = _script().with_status(EpisodeScriptStatus.READY_FOR_APPROVAL).lock("Kerem")
@@ -311,3 +509,98 @@ async def test_human_story_approval_is_written_as_an_audit_artifact(tmp_path):
     payload = (tmp_path / f"{locked.id}.json").read_text(encoding="utf-8")
     assert '"status": "LOCKED"' in payload
     assert '"approved_by": "Kerem"' in payload
+
+
+class _TimeoutOnPost:
+    async def __aenter__(self):
+        raise asyncio.TimeoutError
+
+    async def __aexit__(self, *exc_info):
+        return False
+
+
+class _TimeoutSession:
+    """Minimal aiohttp stand-in whose request never completes in time."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc_info):
+        return False
+
+    def post(self, url, **kwargs):
+        return _TimeoutOnPost()
+
+
+@pytest.mark.asyncio
+async def test_ollama_story_timeout_becomes_a_domain_error(monkeypatch):
+    """A slow local model must surface as a timeout, never as an empty failure.
+
+    ``except TimeoutError`` alone does not catch ``asyncio.TimeoutError`` on
+    Python 3.10, which leaked a bare timeout to the CLI with no message.
+    """
+    import infrastructure.providers.script.ollama_story_development_provider as module
+
+    monkeypatch.setattr(module.aiohttp, "ClientSession", _TimeoutSession)
+    provider = OllamaStoryDevelopmentProvider(model="test-model")
+
+    with pytest.raises(ProviderTimeoutError, match="timed out"):
+        await provider._complete("You are a reviewer.", {"task": "review"})
+
+
+@pytest.mark.asyncio
+async def test_hand_written_screenplay_is_reviewed_before_it_can_be_locked():
+    """A screenplay nobody generated still reaches canon through the one gate."""
+    engine, approvals = _engine()
+
+    result = await engine.review(_script())
+
+    assert result.ready_for_approval
+    assert result.script.status is EpisodeScriptStatus.READY_FOR_APPROVAL
+    assert approvals.recorded == []
+
+    locked = await engine.approve(result, approved_by="LOQ")
+
+    assert locked.status is EpisodeScriptStatus.LOCKED
+    assert locked.approved_by == "LOQ"
+    assert approvals.recorded == [locked]
+
+
+@pytest.mark.asyncio
+async def test_review_refuses_to_lock_a_screenplay_that_breaks_canon():
+    engine, approvals = _engine()
+
+    result = await engine.review(_script(invalid=True))
+
+    assert result.script.status is EpisodeScriptStatus.CHANGES_REQUIRED
+    assert not result.ready_for_approval
+    assert result.canon_report.violations
+    with pytest.raises(StoryApprovalError, match="blocking review or canon"):
+        await engine.approve(result, approved_by="LOQ")
+    assert approvals.recorded == []
+
+
+@pytest.mark.asyncio
+async def test_blocking_reviewer_finding_blocks_a_hand_written_screenplay():
+    engine, _ = _engine(blocks=True)
+
+    result = await engine.review(_script())
+
+    assert not result.canon_report.violations
+    assert result.script.status is EpisodeScriptStatus.CHANGES_REQUIRED
+    assert not result.ready_for_approval
+
+
+@pytest.mark.asyncio
+async def test_review_requires_locked_canon_and_refuses_locked_scripts():
+    unlocked, _ = _engine(locked=False)
+    with pytest.raises(StoryDevelopmentError, match="locked direction"):
+        await unlocked.review(_script())
+
+    engine, _ = _engine()
+    locked = _script().with_status(EpisodeScriptStatus.READY_FOR_APPROVAL).lock("Kerem")
+    with pytest.raises(StoryDevelopmentError, match="cannot be reviewed again"):
+        await engine.review(locked)

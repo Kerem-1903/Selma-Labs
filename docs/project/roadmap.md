@@ -3,6 +3,18 @@
 This roadmap describes outcomes rather than fixed dates. Work enters the active
 set through a tracked GitHub issue and lands through a focused pull request.
 
+## Now — engineering hygiene
+
+- Keep the correctness static-analysis gate green and tighten the lint ratchet in
+  the order recorded in [the code review](../CODE_REVIEW.md).
+- Split the large character-quality working set into reviewable commits before it
+  lands (see the code review's commit strategy).
+- Produce a Python dependency lock and let CI consume it instead of the loose
+  `>=` specifiers.
+- Move the remaining `cli/main.py` commands into `cli/*_commands.py` and shrink
+  the monolith.
+- Clear the mypy baseline and make the type check blocking.
+
 ## Now — repository and production clarity
 
 - Keep the documentation index, status page, and README aligned.
@@ -31,14 +43,24 @@ Definition of done: every production character starts from a confirmed brief,
 has one hash-locked canonical image plus two locked anchors, and exposes only
 approved reference assets to shot generation.
 
-## Next — approve the character turnaround
+## Next — close the pre-animation layer
 
-- Live-generate the QC-gated seven-view pack from a selected canonical design.
-- Review the generated `contact-sheets/views.png` for identity, outfit and
-  silhouette continuity.
-- Lock the accepted pack with `python -m selma.cli approve-view-pack --character
-  <id> --version v1`.
-- Start pose and animation work only after this gate passes.
+The ordered commands live in
+[`pre-animation-layer.md`](../operations/pre-animation-layer.md);
+`scripts/check_anime_readiness.py --stage visual` is the gate.
+
+- Regenerate the QC-gated seven-view pack with the FLUX.2 source-led dialect
+  (`--seeds N` to sweep and keep the least-drifted candidate per view).
+- Review the generated `contact-sheets/views.png` against the twelve signed
+  human checks in the character acceptance list, with `drift-report.json` beside
+  it.
+- Lock the accepted pack with
+  `python -m cli.main character approve-view-pack --character <id> --version <v>`.
+- Complete the series style lock: creative receipt, pending production lock, and
+  the derived smoke-test receipt that `mark-production-compatible` consumes.
+- Generate and approve the three-pose pack, which fails closed until the
+  seven-view pack is approved.
+- Start animation work only after all three gates pass.
 
 ## Later — repeatable studio operation
 

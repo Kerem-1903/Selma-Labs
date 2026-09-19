@@ -3,7 +3,7 @@
 A character version's acceptance list is the single source of truth for what a
 human operator must confirm before ``view-pack-approval.json`` may be written.
 The list is authored per character/version (see ``config/character_acceptance``)
-and is enforced by ``CharacterDesignService.approve_view_pack``.
+and is enforced by ``CharacterViewPackGenerationService.approve_view_pack``.
 """
 
 from __future__ import annotations
