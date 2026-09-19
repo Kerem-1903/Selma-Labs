@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
 
 from core.domain.exceptions import PreProductionValidationError
 
@@ -66,7 +67,7 @@ class AssetApprovalReceipt:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "AssetApprovalReceipt":
+    def from_dict(cls, data: Mapping[str, Any]) -> AssetApprovalReceipt:
         return cls(
             schema_version=int(data.get("schema_version", 0)),
             asset_id=str(data.get("asset_id", "")),

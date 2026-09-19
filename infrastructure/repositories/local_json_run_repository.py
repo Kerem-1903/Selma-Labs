@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import uuid
 from collections.abc import AsyncIterator
@@ -16,6 +17,8 @@ from filelock import FileLock, Timeout
 from core.domain.entities.pipeline_run import PipelineRun
 from core.domain.exceptions import PipelineRunNotFoundError, PipelineRunStateError
 from core.domain.ports.run_repository_port import RunRepositoryPort
+
+logger = logging.getLogger(__name__)
 
 
 class LocalJsonRunRepository(RunRepositoryPort):
@@ -117,7 +120,7 @@ class LocalJsonRunRepository(RunRepositoryPort):
                 data = self._read_run(run_id)
                 runs.append(PipelineRun.from_dict(data))
             except Exception:
-                import traceback; traceback.print_exc()
+                logger.exception("Skipping unreadable run file '%s'.", file_path)
                 continue
         return runs
 

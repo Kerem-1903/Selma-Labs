@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import os
-import sys
 from pathlib import Path
 
 from core.domain.entities.timeline import Timeline
@@ -37,8 +36,8 @@ class NVENCFastRenderAdapter(RenderPort):
         narration_audio_path: str,
         subtitle_path: str | None = None,
     ) -> RenderResult:
-        import uuid
         import tempfile
+        import uuid
 
         tmp_dir = Path(tempfile.gettempdir())
         output_path = str(tmp_dir / f"selma-rendered-{uuid.uuid4().hex}.mp4")

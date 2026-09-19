@@ -1,8 +1,10 @@
-import logging
 import asyncio
-from typing import Sequence, Any
-from core.domain.entities.media_asset import MediaAsset
+import logging
+from collections.abc import Sequence
+from typing import Any
+
 from core.application.ports.video_search_provider import VideoSearchProvider
+from core.domain.entities.media_asset import MediaAsset
 
 logger = logging.getLogger(__name__)
 

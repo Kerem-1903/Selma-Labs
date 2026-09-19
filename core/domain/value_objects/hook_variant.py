@@ -25,7 +25,7 @@ class HookVariantScore:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "HookVariantScore":
+    def from_dict(data: dict[str, Any]) -> HookVariantScore:
         return HookVariantScore(
             text=str(data["text"]),
             hook_type=str(data["hook_type"]),
@@ -56,7 +56,7 @@ class HookExperiment:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "HookExperiment":
+    def from_dict(data: dict[str, Any]) -> HookExperiment:
         return HookExperiment(
             experiment_id=str(data["experiment_id"]),
             topic=str(data["topic"]),

@@ -1,21 +1,20 @@
 from __future__ import annotations
 
-import pytest
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 from core.application.orchestration.pipeline_orchestrator import PipelineOrchestrator
 from core.application.orchestration.run_executor import RunExecutor
-from core.application.services.narrative_quality_service import NarrativeQualityService
 from core.application.services.brand_narration_service import BrandNarrationService
 from core.application.services.caption_ux_service import CaptionUxService
+from core.application.services.narrative_quality_service import NarrativeQualityService
 from core.application.services.premium_subtitle_formatter import PremiumSubtitleFormatter
 from core.domain.entities.audio_asset import AudioAsset
 from core.domain.entities.media_asset import MediaAsset
-from core.domain.entities.pipeline_run import PipelineRun
-from core.domain.entities.pipeline_run import PipelineRunStatus
+from core.domain.entities.pipeline_run import PipelineRun, PipelineRunStatus
 from core.domain.entities.script import Script
 from core.domain.entities.voice_track import VoiceTrack
 from core.domain.exceptions import (
@@ -28,8 +27,8 @@ from core.domain.exceptions import (
 from core.domain.value_objects.background_track import BackgroundTrack
 from core.domain.value_objects.fact_check_report import FactCheckReport, FactClaim
 from core.domain.value_objects.fact_source import FactSource
-from core.domain.value_objects.music_selection_decision import MusicSelectionDecision
 from core.domain.value_objects.media_inspection import MediaInspection
+from core.domain.value_objects.music_selection_decision import MusicSelectionDecision
 from core.domain.value_objects.selected_highlight import SelectedHighlight
 from core.domain.value_objects.word_timing import WordTiming
 

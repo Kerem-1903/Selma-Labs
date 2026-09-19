@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from typing import Any
+
 
 @dataclass
 class Character:
@@ -10,9 +11,9 @@ class Character:
     hair: str = ""
     eye_color: str = ""
     silhouette: str = ""
-    style_constraints: List[str] = field(default_factory=list)
+    style_constraints: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "name": self.name,
@@ -25,7 +26,7 @@ class Character:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Character":
+    def from_dict(cls, data: dict[str, Any]) -> "Character":
         return cls(
             id=data["id"],
             name=data["name"],

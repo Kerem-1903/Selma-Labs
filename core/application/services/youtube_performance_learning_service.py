@@ -8,8 +8,8 @@ from core.domain.ports.youtube_performance_repository_port import (
     YoutubePerformanceRepositoryPort,
 )
 from core.domain.value_objects.youtube_performance import (
-    PerformanceLearningReport,
     PerformanceGuidance,
+    PerformanceLearningReport,
     YoutubePerformanceRecord,
 )
 

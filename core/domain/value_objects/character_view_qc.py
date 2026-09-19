@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 
 @dataclass(frozen=True)
@@ -89,9 +89,18 @@ class CharacterViewQcReport:
                 orientation=str(data.get("orientation", "")),
                 confidence=float(data.get("confidence", 0.0)),
                 provider=str(data.get("provider", "")),
-                face_bbox=tuple(float(value) for value in raw_bbox) if raw_bbox else None,
-                person_bboxes=tuple(
-                    tuple(float(value) for value in box) for box in raw_boxes
+                # Serialised frames are trusted to carry four-corner boxes; the
+                # cast records the shape the value objects contract rather than
+                # re-validating it on every round-trip.
+                face_bbox=cast(
+                    "tuple[float, float, float, float] | None",
+                    tuple(float(value) for value in raw_bbox) if raw_bbox else None,
+                ),
+                person_bboxes=cast(
+                    "tuple[tuple[float, float, float, float], ...]",
+                    tuple(
+                        tuple(float(value) for value in box) for box in raw_boxes
+                    ),
                 ),
                 torso_foreshortening=(
                     float(raw_foreshortening)

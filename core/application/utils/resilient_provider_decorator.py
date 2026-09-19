@@ -1,9 +1,10 @@
 import asyncio
-import random
 import logging
+import random
 from typing import Any
-from core.domain.entities.media_asset import MediaAsset
+
 from core.application.ports.video_search_provider import VideoSearchProvider
+from core.domain.entities.media_asset import MediaAsset
 
 logger = logging.getLogger(__name__)
 

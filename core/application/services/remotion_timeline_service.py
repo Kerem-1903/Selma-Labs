@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
 from core.domain.value_objects.subtitle_cue import SubtitleCue
 from core.domain.value_objects.visual_edit_plan import VisualEditBeat, VisualEditPlan

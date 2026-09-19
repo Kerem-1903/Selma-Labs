@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, List
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -7,7 +7,7 @@ class VisionAnalysisResult:
     relevance_score: float
     scene_type: str
     lighting: str
-    dominant_colors: List[str]
+    dominant_colors: list[str]
     indoors: bool
     outdoors: bool
     camera_motion: str
@@ -17,9 +17,9 @@ class VisionAnalysisResult:
     text_present: bool = False
     logo_present: bool = False
     dominant_subject: str = ""
-    observed_subjects: List[str] = field(default_factory=list)
-    observed_actions: List[str] = field(default_factory=list)
-    observed_relations: List[str] = field(default_factory=list)
+    observed_subjects: list[str] = field(default_factory=list)
+    observed_actions: list[str] = field(default_factory=list)
+    observed_relations: list[str] = field(default_factory=list)
     subject_pose: str = ""
     camera_angle: str = ""
     background_signature: str = ""

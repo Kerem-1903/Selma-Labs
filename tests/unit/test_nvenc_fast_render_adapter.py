@@ -1,8 +1,7 @@
 import os
+from unittest.mock import MagicMock, patch
+
 import pytest
-import asyncio
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 from core.domain.exceptions import RenderError
 from infrastructure.providers.render.nvenc_fast_render_adapter import NVENCFastRenderAdapter

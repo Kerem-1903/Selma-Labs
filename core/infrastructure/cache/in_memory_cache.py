@@ -1,10 +1,11 @@
-import time
 import asyncio
 import sys
+import time
 from collections import OrderedDict
-from typing import TypeVar, Generic
 from dataclasses import dataclass
-from core.application.ports.cache_port import CachePort, CacheMetrics
+from typing import Generic, TypeVar
+
+from core.application.ports.cache_port import CacheMetrics, CachePort
 
 T = TypeVar('T')
 

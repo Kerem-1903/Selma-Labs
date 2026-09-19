@@ -7,6 +7,10 @@ no to_srt()/to_vtt() -- see test_subtitle_formatter.py for that coverage.
 """
 from __future__ import annotations
 
+from dataclasses import FrozenInstanceError
+
+import pytest
+
 from core.domain.entities.subtitle_track import SubtitleTrack
 from core.domain.value_objects.subtitle_cue import SubtitleCue
 
@@ -65,8 +69,7 @@ def test_subtitle_track_has_no_format_methods():
 
 def test_subtitle_cue_is_frozen():
     cue = _cue(1, 0, 0.0, 1.0)
-    try:
+    # FrozenInstanceError specifically: a bare ``except Exception`` would also
+    # pass on a typo in the attribute name, hiding a broken test.
+    with pytest.raises(FrozenInstanceError):
         cue.text = "changed"  # type: ignore[misc]
-        assert False, "SubtitleCue must be immutable"
-    except Exception:
-        pass

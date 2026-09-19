@@ -44,7 +44,7 @@ class KeyframeGenerationRequest:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "KeyframeGenerationRequest":
+    def from_dict(cls, data: dict[str, Any]) -> KeyframeGenerationRequest:
         return cls(
             shot_contract_id=str(data["shot_contract_id"]),
             camera_constraints=dict(data.get("camera_constraints", {})),

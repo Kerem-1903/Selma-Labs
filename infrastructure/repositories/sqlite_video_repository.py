@@ -1,5 +1,6 @@
-import sqlite3
 import json
+import sqlite3
+
 
 class SQLiteVideoRepository:
     """SQLite implementation for video repository port handling concurrency."""

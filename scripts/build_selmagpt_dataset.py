@@ -1,11 +1,12 @@
-import json
 import asyncio
+import json
 import os
-import sqlite3
-from typing import List, Dict
 
 # Projeden Youtube Performance Repository'yi ve SQLite altyapısını dahil edelim
-from infrastructure.repositories.sqlite_youtube_performance_repository import SQLiteYoutubePerformanceRepository
+from infrastructure.repositories.sqlite_youtube_performance_repository import (
+    SQLiteYoutubePerformanceRepository,
+)
+
 
 async def build_dataset():
     print("=== SELMAGPT: Veri Seti Oluşturucu (Dataset Builder) Başlatıldı ===")
@@ -20,7 +21,7 @@ async def build_dataset():
     repo = SQLiteYoutubePerformanceRepository(db_path=db_path)
     records = await repo.list_records()
 
-    dataset: List[Dict[str, str]] = []
+    dataset: list[dict[str, str]] = []
 
     if not records:
         print("Mevcut veri bulunamadı. SelmaGPT eğitimi için örnek (dummy) yüksek performanslı veriler yükleniyor...")

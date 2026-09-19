@@ -1,8 +1,7 @@
-import logging
 import asyncio
+import logging
 import os
 import uuid
-from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +12,7 @@ class ThumbnailGeneratorService:
     def __init__(self, ffmpeg_binary: str = "ffmpeg"):
         self.ffmpeg = ffmpeg_binary
 
-    async def generate_ab_thumbnails(self, video_path: str, output_dir: str, texts: List[str]) -> List[str]:
+    async def generate_ab_thumbnails(self, video_path: str, output_dir: str, texts: list[str]) -> list[str]:
         if not os.path.exists(video_path):
             raise FileNotFoundError(f"Video file not found for thumbnail extraction: {video_path}")
 
@@ -22,7 +21,7 @@ class ThumbnailGeneratorService:
 
         timestamps = ["00:00:02.000", "00:00:08.000"]
 
-        for i, (ts, text) in enumerate(zip(timestamps, texts)):
+        for i, (ts, _text) in enumerate(zip(timestamps, texts)):
             if i >= 2: break
             out_path = os.path.join(output_dir, f"thumbnail_v{i+1}_{uuid.uuid4().hex[:8]}.jpg")
 

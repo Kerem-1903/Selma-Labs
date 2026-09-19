@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+
 from core.domain.entities.candidate.keyframe_candidate import KeyframeCandidate
+
 
 class KeyframeCandidateRepositoryPort(ABC):
     @abstractmethod

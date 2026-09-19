@@ -1,8 +1,10 @@
-import sqlite3
 import json
+import sqlite3
 from pathlib import Path
+
 from core.domain.ports.youtube_performance_repository_port import YoutubePerformanceRepositoryPort
 from core.domain.value_objects.youtube_performance import YoutubePerformanceRecord
+
 
 class SQLiteYoutubePerformanceRepository(YoutubePerformanceRepositoryPort):
     """SQLite implementation for YouTube performance records handling concurrency."""

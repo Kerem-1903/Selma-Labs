@@ -6,7 +6,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from cli.main import main
-
 from core.application.services.episode_asset_generation_service import (
     EpisodeAssetGenerationService,
 )
@@ -129,7 +128,10 @@ def test_generation_bridge_persists_factory_manifests_and_is_explicitly_provisio
 
 def _manifest(character_id: str) -> CharacterPosePackManifest:
     digest = "a" * 64
-    from core.domain.value_objects.character_pose_pack import CharacterPoseEvidence, POSE_PACK_POSE_IDS
+    from core.domain.value_objects.character_pose_pack import (
+        POSE_PACK_POSE_IDS,
+        CharacterPoseEvidence,
+    )
 
     poses = tuple(
         CharacterPoseEvidence(

@@ -1,6 +1,11 @@
-from core.domain.entities.shot_contract import ShotContract
 from core.domain.entities.character_state import CharacterState
-from core.domain.value_objects.shot_constraints import CameraConstraints, ActionConstraints, VisualConstraints
+from core.domain.entities.shot_contract import ShotContract
+from core.domain.value_objects.shot_constraints import (
+    ActionConstraints,
+    CameraConstraints,
+    VisualConstraints,
+)
+
 
 def test_shot_contract_initialization():
     camera = CameraConstraints(angle="low-angle", lens="24mm", movement="static")

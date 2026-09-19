@@ -29,7 +29,7 @@ class VisualQualityCheck:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "VisualQualityCheck":
+    def from_dict(data: dict[str, Any]) -> VisualQualityCheck:
         return VisualQualityCheck(
             name=str(data["name"]),
             category=str(data["category"]),
@@ -90,7 +90,7 @@ class VisualQualityReport:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "VisualQualityReport":
+    def from_dict(data: dict[str, Any]) -> VisualQualityReport:
         return VisualQualityReport(
             score=int(data["score"]),
             threshold=int(data.get("threshold", 90)),

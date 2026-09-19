@@ -23,7 +23,6 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
 
 from core.domain.value_objects.scene_asset_match import SceneAssetMatch
 
@@ -31,16 +30,16 @@ from core.domain.value_objects.scene_asset_match import SceneAssetMatch
 @dataclass(frozen=True)
 class AssetMatchPlan:
     id: str
-    scene_plan_id: Optional[str]
+    scene_plan_id: str | None
     matches: list[SceneAssetMatch]
     created_at: datetime
 
     @staticmethod
     def create(
         *,
-        scene_plan_id: Optional[str],
+        scene_plan_id: str | None,
         matches: list[SceneAssetMatch],
-    ) -> "AssetMatchPlan":
+    ) -> AssetMatchPlan:
         return AssetMatchPlan(
             id=str(uuid.uuid4()),
             scene_plan_id=scene_plan_id,

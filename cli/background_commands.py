@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Callable
 from dataclasses import replace
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from config.container import AnimationContainer
 

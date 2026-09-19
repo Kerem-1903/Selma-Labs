@@ -3,7 +3,6 @@ from __future__ import annotations
 from core.domain.ports.background_music_port import BackgroundMusicPort
 from core.domain.value_objects.music_selection_decision import MusicSelectionDecision
 
-
 THEME_KEYWORDS = {
     "mystery": {
         "deep",

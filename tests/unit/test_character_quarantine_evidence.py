@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-from pathlib import Path
 
 from core.application.services.character_design_service import CharacterDesignService
 from core.domain.value_objects.character_creation_brief import CharacterCreationBrief

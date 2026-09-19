@@ -1,8 +1,10 @@
-import aiohttp
 import logging
-from core.domain.ports.script_generator_port import ScriptGeneratorPort
+
+import aiohttp
+
 from core.domain.entities.script import Script
 from core.domain.exceptions import ProviderError, ProviderTimeoutError
+from core.domain.ports.script_generator_port import ScriptGeneratorPort
 
 logger = logging.getLogger(__name__)
 
@@ -83,4 +85,4 @@ class SelmaGPTProvider(ScriptGeneratorPort):
             logger.error(f"SelmaGPT connection error: {e}")
             raise ProviderError(f"Could not connect to SelmaGPT at {self.api_url}: {e}")
         except TimeoutError:
-             raise ProviderTimeoutError(f"SelmaGPT request timed out after 60 seconds.")
+             raise ProviderTimeoutError("SelmaGPT request timed out after 60 seconds.")

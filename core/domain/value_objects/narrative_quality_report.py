@@ -23,7 +23,7 @@ class NarrativeQualityIssue:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "NarrativeQualityIssue":
+    def from_dict(data: dict[str, Any]) -> NarrativeQualityIssue:
         return NarrativeQualityIssue(
             code=str(data["code"]),
             message=str(data["message"]),
@@ -58,7 +58,7 @@ class NarrativeQualityReport:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "NarrativeQualityReport":
+    def from_dict(data: dict[str, Any]) -> NarrativeQualityReport:
         return NarrativeQualityReport(
             contract=NarrativeContract.from_dict(dict(data["contract"])),
             beats=tuple(

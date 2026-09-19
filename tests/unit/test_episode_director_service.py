@@ -5,10 +5,10 @@ import json
 import pytest
 
 from cli.main import main
+from core.application.services.asset_approval_service import AssetApprovalService
 from core.application.services.episode_director_service import EpisodeDirectorService
 from core.application.services.episode_preparation_service import EpisodePreparationService
 from core.domain.exceptions import PreProductionValidationError
-from core.application.services.asset_approval_service import AssetApprovalService
 from core.domain.value_objects.character_pose_pack import (
     POSE_PACK_POSE_IDS,
     CharacterPoseEvidence,
@@ -83,7 +83,10 @@ def _pose_pack() -> CharacterPosePackManifest:
 
 
 def _background_pack(location_id="rain-rooftop", recipes=("wide-01",)):
-    from core.domain.value_objects.background_production import BackgroundCandidate, BackgroundCandidatePack
+    from core.domain.value_objects.background_production import (
+        BackgroundCandidate,
+        BackgroundCandidatePack,
+    )
 
     pack = BackgroundCandidatePack(
         location_id=location_id,
@@ -194,7 +197,7 @@ def test_location_ids_transliterate_accented_names_instead_of_deleting_them():
 def test_unapproved_assets_remain_provisional_even_when_complete():
     pose = _pose_pack()
     from dataclasses import replace
-    from core.domain.value_objects.background_production import BackgroundCandidatePack
+
 
     unapproved_background = replace(
         _background_pack(recipes=("wide-01",)),

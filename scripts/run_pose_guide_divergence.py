@@ -1,21 +1,22 @@
-"""Do five pose guides produce five poses?
+"""Do the pose guides produce distinct poses?
 
-The pose guides were rebuilt so each view is projected from one shared
-yaw-parameterised rig. Measured on the template pixels, the old guides made
-`THREE_QUARTER_LEFT` *narrower than* `PROFILE_LEFT` (shoulder band / body
-height 0.039 vs 0.047, where a true 45-degree view owes 0.118), so a pose pack
-drawn from them could satisfy its QC orientation check and still ship the same
-body five times.
+The guides are projected from one shared yaw-parameterised rig. Measured on the
+template pixels, the old generator made two views *narrower* than the profiles
+beside them (shoulder band / body height 0.039 vs 0.047, where a true 45-degree
+view owes 0.118), so a pose pack drawn from it could satisfy its QC orientation
+check and still ship the same body several times. Those two templates have since
+been removed outright: a 45-degree skeleton read as near-frontal, so the pack now
+ships front, profile and back. The pair this diagnostic is left to guard is the
+one that still matters -- a profile must not collapse into the front.
 
-This rerenders the five poses a pack already contains -- same seed, same
-reference chain, same pose guide, same style lock -- with the corrected guides,
-and measures the silhouette IoU matrix on both sides of the change. The old
-renders are read from the pack; nothing is written into a pack.
+This rerenders the poses a pack already contains -- same seed, same reference
+chain, same pose guide, same style lock -- and measures the silhouette IoU
+matrix on both sides of the change. The old renders are read from the pack;
+nothing is written into a pack.
 
-Success is the one number that matters: a same-wing pair (`THREE_QUARTER_*` vs
-its `PROFILE_*`) has to fall from the near-duplicate band towards the
-cross-view baseline, without the identity drifting away from the pose it
-replaces.
+Success is the one number that matters: the profile/front pair has to sit well
+clear of the near-duplicate band, without the identity drifting away from the
+pose it replaces.
 
 Writes into a diagnostics directory only.
 """
@@ -53,18 +54,14 @@ from scripts.turnaround_silhouette import (
 #: Orientation a pose's QC check expects, and the label the reference chain uses.
 POSE_MATCH_VIEW: dict[str, str] = {
     "FRONT_NEUTRAL": "FRONT",
-    "THREE_QUARTER_LEFT": "THREE_QUARTER_LEFT",
     "PROFILE_LEFT": "PROFILE_LEFT",
-    "THREE_QUARTER_RIGHT": "THREE_QUARTER_RIGHT",
     "BACK_FULL_BODY": "BACK",
 }
 
-#: Pairs that must stop looking like each other: a three-quarter view and the
-#: profile of the same wing are one rotation step apart, not one pose.
-SAME_WING: tuple[tuple[str, str], ...] = (
-    ("THREE_QUARTER_LEFT", "PROFILE_LEFT"),
-    ("THREE_QUARTER_RIGHT", "PROFILE_RIGHT"),
-)
+#: The pair that must stop looking like one pose: a profile is drawn from the
+#: front and is one rotation step from it, so a collapsed guide would ship the
+#: same body twice.
+NEAREST_PAIRS: tuple[tuple[str, str], ...] = (("PROFILE_LEFT", "FRONT_NEUTRAL"),)
 
 #: Free RAM a render needs; the CLI preflight refuses below this and a
 #: diagnostic has no business being laxer than production.
@@ -234,16 +231,16 @@ def report_matrix(
     for left in poses:
         cells = "".join(f"{values[left][right]:>13.3f}" for right in poses)
         print(f"{left[:11]:<12}{cells}")
-    same = [values[a][b] for a, b in SAME_WING if a in values and b in values[a]]
+    same = [values[a][b] for a, b in NEAREST_PAIRS if a in values and b in values[a]]
     cross = [
         values[a][b]
         for a in poses
         for b in poses
-        if a != b and (a, b) not in SAME_WING
+        if a != b and (a, b) not in NEAREST_PAIRS
     ]
     if same:
         print(
-            f"  same-wing mean {sum(same) / len(same):.3f}"
+            f"  nearest-pair mean {sum(same) / len(same):.3f}"
             f"  |  other pairs mean {sum(cross) / len(cross):.3f}"
             f"  |  gap {sum(cross) / len(cross) - sum(same) / len(same):+.3f}"
         )
@@ -419,7 +416,7 @@ def main() -> None:
         "character_version": manifest["character_version"],
         "pack_manifest": str(args.pack_dir / "manifest.json"),
         "poses": list(poses),
-        "same_wing_pairs": [list(pair) for pair in SAME_WING],
+        "nearest_pairs": [list(pair) for pair in NEAREST_PAIRS],
         "guides": guide_records,
         "guide_iou_new": matrix(current_guides, tuple(current_guides)),
         "guide_iou_old": matrix(previous_guides, tuple(previous_guides)),

@@ -19,12 +19,15 @@ class ReferenceConditioningBuilder:
         seed: int | None = None,
     ) -> KeyframeGenerationRequest:
         bibles_by_id: dict[str, CharacterBible] = {}
-        for bible in character_bibles:
-            if bible.character_id in bibles_by_id:
+        # Not ``bible``: the lookup below reuses that name for a maybe-missing
+        # entry, and rebinding a loop variable to ``CharacterBible | None`` is how
+        # the narrowing that follows gets silently lost.
+        for registered_bible in character_bibles:
+            if registered_bible.character_id in bibles_by_id:
                 raise ReferenceConditioningError(
-                    f"Duplicate character bible for '{bible.character_id}'."
+                    f"Duplicate character bible for '{registered_bible.character_id}'."
                 )
-            bibles_by_id[bible.character_id] = bible
+            bibles_by_id[registered_bible.character_id] = registered_bible
 
         conditioning: list[dict] = []
         reference_asset_ids: list[str] = []

@@ -8,7 +8,6 @@ Usage:
 3. Run: python3 scripts/train_selmagpt.py
 """
 
-import os
 print("=== SelmaGPT Fine-Tuning Modülü (Simülasyon) ===")
 print("Gerçek eğitim için bir Nvidia GPU (Örn: RTX 3090 / 4090 veya A100) gereklidir.")
 print("Eğitim adımları:")

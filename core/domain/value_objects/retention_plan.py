@@ -28,7 +28,7 @@ class RetentionSecond:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "RetentionSecond":
+    def from_dict(data: dict[str, Any]) -> RetentionSecond:
         return RetentionSecond(
             second=int(data["second"]),
             beat_index=int(data["beat_index"]),
@@ -56,7 +56,7 @@ class PatternInterrupt:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "PatternInterrupt":
+    def from_dict(data: dict[str, Any]) -> PatternInterrupt:
         return PatternInterrupt(
             timestamp_seconds=int(data["timestamp_seconds"]),
             change_type=str(data["change_type"]),
@@ -107,7 +107,7 @@ class RetentionPlan:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "RetentionPlan":
+    def from_dict(data: dict[str, Any]) -> RetentionPlan:
         return RetentionPlan(
             content_format=str(data["content_format"]),
             target_duration_seconds=int(data["target_duration_seconds"]),

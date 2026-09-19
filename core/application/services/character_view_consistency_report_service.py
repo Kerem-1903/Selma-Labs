@@ -14,7 +14,6 @@ from core.domain.value_objects.character_view_consistency_qc import (
     HUMAN_REQUIRED_CONSISTENCY_CHECKS,
 )
 
-
 _EXPECTED_VIEWS = (
     "FACE_CLOSEUP",
     "FRONT",

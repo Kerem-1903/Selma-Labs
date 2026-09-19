@@ -14,7 +14,6 @@ from core.domain.value_objects.subtitle_cue import SubtitleCue
 from core.domain.value_objects.word_timing import WordTiming
 from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
 
-
 OUTPUT_DIRECTORY = PROJECT_ROOT / "output" / "prototype_demo"
 
 

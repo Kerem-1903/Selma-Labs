@@ -8,7 +8,6 @@ from pathlib import Path
 import httpx
 from dotenv import load_dotenv
 
-
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "motion" / "public" / "hidden-designs-45"
 OUTPUT = ROOT / "output" / "hidden-designs-45"

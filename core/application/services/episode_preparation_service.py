@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from core.domain.value_objects.episode_director_plan import EpisodeDirectorPlan
 
@@ -43,7 +44,7 @@ class EpisodePreparationJob:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "EpisodePreparationJob":
+    def from_dict(cls, data: Mapping[str, Any]) -> EpisodePreparationJob:
         return cls(
             job_id=str(data.get("job_id", "")),
             kind=str(data.get("kind", "")),
@@ -95,7 +96,7 @@ class EpisodePreparationResult:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "EpisodePreparationResult":
+    def from_dict(cls, data: Mapping[str, Any]) -> EpisodePreparationResult:
         raw_plan = data.get("episode_director_plan", data)
         if not isinstance(raw_plan, Mapping):
             raise TypeError("Preparation manifest must contain an episode director plan.")

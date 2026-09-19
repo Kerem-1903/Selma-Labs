@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from core.application.services.episode_animatic_service import EpisodeAnimaticService
 from core.application.services.episode_director_service import EpisodeDirectorService

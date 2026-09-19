@@ -1,14 +1,15 @@
 import pytest
-from core.domain.entities.continuity_state import ContinuityState
+
 from core.domain.entities.character_state import CharacterState
-from core.domain.services.continuity_reducer import ContinuityReducer
+from core.domain.entities.continuity_state import ContinuityState
 from core.domain.events.continuity_event import (
-    CharacterChangedOutfit,
-    OutfitDamaged,
+    CharacterDroppedObject,
     CharacterPickedUpObject,
     ObjectBroken,
-    CharacterDroppedObject
+    OutfitDamaged,
 )
+from core.domain.services.continuity_reducer import ContinuityReducer
+
 
 def test_akira_timeline_replay():
     # Akira starts with intact battle jacket

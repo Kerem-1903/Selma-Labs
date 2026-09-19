@@ -1,5 +1,6 @@
 from core.domain.entities.character_state import CharacterState
 
+
 def test_character_state_initialization():
     state = CharacterState(
         character_id="char_1",

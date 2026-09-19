@@ -203,7 +203,7 @@ class CharacterCreationBrief:
 
     @property
     def character_id(self) -> str:
-        translated = self.name.translate(str.maketrans({"ı": "i", "İ": "I"}))
+        translated = self.name.translate(str.maketrans("ıİ", "iI"))
         ascii_name = unicodedata.normalize("NFKD", translated).encode(
             "ascii", "ignore"
         ).decode("ascii")

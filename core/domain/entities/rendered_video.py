@@ -56,13 +56,12 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
 
 
 @dataclass(frozen=True)
 class RenderedVideo:
     id: str
-    timeline_id: Optional[str]
+    timeline_id: str | None
     video_path: str
     size_bytes: int
     duration_seconds: float
@@ -74,14 +73,14 @@ class RenderedVideo:
     @staticmethod
     def create(
         *,
-        timeline_id: Optional[str],
+        timeline_id: str | None,
         video_path: str,
         size_bytes: int,
         duration_seconds: float,
         width: int,
         height: int,
         fps: float,
-    ) -> "RenderedVideo":
+    ) -> RenderedVideo:
         return RenderedVideo(
             id=str(uuid.uuid4()),
             timeline_id=timeline_id,

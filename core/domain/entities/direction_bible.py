@@ -145,7 +145,7 @@ class NonCastVoice:
     MNEMOS announces over city infrastructure and a security detail answers as
     one faceless group. Requiring a Character Bible for either would put a
     system and a crowd on the cast list, and a cast entry is what orders a
-    five-pose pack -- five renders for something that has no face.
+    three-pose pack -- three renders for something that has no face.
     """
 
     id: str

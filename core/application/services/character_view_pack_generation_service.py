@@ -17,19 +17,21 @@ from core.application.services.character_identity_prompt_service import (
 from core.application.services.character_turnaround_drift_service import (
     CharacterTurnaroundDriftService,
 )
-from core.application.services.character_view_pack_approval_service import CharacterViewPackApprovalService
-from core.application.services.character_view_pack_asset_service import CharacterViewPackAssetService
+from core.application.services.character_view_pack_approval_service import (
+    CharacterViewPackApprovalService,
+)
+from core.application.services.character_view_pack_asset_service import (
+    CharacterViewPackAssetService,
+)
 from core.application.services.production_manifest_service import ProductionManifestService
-from core.domain.value_objects.character_identity_contract import CharacterIdentityContract
-from core.domain.value_objects.character_view_consistency_qc import CharacterViewConsistencyQc
-from core.domain.exceptions import KeyframeGenerationError, StorageError
+from core.domain.exceptions import StorageError
+from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
+from core.domain.ports.storage_port import StoragePort
 from core.domain.services.turnaround_view_policy import (
     EDIT_TURNAROUND_FIXED_VIEWS,
     edit_turnaround_dependencies,
     edit_turnaround_production_order,
 )
-from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
-from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.character_creation_brief import CharacterCreationBrief
 from core.domain.value_objects.character_design import (
     CharacterAnchorArtifact,
@@ -39,7 +41,12 @@ from core.domain.value_objects.character_design import (
     CharacterViewPackApproval,
     CharacterViewQuarantineArtifact,
 )
-from core.domain.value_objects.character_view_qc import CharacterViewObservation, CharacterViewQcReport
+from core.domain.value_objects.character_identity_contract import CharacterIdentityContract
+from core.domain.value_objects.character_view_consistency_qc import CharacterViewConsistencyQc
+from core.domain.value_objects.character_view_qc import (
+    CharacterViewObservation,
+    CharacterViewQcReport,
+)
 
 
 class _OfflineFakeViewQualityGate:
@@ -125,7 +132,7 @@ class _InheritedView:
     human_approved: bool = False
 
     @classmethod
-    def from_anchor(cls, anchor: CharacterAnchorArtifact) -> "_InheritedView":
+    def from_anchor(cls, anchor: CharacterAnchorArtifact) -> _InheritedView:
         return cls(
             storage_key=anchor.storage_key,
             content_hash=anchor.content_hash,

@@ -1,11 +1,9 @@
 import logging
-from typing import Optional, Tuple
-from pathlib import Path
 
 # Try importing ultralytics. If not available, fail gracefully.
 try:
-    from ultralytics import YOLO
     import cv2
+    from ultralytics import YOLO
     HAS_ULTRALYTICS = True
 except ImportError:
     HAS_ULTRALYTICS = False
@@ -39,7 +37,6 @@ class SmartCroppingService:
                 return f"crop={output_width}:{output_height}:(in_w-{output_width})/2:(in_h-{output_height})/2"
 
             frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            fps = cap.get(cv2.CAP_PROP_FPS)
             in_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             in_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
 

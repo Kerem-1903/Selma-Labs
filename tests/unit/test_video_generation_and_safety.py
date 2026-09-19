@@ -1,12 +1,15 @@
-import pytest
-import asyncio
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
+from core.application.services.vision_safety_gate import VisionSafetyGate
 from core.domain.entities.media_asset import MediaAsset
 from core.domain.value_objects.scene import Scene
 from core.domain.value_objects.video_generation_request import VideoGenerationRequest
-from infrastructure.providers.video.luma_video_generation_provider import LumaVideoGenerationProvider
-from core.application.services.vision_safety_gate import VisionSafetyGate
+from infrastructure.providers.video.luma_video_generation_provider import (
+    LumaVideoGenerationProvider,
+)
+
 
 @pytest.mark.asyncio
 async def test_luma_video_generation_provider():
@@ -14,7 +17,6 @@ async def test_luma_video_generation_provider():
     assert provider.name == "luma_dream_machine"
 
     # Mock httpx AsyncClient
-    import httpx
 
     mock_post_resp = MagicMock()
     mock_post_resp.json.return_value = {"id": "fake_gen_id"}

@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
 import json
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from config.container import AnimationContainer, create_container
 
@@ -103,7 +103,7 @@ async def run_character_asset_command(
         from core.domain.value_objects.character_design import CharacterCanonicalApproval
 
         brief = load_creation_brief(arguments.brief)
-        approval = _load_object(arguments.approval)
+        approval_payload = _load_object(arguments.approval)
         if arguments.restore_superseded:
             if not arguments.restored_by:
                 raise ValueError(
@@ -114,7 +114,7 @@ async def run_character_asset_command(
             restored_pack = (
                 await container.character_view_pack_generation_service.restore_superseded_views(
                     brief,
-                    CharacterCanonicalApproval.from_dict(approval),
+                    CharacterCanonicalApproval.from_dict(approval_payload),
                     views=getattr(arguments, "rerender_views", None) or (),
                     restored_by=arguments.restored_by,
                     reason=arguments.reason or "",
@@ -123,18 +123,18 @@ async def run_character_asset_command(
             )
             print(write_json(arguments.manifest, restored_pack.to_dict()))
             return 0
-        pack = await container.character_view_pack_generation_service.generate_canonical_views(
+        view_pack = await container.character_view_pack_generation_service.generate_canonical_views(
             brief,
-            CharacterCanonicalApproval.from_dict(approval),
+            CharacterCanonicalApproval.from_dict(approval_payload),
             output_prefix=arguments.output_prefix,
             view_candidate_count=getattr(arguments, "seeds", None) or None,
             rerender_views=getattr(arguments, "rerender_views", None) or None,
         )
-        print(write_json(arguments.manifest, pack.to_dict()))
+        print(write_json(arguments.manifest, view_pack.to_dict()))
         return 0
     if arguments.character_command == "approve-view-pack":
         raw_version = str(arguments.version).strip().casefold().removeprefix("v")
-        approval = await container.character_view_pack_generation_service.approve_view_pack(
+        view_pack_approval = await container.character_view_pack_generation_service.approve_view_pack(
             character_id=arguments.character,
             character_version=int(raw_version),
             approved_by=arguments.approved_by,
@@ -142,7 +142,7 @@ async def run_character_asset_command(
             acceptance_path=arguments.acceptance,
             confirmed_checks=list(arguments.checks or []),
         )
-        payload = approval.to_dict()
+        payload = view_pack_approval.to_dict()
         if arguments.output:
             print(write_json(arguments.output, payload))
         else:
@@ -209,7 +209,7 @@ async def run_character_asset_command(
             ):
                 raise TypeError("Pose references must map view names to storage keys.")
             pose_references = raw_references
-        pack = await service.generate_reference_pack(
+        reference_pack = await service.generate_reference_pack(
             character,
             anchor_storage_key=arguments.approved_anchor_key,
             output_prefix=arguments.output_prefix,
@@ -224,9 +224,9 @@ async def run_character_asset_command(
             write_json(
                 arguments.manifest,
                 {
-                    **pack.to_dict(),
+                    **reference_pack.to_dict(),
                     "automatic_review_deferred": arguments.defer_visual_review,
-                    "pack_complete": len(pack.candidates) == 23,
+                    "pack_complete": len(reference_pack.candidates) == 23,
                     "seed_offset": arguments.seed_offset,
                 },
             )
@@ -240,28 +240,29 @@ async def run_character_asset_command(
                 "outfit_match", "framing_match", "anatomy_pass",
             )
         }
-        approval = await service.approve_pilot(
+        pilot_approval = await service.approve_pilot(
             character,
             anchor_storage_key=arguments.approved_anchor_key,
             pilot_storage_key=arguments.pilot_key,
             approved_by=arguments.approved_by,
             checks=checks,
         )
-        print(write_json(arguments.output, approval.to_dict()))
+        print(write_json(arguments.output, pilot_approval.to_dict()))
         return 0
     if arguments.character_command == "approve-references":
         from dataclasses import replace
+
         from core.domain.services.character_bible_validation_service import (
             CharacterBibleValidationService,
         )
         from core.domain.value_objects.character_identity import ReferenceView
 
-        approval = _load_object(arguments.selections)
-        if not isinstance(approval.get("views"), dict):
+        selection_payload = _load_object(arguments.selections)
+        if not isinstance(selection_payload.get("views"), dict):
             raise TypeError("Reference selections must contain a views object.")
         selected = {
             ReferenceView(str(view)): str(storage_key)
-            for view, storage_key in approval["views"].items()
+            for view, storage_key in selection_payload["views"].items()
         }
         character = await service.approve_reference_pack(character, selected)
         if arguments.lock_narrative:

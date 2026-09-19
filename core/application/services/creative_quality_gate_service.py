@@ -12,9 +12,9 @@ from core.domain.value_objects.media_inspection import MediaInspection
 from core.domain.value_objects.media_quality_signals import MediaQualitySignals
 from core.domain.value_objects.narrative_quality_report import NarrativeQualityReport
 from core.domain.value_objects.retention_plan import RetentionPlan
-from core.domain.value_objects.voice_direction import VoiceDirection
 from core.domain.value_objects.subtitle_cue import SubtitleCue
 from core.domain.value_objects.visual_intent import VisualIntent
+from core.domain.value_objects.voice_direction import VoiceDirection
 
 
 class CreativeQualityGateService:

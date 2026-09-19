@@ -91,7 +91,7 @@ class DriftThresholds:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "DriftThresholds":
+    def from_dict(cls, data: Mapping[str, Any]) -> DriftThresholds:
         defaults = cls().to_dict()
         return cls(
             **{
@@ -153,7 +153,7 @@ class _Measurement:
     canvas_width: int = 0
     canvas_height: int = 0
 
-    def deltas(self, source: "_Measurement") -> dict[str, float]:
+    def deltas(self, source: _Measurement) -> dict[str, float]:
         return {
             "subject_height_ratio": self.height_ratio,
             "subject_width_ratio": self.width_ratio,
@@ -217,7 +217,7 @@ class CharacterTurnaroundDriftService:
     # ------------------------------------------------------------------
     def for_character(
         self, *, accent_colour: str, mark_side: str = ""
-    ) -> "CharacterTurnaroundDriftService":
+    ) -> CharacterTurnaroundDriftService:
         """Re-aim the measurement at one character's own signature mark.
 
         The configured accent colour is a single deployment-wide value, so a
@@ -290,7 +290,7 @@ class CharacterTurnaroundDriftService:
             "threshold_source": dict(self._threshold_source),
             "mark_side": self._mark_side,
             "accent_colour": (
-                "#%02X%02X%02X" % tuple(int(value) for value in self._accent)
+                "#{:02X}{:02X}{:02X}".format(*(int(value) for value in self._accent))
                 if self._accent is not None
                 else ""
             ),
@@ -467,7 +467,7 @@ class CharacterTurnaroundDriftService:
         return "visible" if facing == self._mark_side else "hidden"
 
     @staticmethod
-    def _canvases_match(source: "_Measurement", measured: "_Measurement") -> bool:
+    def _canvases_match(source: _Measurement, measured: _Measurement) -> bool:
         """True when both frames share an aspect ratio closely enough to compare."""
         if source.canvas_width <= 0 or source.canvas_height <= 0:
             return True

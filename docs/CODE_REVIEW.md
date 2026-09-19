@@ -15,11 +15,12 @@ Her satır bir kanıta dayanır; kanıtı olmayan hiçbir sayı burada yoktur.
 
 | Kontrol | Sonuç |
 |---|---|
-| `python -m pytest tests -q -p no:cacheprovider` | **1249/1249 PASS** (96 sn) |
-| `python -m ruff check .` (bu incelemede eklenen kapı) | **All checks passed** |
+| `python -m pytest tests -q -p no:cacheprovider` | **1246/1246 PASS** (72–84 sn) |
+| `python -m ruff check .` (bu incelemede eklenen kapı) | **All checks passed** (kademe 2 seçimi) |
 | Python | 3.10.11 (Windows); CI 3.10 + 3.11 matrisi |
 | CI işleri | `lint`, `a9-windows-contract`, `python-and-real-render`, `remotion`, CodeQL |
-| `cli/main.py` | 2582 satır |
+| `cli/main.py` | 1580 satır (parser çıkarılmadan önce 2585) |
+| `cli/parsers/` | 1100 satır: `series`, `character`, `episode`, `production` aile kurucuları |
 
 Mimari temel sağlam: domain/port/adapter ayrımı gerçek, `config/provider_registry.py`
 tek kompozisyon noktası, fail-closed kalite kapıları ve insan onay makbuzları
@@ -43,6 +44,25 @@ bu sınıfı görünür kıldı ve artık CI'da bloklayıcı.
 
 R2'de `intent_{index}` seçildi çünkü `VisualIntent`'in kararlı bir `id` alanı
 yok; `enumerate` mevcut niyeti (sıralı çekim kimliği) korur.
+
+### Kademe 2 geçişinde bulunan gerçek hatalar
+
+mypy kapısı açıldığında, `config/provider_registry.py`'nin seçtiği iki adaptörün
+**hiç örneklenemediği** ortaya çıktı: port sözleşmesindeki abstract üyeler eksik
+di, dolayısıyla o dallar `TypeError` ile ölüyordu.
+
+| ID | Önem | Bulgu | Kanıt | Durum |
+|---|---|---|---|---|
+| R16 | Yüksek | `SelmaGPTScenePlanningProvider` `provider_identity`'yi tanımlamıyordu; `ScenePlanningPort` bunu abstract ister. `scene_planning_provider = "selmagpt"` seçilirse sınıf örneklenemez, `TypeError: Can't instantiate abstract class`. | `infrastructure/providers/scene_planning/selmagpt_scene_planning_provider.py` | **Düzeltildi** (`provider_identity` eklendi) |
+| R17 | Yüksek | `SelmaGPTTranslationProvider` hem `provider_identity` hem de portun asıl metodu olan `translate_texts`'i eksikti; yalnız tekil `translate_text` vardı. `translation_provider = "selmagpt"` dalı örnekleme anında ölüyordu. | `infrastructure/providers/translation/selmagpt_translation_provider.py` | **Düzeltildi** (ikisi de eklendi; sıra ve uzunluk korunuyor) |
+
+Aynı geçişte iki kablolama kusuru da görünür oldu: `ResilientSearchProviderDecorator`
+bir `VideoSearchProvider` protokolü bekliyor ama registry ona `VideoSourcePort`
+veriyordu (iki protokolün `search` imzaları farklı), ve `SearchCacheService`
+sarmalayıcısı protokolün istediği `name` özelliğini hiç sunmuyordu. Sarmalayıcıya
+`name` eklendi; dekoratör çağrısı gerekçesiyle `cast` edildi, çünkü protokolün
+istediği `name`/`**kwargs` çağrıları somut sağlayıcılarda karşılanıyor ama port
+daha dar bir imza ilan ediyor.
 
 ---
 
@@ -69,37 +89,72 @@ kabul edilen davranıştır ve değiştirilmedi.
 |---|---|---|---|
 | R9 | Bilgi | **LFS doğru uygulanmış.** `yolov8n.pt` gerçek bir LFS pointer'ı (`oid sha256:f59b3d83…`), venus `.mp4` setleri de LFS. Görsel PNG'ler 5 MB altı olduğu için politika gereği LFS dışı. Aksiyon gerekmiyor; policy sahada uygulanıyor. | `git cat-file`, `git check-attr` |
 | R10 | Orta | **Devasa commit edilmemiş yığın.** 248 dosya: 55 değişik + ~60 untracked (yeni CLI modülleri, yeni servisler, tüm Character Bible'lar, benchmark PNG'leri, `models-flux2.lock.json`). Tek bir PR'a sığmaz; sahiplik/inceleme yükü yüksek. | `git status`, `git diff --stat` |
-| R11 | Orta | **Python bağımlılık kilidi yok.** `requirements*.txt` hepsi `>=`; ağır GPU/model lib'leri (whisperx, insightface, ultralytics, gradio) serbest aralıkta. Yalnız `models.lock.json` / `models-flux2.lock.json` kilitli. | `requirements.txt` |
-| R12 | Orta | **Lint ratchet'i henüz erken kademede.** Kalan set: `E402` 87, `F401` 63, `UP*` ~281, `I001` 261, `RUF100` 105, `BLE001` 32. Bugün bloklayıcı değil. | `ruff check --statistics` |
+| R11 | Orta | **CI bağımlılık kilidi üretildi.** `requirements-ci.lock.txt` (96 pin) `pip-compile` ile derlendi ve 3.10 işi artık onu kuruyor; `requirements-ci.txt` insan tarafından düzenlenen girdi olarak kaldı ve kilidin nasıl yenileneceğini başlığında yazıyor. 3.11 işi bilinçli olarak gevşek dosyayı kurar (uyumluluk sinyali). GPU çalışma zamanı seti (`requirements.txt`: whisperx, insightface, ultralytics, gradio) hâlâ kilitsiz — o setin derlenmesi bir Linux/GPU makinesi istiyor. | `requirements-ci.lock.txt` |
+| R12 | Orta | **Lint ratchet'i kademe 2'de ve bloklayıcı.** Kademe 1 yalnız correctness kurallarıydı; kademe 2 `F`, `I`, `UP`, `B`, `E4`, `S110`/`S112` ile ağacı temiz tutuyor. Kapalı kalanlar gerekçesiyle `ignore` listesinde: `B008`, `B904`, `B905`. | `pyproject.toml`, §5 |
 | R13 | Yüksek (ürün) | **Fonksiyonel boşluklar** (dokümanların kendi kaydettiği, kod gereci): çok-karakterli sahnede kimlik seçimi yok (`ep01`'de 25 çekimin 6'sı yanlış karakterle etiketli); profilde üç-çeyrek ayrımı ölçülemiyor; palette drift advisory; LivePortrait mock; ADR-009 Wan gerçek provider bloklu; pose-pack (5) ve keyframe (5) için **10 insan imzası bekliyor**. | `docs/project/status.md`, phase-1 roadmap |
-| R14 | Düşük | **God dosya:** `cli/main.py` 2582 satır; `build_parser()` tek başına ~1000 satır. Yeni komutlar doğru şekilde `cli/*_commands.py`'ye taşınmış ama `main.py` hâlâ monolitik. | `wc -l`, `grep -n "^def "` |
-| R15 | Düşük | **mypy advisory.** `[tool.mypy]` yapılandırıldı; CI'da `continue-on-error` ile çalışıyor. Bu oturumda mypy kurulu olmadığı için baseline doğrulanamadı; bu yüzden bloklayıcı yapılmadı. | `pyproject.toml`, CI `lint` işi |
+| R14 | Düşük | **God dosya — yarısı çözüldü.** `build_parser()`'ın 1016 satırı `cli/parsers/` ailelerine taşındı; `cli/main.py` 2585 → 1580 satır ve artık yalnız dispatcher + handler gövdesi. Kalan iş: handler'ları `cli/*_commands.py`'ye indirmek. Taşımanın davranış-nötr olduğu kanıtlandı: `build_parser()`'ın `format_help()` çıktısı ve her argümanın `dest`/`option_strings`/`default`/`nargs`/`choices` kümesi taşımadan önce ve sonra **aynı** (251 KB JSON karşılaştırması). | `wc -l`, `cli/parsers/` |
+| R15 | Düşük | **mypy artık bloklayıcı, ama dar kapsamda.** Baseline 200 hataydı; `core/domain`, `config` ve `cli` temizlendi (54 hata gerçek düzeltmeyle kapandı) ve bu üç katman **bloklayıcı** kapı. `core/application` + `infrastructure` borcu 146 hataya indi ve CI'da advisory adım olarak raporlanıyor; sıfırlandığında onlar da kapıya girer. Kapsam `[tool.mypy]`'de, gerekçesiyle yazılı. | `pyproject.toml`, CI `lint` işi |
 
 ---
 
 ## 5. Lint ratchet sırası
 
-Bugünkü kapı yalnız **correctness** kurallarıdır ve sıfırdır:
+**Kademe 1 (tarihsel):** yalnız correctness — `E9`, `F63`, `F7`, `F82`, `F811`,
+`F823`, `E722`. Bu set R1–R4 hatalarını bulduğu için değerini kanıtladı.
+
+**Kademe 2 (bugünkü kapı, bloklayıcı):**
 
 ```toml
-select = ["E9", "F63", "F7", "F82", "F811", "F823", "E722"]
+select = ["B", "E4", "E9", "E722", "F", "I", "S110", "S112", "UP"]
+ignore = ["B008", "B904", "B905"]
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]   # re-export bir kullanımdır, ölü import değil
+"scripts/*" = ["E402"]    # betikler sys.path'i import'tan önce kurar
 ```
 
-Bu set R1–R4 hatalarını bulduğu için değerini kanıtladı. Kademeli sıkılaştırma:
+Ölçülmüş geçiş:
 
-1. **`F` tamamı** — `F401` (63) ve `F841` (10). `F401`'lerin çoğu
-   `__init__.py` re-export'u; `[tool.ruff.lint.per-file-ignores]` ile
-   `__init__.py = ["F401"]` verilip kalanlar gerçek düzeltilir.
-2. **I001 + UP* otomatik düzelt** — 542 adet, çoğu `ruff check --fix` ile
-   güvenli. Tek seferde ayrı bir "chore: import ve annotation normalizasyonu"
-   PR'ı olarak yapılmalı; WIP'e karıştırılmamalı.
-3. **`E402`** — `scripts/*` içinde `sys.path` eklemesi sonrası import deseni
-   meşru; `per-file-ignores` ile `scripts/* = ["E402"]`, uygulama kodunda
-   gerçek düzeltme.
-4. **`BLE001` / `S110` / `TRY*`** — sessiz yutmaları görünür kılan kural seti;
-   R8'de elle başlatıldı, otomatik kurala bağlanması sonraki adım.
-5. **mypy bloklayıcı** — baseline temizlendikten sonra `continue-on-error`
-   kaldırılır.
+| Adım | Sayı | Yöntem |
+|---|---|---|
+| `F`, `I`, `UP` (import sırası, annotation modernizasyonu, ölü import) | 600 bulgu | `ruff check --fix`, 273 dosya |
+| Otomatik düzeltilemeyen kalıntı | 11 bulgu | elle: `UP031`, `UP035`, `I001`, `F841` (8) |
+| `B` (bugbear) | 9 bulgu | `B007` yeniden adlandırma, `B009` otomatik, `B023` closure düzeltmesi |
+| `E4` | 86 bulgu | `scripts/*` gerekçeli ignore, `app.py` yerel `noqa`, e2e import'u başa alındı |
+| `S110`/`S112` | 3 bulgu | iki sessiz yutma log'a bağlandı, test `pytest.raises`'a çevrildi |
+
+Kademe 2'nin bulduğu gerçek kusur: `scripts/run_pose_identity_isolation.py`
+`with_identity` closure'ı döngü değişkeni `base`'i bağlamıyordu (`B023`) — her
+varyant son iterasyonun isteğini üretebilirdi. Şablon artık varsayılan argümanla
+bağlanıyor.
+
+**Kademe 2b (mypy):** aynı geçişte tip kapısı açıldı.
+
+```toml
+[tool.mypy]
+files = ["core/domain", "config", "cli"]   # bloklayıcı
+follow_imports = "silent"                   # borçlu paketlerin hatasını dışla
+```
+
+| Ölçüm | Önce | Sonra |
+|---|---|---|
+| Kapı kapsamındaki hata | 54 | **0** (`Success: no issues found in 228 source files`) |
+| Tüm depo (advisory) | 200 hata / 63 dosya | **146 hata / 49 dosya** |
+| Kapı | `continue-on-error` | **bloklayıcı** |
+
+Kalan 146'nın çoğu `core/application` (68) ve `infrastructure/providers` (70)
+içinde; sıfırlandıkça kapsam genişletilir.
+
+**Sonraki kademeler:**
+
+1. **`SIM`** (38 bulgu) ve **`S` bandit setinin geri kalanı** — sırayla.
+2. **`B904`** — 16 `raise` site, her biri elle `raise ... from` kararı; otomatik
+   düzeltme hata zincisini gizlediği için bilinçli olarak kapalı.
+3. **`B905`** — 38 `zip`; her çağrının uzunluk sözleşmesi ayrı ayrı kararlaştırılıp
+   `strict=` ile yazılmalı, toplu değiştirme değil.
+4. **`RUF100`** bilinçli olarak kapalı: `# noqa: BLE001 - CLI boundary` gibi
+   kayıtlar niyet belgeler; `RUF100` bunları "kullanılmayan" sayıp siler.
+5. **mypy kapsamını genişlet** — `core/application`, sonra `infrastructure`;
+   iki paket de sıfıra indiğinde `files = ["core", "config", "cli", "scripts"]`.
 
 ---
 
@@ -134,12 +189,15 @@ yeni özellikte tekrar edebilir; kapı eklendiğinde bir daha sessizce geçemez.
 - [x] `RUNTIME_PROFILE` fail-open'ı uyarıya bağla.
 - [x] CI'a Python 3.11 uyumluluk matrisi ekle (3.10 EOL yaklaşıyor).
 
-### Aşama H2 — Borç azaltma (sonraki 1–2 PR)
-- [ ] R10: yığını §6'daki parçalara böl ve PR başına incele.
-- [ ] R12: lint ratchet kademe 1–3.
-- [ ] R11: `pip-tools`/`uv` ile `requirements*.lock` üret; CI kilidi kullansın.
-- [ ] R15: mypy baseline'ını temizle ve kapıyı bloklayıcı yap.
-- [ ] R14: `cli/main.py`'yi `cli/*_commands.py`'ye indirge.
+### Aşama H2 — Borç azaltma (devam ediyor)
+- [x] R10: yığın tek commit olarak indi (§6); bundan sonrası PR başına.
+- [x] R12: lint ratchet kademe 2 — ağaç temiz ve kapı bloklayıcı (§5).
+- [x] R11: `requirements-ci.lock.txt` üretildi ve 3.10 CI işi onu kuruyor;
+      GPU çalışma zamanı kilidi ayrı bir makine istiyor (açık madde).
+- [x] R15: kapsamlı mypy kapısı (`core/domain`, `config`, `cli`) bloklayıcı;
+      kalan 146 hata advisory raporda ve sıfırlandıkça kapsam genişleyecek.
+- [~] R14: `build_parser()` `cli/parsers/`'e taşındı, `main.py` 2585 → 1580;
+      kalan iş handler'ları `cli/*_commands.py`'ye indirmek.
 
 ### Aşama P1 — Pilot kapıları (ürün)
 - [ ] R13: çok-karakterli sahnede kimlik seçimi (sahne başına bible).
@@ -157,6 +215,14 @@ yeni özellikte tekrar edebilir; kapı eklendiğinde bir daha sessizce geçemez.
 
 ## 8. Doğrulama
 
-- `python -m pytest tests -q` → 1249 + yeni regresyon testi, yeşil.
-- `python -m ruff check .` → temiz (proje config'i).
-- CI `lint` işi ruff'ı bloklayıcı, mypy'yi advisory çalıştırır.
+- `python -m pytest tests -q` → **1249/1249 PASS** (3 yeni CLI yüzeyi testi).
+- `python -m ruff check .` → temiz (kademe 2 seçimi, `pyproject.toml`).
+- `python -m mypy` → **Success: no issues found in 228 source files** (bloklayıcı
+  kapsam); `python -m mypy core config cli --follow-imports=normal` → 146 hata
+  (advisory borç raporu).
+- `requirements-ci.lock.txt` çözülebilirliği `pip install --dry-run` ile
+doğrulandı (96 pin).
+- CLI taşıması davranış-nötr kanıtlandı: `build_parser()` `format_help()` çıktısı
+  ve argüman şeması önce/sonra birebir aynı (251 KB şema dökümü karşılaştırması).
+- CI `lint` işi ruff'ı ve kapsamlı mypy'yi bloklayıcı, tam depo mypy'sini advisory
+  çalıştırır.

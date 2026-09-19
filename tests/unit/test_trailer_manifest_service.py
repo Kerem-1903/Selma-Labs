@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import wave
 
+from core.application.services.episode_director_service import EpisodeDirectorService
 from core.application.services.trailer_animatic_service import TrailerAnimaticService
 from core.application.services.trailer_director_service import TrailerDirectorService
 from core.application.services.trailer_gate_service import TrailerGateService
@@ -10,7 +11,6 @@ from core.application.services.trailer_manifest_service import TrailerManifestSe
 from core.domain.value_objects.trailer_brief import TrailerBrief
 from core.domain.value_objects.trailer_plan import TrailerPlan
 from infrastructure.storage.local_fs_storage import LocalFsStorage
-from core.application.services.episode_director_service import EpisodeDirectorService
 
 
 def _plan() -> TrailerPlan:

@@ -56,8 +56,8 @@ from infrastructure.storage.local_fs_storage import LocalFsStorage
 from scripts.turnaround_silhouette import (
     compare_paths,
     normalized_silhouette,
-    subject_mask,
     silhouette_iou,
+    subject_mask,
 )
 
 #: The view whose pose each profile is supposed to depart from.

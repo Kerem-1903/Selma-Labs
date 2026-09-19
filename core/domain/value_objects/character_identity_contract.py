@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from core.domain.value_objects.character_creation_brief import (
     CharacterCreationBrief,
@@ -52,7 +53,7 @@ class CharacterIdentityContract:
             raise TypeError("CharacterIdentityContract signature_marks are invalid.")
 
     @classmethod
-    def from_brief(cls, brief: CharacterCreationBrief) -> "CharacterIdentityContract":
+    def from_brief(cls, brief: CharacterCreationBrief) -> CharacterIdentityContract:
         return cls(
             schema_version=1,
             character_id=brief.character_id,
@@ -73,7 +74,7 @@ class CharacterIdentityContract:
         )
 
     @classmethod
-    def from_bible(cls, bible: Any) -> "CharacterIdentityContract":
+    def from_bible(cls, bible: Any) -> CharacterIdentityContract:
         """Adapt the legacy CharacterBible without importing it here."""
         identity = bible.identity_constraints
         style = bible.style_profile
@@ -174,7 +175,7 @@ class CharacterIdentityContract:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "CharacterIdentityContract":
+    def from_dict(cls, data: Mapping[str, Any]) -> CharacterIdentityContract:
         raw_marks = data.get("signature_marks", ())
         if not isinstance(raw_marks, (list, tuple)):
             raise ValueError("signature_marks must be a list.")

@@ -1,9 +1,9 @@
-import pytest
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.value_objects.character_identity import IdentityConstraints, ReferenceView
 from core.domain.value_objects.character_reference import CharacterReference
-from core.domain.value_objects.style_profile import StyleProfile
 from core.domain.value_objects.outfit import Outfit
+from core.domain.value_objects.style_profile import StyleProfile
+
 
 def test_identity_constraints_serialization():
     constraints = IdentityConstraints(

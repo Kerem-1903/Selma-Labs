@@ -30,7 +30,7 @@ class ShotStoryboard:
             sequence_indexes.add(frame.sequence_index)
 
     @staticmethod
-    def create(shot_contract_id: str) -> "ShotStoryboard":
+    def create(shot_contract_id: str) -> ShotStoryboard:
         if not shot_contract_id.strip():
             raise ValueError("shot_contract_id must not be empty.")
         now = datetime.now(timezone.utc)
@@ -42,7 +42,7 @@ class ShotStoryboard:
             updated_at=now,
         )
 
-    def with_frame(self, frame: StoryboardFrame) -> "ShotStoryboard":
+    def with_frame(self, frame: StoryboardFrame) -> ShotStoryboard:
         if frame.shot_contract_id != self.shot_contract_id:
             raise ValueError("Storyboard frame belongs to another shot contract.")
         if any(existing.sequence_index == frame.sequence_index for existing in self.frames):
@@ -65,7 +65,7 @@ class ShotStoryboard:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ShotStoryboard":
+    def from_dict(cls, data: dict[str, Any]) -> ShotStoryboard:
         storyboard = cls(
             id=str(data["id"]),
             shot_contract_id=str(data["shot_contract_id"]),

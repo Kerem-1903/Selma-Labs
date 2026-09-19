@@ -9,7 +9,6 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
@@ -24,7 +23,6 @@ from infrastructure.providers.keyframe.comfyui_keyframe_provider import (  # noq
     ComfyUIKeyframeProvider,
 )
 from infrastructure.storage.local_fs_storage import LocalFsStorage  # noqa: E402
-
 
 SEED = 2275216479
 CANONICAL_KEY = "characters/kaito/v5/fullbody_anchor.png"

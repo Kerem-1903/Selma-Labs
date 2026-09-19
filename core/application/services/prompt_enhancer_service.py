@@ -1,6 +1,6 @@
-import aiohttp
 import logging
-from config.settings import get_settings
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 

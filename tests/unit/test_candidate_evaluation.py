@@ -1,7 +1,13 @@
 import pytest
-from core.domain.entities.candidate.keyframe_candidate import KeyframeCandidate, CandidateStatus
-from infrastructure.repositories.candidate.sqlite_keyframe_candidate_repository import SqliteKeyframeCandidateRepository
-from core.application.services.candidate.candidate_evaluation_service import CandidateEvaluationService
+
+from core.application.services.candidate.candidate_evaluation_service import (
+    CandidateEvaluationService,
+)
+from core.domain.entities.candidate.keyframe_candidate import CandidateStatus, KeyframeCandidate
+from infrastructure.repositories.candidate.sqlite_keyframe_candidate_repository import (
+    SqliteKeyframeCandidateRepository,
+)
+
 
 @pytest.fixture
 def repo():

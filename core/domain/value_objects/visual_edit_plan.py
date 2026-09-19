@@ -48,7 +48,7 @@ class VisualEditBeat:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "VisualEditBeat":
+    def from_dict(data: dict[str, Any]) -> VisualEditBeat:
         return VisualEditBeat(
             index=int(data["index"]),
             start_ms=int(data["start_ms"]),
@@ -101,7 +101,7 @@ class VisualEditPlan:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "VisualEditPlan":
+    def from_dict(data: dict[str, Any]) -> VisualEditPlan:
         return VisualEditPlan(
             beats=tuple(
                 VisualEditBeat.from_dict(dict(item))

@@ -2,7 +2,6 @@ import asyncio
 import os
 import tempfile
 from pathlib import Path
-from typing import List
 
 import httpx
 
@@ -35,7 +34,7 @@ class FfmpegFrameExtractor(FrameExtractionPort):
         self._thumbnail_timeout_seconds = thumbnail_timeout_seconds
         self._thumbnail_transport = thumbnail_transport
 
-    async def extract_frames(self, asset: MediaAsset, count: int) -> List[bytes]:
+    async def extract_frames(self, asset: MediaAsset, count: int) -> list[bytes]:
         local_source = (
             str(Path(asset.local_path).resolve())
             if asset.local_path and Path(asset.local_path).is_file()

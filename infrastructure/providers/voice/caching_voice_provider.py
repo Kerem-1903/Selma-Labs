@@ -27,7 +27,6 @@ import json
 import logging
 from dataclasses import asdict
 from pathlib import Path
-from typing import Optional
 
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.value_objects.generated_audio import GeneratedAudio
@@ -85,10 +84,10 @@ class CachingVoiceProvider(VoiceGeneratorPort):
         )
         payload = (
             f"{self._provider_identity}|{voice_name}|{direction_payload}|{text}"
-        ).encode("utf-8")
+        ).encode()
         return hashlib.sha256(payload).hexdigest()
 
-    def _read_cache(self, key: str) -> Optional[GeneratedAudio]:
+    def _read_cache(self, key: str) -> GeneratedAudio | None:
         meta_path = self._cache_dir / f"{key}.json"
         audio_path = self._cache_dir / f"{key}.mp3"
         if not meta_path.exists() or not audio_path.exists():

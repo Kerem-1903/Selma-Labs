@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import logging
 import os
 import sys
 import tempfile
@@ -12,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from cli.parsers import build_parser
 from config.container import AnimationContainer, create_container
 from core.application.services.hierarchical_shot_planning_service import (
     HierarchicalShotPlanningService,
@@ -22,1021 +24,7 @@ from core.domain.entities.episode_script import EpisodeScript
 from core.domain.entities.shot_animation import ShotPlan
 from core.domain.value_objects.story_review import StoryDevelopmentResult
 
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="SELMA Labs anime production CLI")
-    commands = parser.add_subparsers(dest="command", required=True)
-
-    series = commands.add_parser("series", help="Inspect a multi-character anime series")
-    series_commands = series.add_subparsers(dest="series_command", required=True)
-    series_status = series_commands.add_parser(
-        "status", help="Validate the series style lock and character registry"
-    )
-    series_status.add_argument(
-        "--project", default="config/series/selma-anime-v1.json"
-    )
-    series_style_approve = series_commands.add_parser(
-        "approve-style", help="Create a human creative Style Approval Receipt"
-    )
-    series_style_approve.add_argument(
-        "--project", default="config/series/selma-anime-v1.json"
-    )
-    series_style_approve.add_argument("--approved-by", required=True)
-    series_style_approve.add_argument(
-        "--check", action="append", dest="checks", default=[],
-        help="Confirm one creative style criterion; repeat as needed",
-    )
-    series_style_promote = series_commands.add_parser(
-        "promote-style", help="Promote the persisted creative style receipt"
-    )
-    series_style_promote.add_argument(
-        "--project", default="config/series/selma-anime-v1.json"
-    )
-    series_lock_create = series_commands.add_parser(
-        "create-production-lock", help="Create a pending technical production style lock"
-    )
-    series_lock_create.add_argument(
-        "--project", default="config/series/selma-anime-v1.json"
-    )
-    series_lock_create.add_argument(
-        "--workflow", default="assets/comfyui_keyframe_workflow.json"
-    )
-    series_lock_create.add_argument("--receipt-sha256", required=True)
-    series_lock_create.add_argument("--width", type=int, default=768)
-    series_lock_create.add_argument("--height", type=int, default=1152)
-    series_lock_create.add_argument("--sampler", default="euler")
-    series_lock_create.add_argument("--steps", type=int, default=24)
-    series_lock_create.add_argument("--cfg", type=float, default=5.0)
-    series_lock_create.add_argument("--denoise", type=float, default=0.65)
-    series_lock_create.add_argument("--lock-version", type=int, default=1)
-    series_lock_smoke = series_commands.add_parser(
-        "smoke-production-lock",
-        help=(
-            "Render one frame through the pending production lock and write its "
-            "smoke-test receipt"
-        ),
-    )
-    series_lock_smoke.add_argument(
-        "--project", default="config/series/selma-anime-v1.json"
-    )
-    series_lock_smoke.add_argument(
-        "--workflow", default="assets/comfyui_keyframe_workflow.json"
-    )
-    series_lock_smoke.add_argument(
-        "--receipt", required=True, help="Where to write the smoke-test receipt JSON"
-    )
-    series_lock_smoke.add_argument(
-        "--image", help="Smoke frame path; defaults beside the receipt"
-    )
-    series_lock_smoke.add_argument(
-        "--seed", type=int, help="Override the deterministic smoke seed"
-    )
-    series_lock_smoke.add_argument(
-        "--full-model-hash",
-        action="store_true",
-        help="Hash every locked weight instead of checking size only",
-    )
-    series_lock_compatible = series_commands.add_parser(
-        "mark-production-compatible",
-        help="Attach a real smoke-test receipt and enable production",
-    )
-    series_lock_compatible.add_argument(
-        "--project", default="config/series/selma-anime-v1.json"
-    )
-    series_lock_compatible.add_argument("--smoke-receipt", required=True)
-    series_register = series_commands.add_parser(
-        "register-character", help="Add one Character Bible to the series cast"
-    )
-    series_register.add_argument(
-        "--project", default="config/series/selma-anime-v1.json"
-    )
-    series_register.add_argument("--bible", required=True)
-    series_register.add_argument("--role", required=True)
-    series_register.add_argument("--version", type=int, default=1)
-    series_register.add_argument(
-        "--status", choices=("DRAFT", "CANONICAL", "RETIRED"), default="DRAFT"
-    )
-
-    character = commands.add_parser("character", help="Inspect canonical characters")
-    character_commands = character.add_subparsers(
-        dest="character_command", required=True
-    )
-    character_show = character_commands.add_parser(
-        "show", help="Show an explicitly selected Character Bible"
-    )
-    character_show.add_argument("--input", required=True, help="Character Bible JSON")
-    character_init = character_commands.add_parser(
-        "init", help="Create a Character Bible from a descriptive brief"
-    )
-    character_init.add_argument("--brief", required=True)
-    character_init.add_argument("--output", required=True)
-    character_lock_narrative = character_commands.add_parser(
-        "lock-narrative",
-        help=(
-            "Lock a character's narrative canon on its own, without "
-            "producing or claiming any visual asset"
-        ),
-    )
-    character_lock_narrative.add_argument(
-        "--input", required=True, help="Character Bible JSON"
-    )
-    character_lock_narrative.add_argument(
-        "--approved-by", required=True, help="Named human locking this narrative canon"
-    )
-    character_lock_narrative.add_argument(
-        "--output", required=True, help="Character Bible JSON to write back"
-    )
-    character_lock_narrative.add_argument(
-        "--receipt",
-        help=(
-            "Approval receipt path; defaults to "
-            "output/preproduction/narrative-locks/<character_id>.json"
-        ),
-    )
-    character_create = character_commands.add_parser(
-        "create", help="Generate canonical design choices from a character brief"
-    )
-    character_create.add_argument("--brief", required=True)
-    character_create.add_argument("--manifest", required=True)
-    character_create.add_argument("--output-prefix", default="characters")
-    character_create.add_argument("--count", type=int, default=5)
-    character_create.add_argument(
-        "--run-id",
-        help="Optional unique run label; generated automatically when omitted",
-    )
-    character_create.add_argument(
-        "--style-reference",
-        help=(
-            "Optional local image (e.g. an approved Akira frame) used ONLY as a "
-            "low-weight visual style seed; the new character's identity comes "
-            "from the brief text"
-        ),
-    )
-    character_create.add_argument(
-        "--style-weight",
-        type=float,
-        default=0.35,
-        help="IP-Adapter weight for the style seed (0 < weight <= 1; default 0.35)",
-    )
-    character_import = character_commands.add_parser(
-        "import-image", help="Register a supplied front-view image as an unapproved canonical candidate"
-    )
-    character_import.add_argument("--brief", required=True)
-    character_import.add_argument("--image", required=True)
-    character_import.add_argument("--manifest", required=True)
-    character_import.add_argument("--output-prefix", default="characters")
-    character_import.add_argument("--run-id")
-    character_benchmark = character_commands.add_parser(
-        "benchmark-validate",
-        help="Validate a versioned character quality benchmark and its image",
-    )
-    character_benchmark.add_argument("--benchmark", required=True)
-    character_tournament = character_commands.add_parser(
-        "turnaround-tournament",
-        help=(
-            "Render one approved source through several model locks and "
-            "compare drift to decide local vs rented compute"
-        ),
-    )
-    character_tournament.add_argument("--benchmark", required=True)
-    character_tournament.add_argument("--brief", required=True)
-    character_tournament.add_argument(
-        "--source-storage-key",
-        required=True,
-        help="Approved canonical image inside the keyframe storage root",
-    )
-    character_tournament.add_argument(
-        "--model-lock",
-        action="append",
-        dest="model_locks",
-        required=True,
-        help="Model lock to test; repeat for each checkpoint",
-    )
-    character_tournament.add_argument("--output", required=True)
-    character_tournament.add_argument(
-        "--seeds",
-        type=int,
-        default=3,
-        help="Seeds rendered per view (1-6); each variant sees the identical set",
-    )
-    character_tournament.add_argument("--seed-base", type=int, default=42)
-    character_tournament.add_argument("--run-id")
-    character_tournament.add_argument(
-        "--output-prefix", default="benchmarks/turnaround"
-    )
-    character_tournament.add_argument("--thresholds")
-    character_benchmark_run = character_commands.add_parser(
-        "benchmark-run",
-        help="Run a fair text-only character quality tournament across model locks",
-    )
-    character_benchmark_run.add_argument("--benchmark", required=True)
-    character_benchmark_run.add_argument("--brief", required=True)
-    character_benchmark_run.add_argument(
-        "--model-lock",
-        action="append",
-        dest="model_locks",
-        required=True,
-        help="Model lock to test; repeat for each checkpoint",
-    )
-    character_benchmark_run.add_argument("--output", required=True)
-    character_benchmark_run.add_argument("--count", type=int, default=3)
-    character_benchmark_run.add_argument(
-        "--run-id",
-        help="Stable tournament run id; generated automatically when omitted",
-    )
-    character_consistency = character_commands.add_parser(
-        "view-consistency-report",
-        help="Audit existing character view-pack consistency evidence",
-    )
-    character_consistency.add_argument("--view-pack", required=True)
-    character_consistency.add_argument("--brief", required=True)
-    character_consistency.add_argument("--manifest")
-    character_consistency.add_argument("--human-review")
-    character_consistency.add_argument("--output")
-    character_drift = character_commands.add_parser(
-        "drift-report",
-        help=(
-            "Measure advisory pixel drift between an approved source and a "
-            "generated turnaround pack"
-        ),
-    )
-    character_drift.add_argument("--source", required=True)
-    character_drift.add_argument(
-        "--pack",
-        help="Turnaround directory to read VIEW.png files from",
-    )
-    character_drift.add_argument(
-        "--view",
-        action="append",
-        dest="drift_views",
-        help="Explicit VIEW=path entry; repeat per view",
-    )
-    character_drift.add_argument(
-        "--accent-colour",
-        default=None,
-        help=(
-            "#RRGGBB accent used for signature-mark and accent-fraction "
-            "metrics; defaults to the configured accent, pass an empty value "
-            "to disable those metrics"
-        ),
-    )
-    character_drift.add_argument(
-        "--mark-side",
-        default=None,
-        choices=["", "left", "right"],
-        help=(
-            "Body side the signature mark is bound to, for mirror detection; "
-            "defaults to the configured side, pass an empty value to disable "
-            "the mark checks"
-        ),
-    )
-    character_drift.add_argument(
-        "--thresholds", help="Previously calibrated thresholds JSON"
-    )
-    character_drift.add_argument(
-        "--calibrate",
-        action="store_true",
-        help="Derive thresholds from an already accepted pack instead of reporting",
-    )
-    character_drift.add_argument("--margin", type=float, default=1.35)
-    character_drift.add_argument("--output")
-    character_qc_calibration = character_commands.add_parser(
-        "qc-calibration-create",
-        help="Create a human-labelled character QC calibration manifest",
-    )
-    character_qc_calibration.add_argument("--storage-root", default="output/production")
-    character_qc_calibration.add_argument(
-        "--benchmark-prefix", default="benchmarks/akira-quality-v1"
-    )
-    character_qc_calibration.add_argument("--output", required=True)
-    character_qc_calibration.add_argument("--minimum-images", type=int, default=50)
-    character_qc_calibration.add_argument("--maximum-images", type=int, default=100)
-    character_qc_summary = character_commands.add_parser(
-        "qc-calibration-summarize",
-        help="Summarize completed human labels in a QC calibration manifest",
-    )
-    character_qc_summary.add_argument("--manifest", required=True)
-    character_qc_summary.add_argument("--output")
-    character_approve_design = character_commands.add_parser(
-        "approve-design", help="Lock one generated design as the canonical character"
-    )
-    character_approve_design.add_argument("--brief", required=True)
-    character_approve_design.add_argument("--manifest", required=True)
-    character_approve_design.add_argument("--candidate-key", required=True)
-    character_approve_design.add_argument("--approved-by", required=True)
-    character_approve_design.add_argument("--output", required=True)
-    character_approve_design.add_argument("--output-prefix", default="characters")
-    character_approve_design.add_argument("--version", type=int, default=1)
-    character_approve_design.add_argument(
-        "--confirm-brief-consistency",
-        action="store_true",
-        help="Explicitly confirm that a supplied image does not conflict with the brief",
-    )
-    character_turnaround = character_commands.add_parser(
-        "turnaround",
-        help="Generate the seven neutral reference drafts from an approved design",
-    )
-    character_turnaround.add_argument("--brief", required=True)
-    character_turnaround.add_argument("--approval", required=True)
-    character_turnaround.add_argument("--manifest", required=True)
-    character_turnaround.add_argument("--output-prefix", default="characters")
-    character_turnaround.add_argument(
-        "--seeds",
-        type=int,
-        default=1,
-        help=(
-            "Render this many seeds per view and keep the least-drifted one "
-            "(1-6; only meaningful for the source-led edit dialect)"
-        ),
-    )
-    character_turnaround.add_argument(
-        "--view",
-        action="append",
-        dest="rerender_views",
-        default=[],
-        help=(
-            "Re-render only this view inside an existing pack and keep every "
-            "other view byte-identical; repeat per view. The replaced render is "
-            "archived as quarantine evidence, and the new attempt uses a seed "
-            "block that has never been drawn"
-        ),
-    )
-    character_turnaround.add_argument(
-        "--restore-superseded",
-        action="store_true",
-        help=(
-            "Undo a targeted re-render for the named --view entries: put the "
-            "archived render back and file the render it displaces. Nothing is "
-            "drawn"
-        ),
-    )
-    character_turnaround.add_argument(
-        "--restored-by",
-        help="Human whose verdict restores the archived renders (required with --restore-superseded)",
-    )
-    character_turnaround.add_argument(
-        "--reason",
-        default="",
-        help="Why the archived render is preferred; recorded in the restore receipt",
-    )
-    pose_pack = character_commands.add_parser(
-        "pose-pack", help="Generate or approve the five-pose pre-animation character pack"
-    )
-    pose_pack_commands = pose_pack.add_subparsers(
-        dest="pose_pack_command", required=True
-    )
-    pose_pack_generate = pose_pack_commands.add_parser(
-        "generate", help="Generate a resumable five-pose pack from a canonical approval"
-    )
-    pose_pack_generate.add_argument("--brief", required=True)
-    pose_pack_generate.add_argument("--approval", required=True)
-    pose_pack_generate.add_argument(
-        "--active-series",
-        default="config/series/selma-anime-v1.json",
-        help="Active series manifest; Production resolves style only from this file",
-    )
-    pose_pack_generate.add_argument("--manifest", required=True)
-    pose_pack_generate.add_argument("--output-prefix", default="characters")
-    pose_pack_generate.add_argument("--run-id")
-    pose_pack_approve = pose_pack_commands.add_parser(
-        "approve", help="Human-approve a complete five-pose character pack"
-    )
-    pose_pack_approve.add_argument("--manifest", required=True)
-    pose_pack_approve.add_argument("--approved-by", required=True)
-    pose_pack_approve.add_argument(
-        "--check", action="append", dest="checks", default=[],
-        help="Confirm one pose-pack check; repeat for all five checks",
-    )
-    pose_pack_reject = pose_pack_commands.add_parser(
-        "reject",
-        help=(
-            "Record a human refusal of a pose pack; a rejected pack can never "
-            "be approved afterwards"
-        ),
-    )
-    pose_pack_reject.add_argument("--manifest", required=True)
-    pose_pack_reject.add_argument("--rejected-by", required=True)
-    pose_pack_reject.add_argument(
-        "--reason", required=True, help="Why the pack was refused; stored verbatim"
-    )
-    pose_pack_reject.add_argument(
-        "--superseded-by-version",
-        type=int,
-        help="Character version that replaces this one, when already known",
-    )
-    pose_pack_rerender = pose_pack_commands.add_parser(
-        "rerender",
-        help=(
-            "Redraw only the poses whose pose guide changed, in place, and file "
-            "the displaced bytes as quarantine evidence"
-        ),
-    )
-    pose_pack_rerender.add_argument("--brief", required=True)
-    pose_pack_rerender.add_argument("--approval", required=True)
-    pose_pack_rerender.add_argument(
-        "--manifest",
-        required=True,
-        help="Storage key of the pose-pack manifest, as recorded in the pack",
-    )
-    pose_pack_rerender.add_argument("--authorized-by", required=True)
-    pose_pack_rerender.add_argument(
-        "--reason", required=True, help="Why the redraw is allowed; stored verbatim"
-    )
-    pose_pack_rerender.add_argument(
-        "--output",
-        help="Optional path to write the redrawn manifest receipt to",
-    )
-    pose_pack_batch = pose_pack_commands.add_parser(
-        "batch", help="Run resumable pose-pack generation for a JSON job list"
-    )
-    pose_pack_batch.add_argument("--jobs", required=True)
-    pose_pack_batch.add_argument("--manifest", required=True)
-    pose_pack_batch.add_argument(
-        "--active-series",
-        default="config/series/selma-anime-v1.json",
-        help="Active series whose production style lock is pinned at batch start",
-    )
-    pose_pack_batch.add_argument(
-        "--workflow",
-        default="assets/comfyui_keyframe_workflow.json",
-        help="Workflow whose hash is verified against the production style lock",
-    )
-    pose_pack_batch.add_argument("--stop-on-error", action="store_true")
-    character_reject_views = character_commands.add_parser(
-        "reject-view-pack",
-        help=(
-            "Record a human refusal of a view pack; a rejected pack can never "
-            "be approved afterwards"
-        ),
-    )
-    character_reject_views.add_argument("--character", required=True)
-    character_reject_views.add_argument("--version", default="v1")
-    character_reject_views.add_argument("--rejected-by", required=True)
-    character_reject_views.add_argument(
-        "--reason", required=True, help="Why the pack was refused; stored verbatim"
-    )
-    character_reject_views.add_argument("--output")
-    character_reject_views.add_argument("--output-prefix", default="characters")
-    character_reject_views.add_argument(
-        "--superseded-by-version",
-        type=int,
-        help="Character version that replaces this one, when already known",
-    )
-    character_approve_views = character_commands.add_parser(
-        "approve-view-pack",
-        help="Human-approve a complete QC-passed seven-view pack",
-    )
-    character_approve_views.add_argument("--character", required=True)
-    character_approve_views.add_argument("--version", default="v1")
-    character_approve_views.add_argument("--approved-by", default="local-operator")
-    character_approve_views.add_argument("--output")
-    character_approve_views.add_argument("--output-prefix", default="characters")
-    character_approve_views.add_argument(
-        "--acceptance",
-        help=(
-            "Path to the character acceptance list JSON; defaults to "
-            "config/character_acceptance/<character>-v<version>.json"
-        ),
-    )
-    character_approve_views.add_argument(
-        "--check",
-        action="append",
-        dest="checks",
-        default=[],
-        help=(
-            "Confirm one human acceptance check id; repeat for every item "
-            "in the acceptance list"
-        ),
-    )
-    character_plan = character_commands.add_parser(
-        "plan", help="Create a reusable 20+3 character reference recipe"
-    )
-    character_plan.add_argument("--input", required=True, help="Character Bible JSON")
-    character_plan.add_argument("--output", required=True, help="Onboarding plan JSON")
-    character_anchor = character_commands.add_parser(
-        "anchor", help="Generate one unapproved identity anchor"
-    )
-    character_anchor.add_argument("--input", required=True, help="Character Bible JSON")
-    character_anchor.add_argument("--output-prefix", default="character-candidates")
-    character_anchor.add_argument(
-        "--count", type=int, default=3, help="Number of unapproved anchor candidates"
-    )
-    character_anchor.add_argument(
-        "--source-reference-key",
-        help="Optional storage key used to bootstrap a reference-locked anchor",
-    )
-    character_references = character_commands.add_parser(
-        "references", help="Generate the 20+3 candidate pack from an approved anchor"
-    )
-    character_references.add_argument(
-        "--input", required=True, help="Character Bible JSON"
-    )
-    character_references.add_argument("--approved-anchor-key", required=True)
-    character_references.add_argument("--output-prefix", default="character-candidates")
-    character_references.add_argument("--manifest", required=True)
-    character_references.add_argument(
-        "--limit", type=int, help="Generate only the first N recipes for a pilot run"
-    )
-    character_references.add_argument(
-        "--recipe-offset",
-        type=int,
-        default=0,
-        help="Zero-based recipe index to start from; lets staged runs skip already-covered views",
-    )
-    character_references.add_argument(
-        "--defer-visual-review",
-        action="store_true",
-        help="Keep candidates pending when no trustworthy vision model is available",
-    )
-    character_references.add_argument(
-        "--pilot-approval",
-        help="Human pilot-approval receipt required for more than one recipe",
-    )
-    character_references.add_argument(
-        "--seed-offset",
-        type=int,
-        default=0,
-        help="Deterministic pilot variation; use 0, 10000, 20000, ...",
-    )
-    character_references.add_argument(
-        "--pose-references",
-        help=(
-            "JSON file mapping every selected ACTION_* view to an OpenPose "
-            "PNG storage key"
-        ),
-    )
-    character_pilot_approve = character_commands.add_parser(
-        "approve-pilot", help="Approve the identity/framing pilot after visual review"
-    )
-    character_pilot_approve.add_argument("--input", required=True)
-    character_pilot_approve.add_argument("--approved-anchor-key", required=True)
-    character_pilot_approve.add_argument("--pilot-key", required=True)
-    character_pilot_approve.add_argument("--approved-by", required=True)
-    character_pilot_approve.add_argument("--output", required=True)
-    for check in (
-        "face-match",
-        "hair-match",
-        "immutable-marks-match",
-        "outfit-match",
-        "framing-match",
-        "anatomy-pass",
-    ):
-        character_pilot_approve.add_argument(f"--{check}", action="store_true")
-    character_approve = character_commands.add_parser(
-        "approve-references",
-        help="Register human-selected reference candidates in a Character Bible",
-    )
-    character_approve.add_argument(
-        "--input", required=True, help="Character Bible JSON"
-    )
-    character_approve.add_argument("--selections", required=True)
-    character_approve.add_argument("--approved-by", required=True)
-    character_approve.add_argument("--output", required=True)
-    character_approve.add_argument(
-        "--lock-narrative",
-        action="store_true",
-        help="Also confirm and lock the narrative profile",
-    )
-    character_dataset = character_commands.add_parser(
-        "dataset", help="Build a LoRA dataset with character-specific captions"
-    )
-    character_dataset.add_argument(
-        "--input", required=True, help="Character Bible JSON"
-    )
-    character_dataset.add_argument("--source", required=True)
-    character_dataset.add_argument("--output", required=True)
-    character_dataset.add_argument(
-        "--trigger-token",
-        help="Defaults to the character-specific schema-v2 trigger token",
-    )
-    character_dataset.add_argument(
-        "--review-manifest", help="Human review JSON for every source image"
-    )
-    character_dataset.add_argument(
-        "--canonical-anchor", help="Approved identity anchor used to verify lineage"
-    )
-    character_audit = character_commands.add_parser(
-        "audit-dataset", help="Audit an existing LoRA dataset without training"
-    )
-    character_audit.add_argument("--manifest", required=True)
-    character_audit.add_argument("--output")
-    character_review_template = character_commands.add_parser(
-        "review-template", help="Create a fail-closed per-image review form"
-    )
-    character_review_template.add_argument("--manifest", required=True)
-    character_review_template.add_argument("--canonical-anchor", required=True)
-    character_review_template.add_argument("--output", required=True)
-    character_train = character_commands.add_parser(
-        "train", help="Train a validated character LoRA with the 8 GB profile"
-    )
-    character_train.add_argument("--input", required=True, help="Character Bible JSON")
-    character_train.add_argument("--dataset", required=True)
-    character_train.add_argument("--base-model", required=True)
-    character_train.add_argument("--sd-scripts-dir", required=True)
-    character_train.add_argument("--output", required=True)
-    character_train.add_argument("--model-name", required=True)
-    character_train.add_argument("--steps", type=int, default=240)
-
-    background = commands.add_parser(
-        "background", help="Create consistent, character-free anime locations"
-    )
-    background_commands = background.add_subparsers(
-        dest="background_command", required=True
-    )
-    background_init = background_commands.add_parser(
-        "init", help="Create a Location Bible from a descriptive brief"
-    )
-    background_init.add_argument("--brief", required=True)
-    background_init.add_argument("--output", required=True)
-    background_plan = background_commands.add_parser(
-        "plan", help="Create the reusable 12-shot coverage plan"
-    )
-    background_plan.add_argument("--input", required=True)
-    background_plan.add_argument("--output", required=True)
-    background_generate = background_commands.add_parser(
-        "generate", help="Generate automatically reviewed clean background plates"
-    )
-    background_generate.add_argument("--input", required=True)
-    background_generate.add_argument("--output-prefix", default="background-candidates")
-    background_generate.add_argument("--manifest", required=True)
-    background_approve = background_commands.add_parser(
-        "approve", help="Human-approve a complete background pack and lock the location"
-    )
-    background_approve.add_argument("--input", required=True)
-    background_approve.add_argument("--manifest", required=True)
-    background_approve.add_argument("--approved-by", required=True)
-    background_approve.add_argument("--output", required=True)
-
-    episode = commands.add_parser(
-        "episode", help="Create an executable screenplay-to-timeline visual plan"
-    )
-    episode_commands = episode.add_subparsers(
-        dest="episode_command", required=True
-    )
-    episode_plan = episode_commands.add_parser(
-        "plan", help="Plan scene purpose, character poses, backgrounds, and a 24 FPS timeline"
-    )
-    episode_plan.add_argument("--input", required=True, help="Screenplay text or EpisodeScript JSON")
-    episode_plan.add_argument("--output", help="Optional JSON output path")
-    episode_plan.add_argument("--episode-id", default="episode-001")
-    episode_plan.add_argument("--title", default="Untitled episode")
-    episode_plan.add_argument("--director-provider", choices=("rules", "claude"), default="rules", help="Optional structured Episode Director provider")
-    episode_plan.add_argument("--director-model", default="claude-sonnet-4-5")
-    episode_plan.add_argument(
-        "--character-bible", action="append", dest="character_bibles", default=[],
-        help="Character Bible JSON; repeat for every available character",
-    )
-    episode_plan.add_argument(
-        "--location-bible", action="append", dest="location_bibles", default=[],
-        help="Location Bible JSON; repeat for every available location",
-    )
-    episode_plan.add_argument(
-        "--world-bible",
-        help=(
-            "World Bible JSON; its non-cast voices speak without joining the "
-            "cast, so they never order a pose pack"
-        ),
-    )
-    episode_plan.add_argument(
-        "--pose-pack", action="append", dest="pose_packs", default=[],
-        help="Generated five-pose manifest JSON; repeat for every available character",
-    )
-    episode_plan.add_argument(
-        "--background-pack", action="append", dest="background_packs", default=[],
-        help="Generated background candidate pack JSON; repeat for every location",
-    )
-    episode_prepare = episode_commands.add_parser(
-        "prepare", help="Prepare an episode plan and enumerate missing pose/background jobs"
-    )
-    episode_prepare.add_argument("--input", required=True, help="Screenplay text or EpisodeScript JSON")
-    episode_prepare.add_argument("--output", required=True, help="Preparation manifest and plan output path")
-    episode_prepare.add_argument("--episode-id", default="episode-001")
-    episode_prepare.add_argument("--title", default="Untitled episode")
-    episode_prepare.add_argument("--director-provider", choices=("rules", "claude"), default="rules", help="Optional structured Episode Director provider")
-    episode_prepare.add_argument("--director-model", default="claude-sonnet-4-5")
-    episode_prepare.add_argument(
-        "--character-bible", action="append", dest="character_bibles", default=[],
-        help="Character Bible JSON; repeat for every available character",
-    )
-    episode_prepare.add_argument(
-        "--location-bible", action="append", dest="location_bibles", default=[],
-        help="Location Bible JSON; repeat for every available location",
-    )
-    episode_prepare.add_argument(
-        "--world-bible",
-        help=(
-            "World Bible JSON; its non-cast voices speak without joining the "
-            "cast, so they never order a pose pack"
-        ),
-    )
-    episode_prepare.add_argument(
-        "--pose-pack", action="append", dest="pose_packs", default=[],
-        help="Generated five-pose manifest JSON; repeat for every available character",
-    )
-    episode_prepare.add_argument(
-        "--background-pack", action="append", dest="background_packs", default=[],
-        help="Generated background candidate pack JSON; repeat for every location",
-    )
-    episode_prepare.add_argument(
-        "--pose-job", action="append", dest="pose_jobs", default=[],
-        help="Pose-pack generation job JSON; repeat for each character",
-    )
-    episode_prepare.add_argument(
-        "--generate-assets", action="store_true",
-        help="Dispatch supplied pose jobs and required backgrounds before writing the plan",
-    )
-    episode_prepare.add_argument(
-        "--asset-mode", choices=("DISCOVERY", "PRODUCTION"), default="DISCOVERY",
-        help="Use deterministic fake providers or the configured production provider",
-    )
-    episode_prepare.add_argument(
-        "--asset-output-root",
-        help="Directory for generated asset manifests; defaults beside --output",
-    )
-    episode_prepare.add_argument(
-        "--active-series",
-        default="config/series/selma-anime-v1.json",
-        help="Production style-lock source used when dispatching pose generation",
-    )
-    episode_prepare.add_argument(
-        "--workflow",
-        default="assets/comfyui_keyframe_workflow.json",
-        help="ComfyUI workflow whose lock is used for production generation",
-    )
-    episode_prepare.add_argument("--resume", help="Previous preparation manifest to resume")
-    episode_prepare.add_argument(
-        "--retry-job", action="append", dest="retry_jobs", default=[],
-        help="Retry one failed preparation job; repeat for multiple jobs",
-    )
-    episode_inspect = episode_commands.add_parser(
-        "inspect", help="Inspect a previously generated Episode Director plan"
-    )
-    episode_inspect.add_argument("--input", required=True)
-    episode_inspect.add_argument(
-        "--full", action="store_true", help="Print the complete plan instead of a summary"
-    )
-    episode_animatic = episode_commands.add_parser(
-        "animatic", help="Build a reviewable 24 FPS animatic from an episode plan"
-    )
-    episode_animatic.add_argument("--input", required=True, help="Episode plan or preparation JSON")
-    episode_animatic.add_argument("--output", required=True, help="Animatic result JSON")
-    episode_animatic.add_argument(
-        "--mode", choices=("STRICT", "PLACEHOLDER"), default="STRICT",
-        help="Block on missing assets or render visible placeholders for review",
-    )
-    episode_animatic.add_argument(
-        "--storage-root", default="output/production",
-        help="Storage root containing resolved pose/background assets",
-    )
-    episode_animatic.add_argument(
-        "--audio-map", help="JSON mapping shot IDs to dialogue audio storage keys"
-    )
-    episode_animatic.add_argument(
-        "--motion-public-dir", default="motion/public",
-        help="Remotion public directory used when --export is enabled",
-    )
-    episode_animatic.add_argument(
-        "--export", action="store_true",
-        help="Copy resolved clips and write Remotion props.json",
-    )
-    episode_animatic.add_argument(
-        "--render", action="store_true",
-        help="Render the exported Remotion composition to MP4 and verify it with ffprobe",
-    )
-    episode_animatic.add_argument(
-        "--render-output", help="MP4 output path used with --render",
-    )
-
-    pilot = commands.add_parser(
-        "pilot", help="Run the narrow Akira/Kaito anime pilot golden path"
-    )
-    pilot_commands = pilot.add_subparsers(dest="pilot_command", required=True)
-    pilot_init = pilot_commands.add_parser(
-        "init", help="Create the editable 30–60 second pilot screenplay template"
-    )
-    pilot_init.add_argument("--output", required=True, help="Output .fountain screenplay")
-    pilot_init.add_argument("--pilot-id", default="kirik-kayit-pilot-v1")
-    pilot_init.add_argument("--title", default="Kırık Kayıt — Pilot")
-    pilot_check = pilot_commands.add_parser(
-        "check", help="Validate pilot duration, characters, location and 24 FPS constraints"
-    )
-    pilot_check.add_argument("--input", required=True, help="Pilot .fountain screenplay")
-    pilot_check.add_argument("--output", help="Optional readiness report JSON")
-    pilot_plan = pilot_commands.add_parser(
-        "plan", help="Convert a validated pilot screenplay into a 24 FPS shot plan"
-    )
-    pilot_plan.add_argument("--input", required=True, help="Pilot .fountain screenplay")
-    pilot_plan.add_argument("--output", required=True, help="Episode director plan JSON")
-    pilot_smoke = pilot_commands.add_parser(
-        "smoke", help="Render a five-second canonical-anchor media smoke test"
-    )
-    pilot_smoke.add_argument(
-        "--akira-image",
-        default="characters/akira/v5/canonical_source.png",
-        help="Canonical Akira anchor key under --storage-root",
-    )
-    pilot_smoke.add_argument(
-        "--kaito-image",
-        default="characters/kaito/v5/canonical_source.png",
-        help="Canonical Kaito anchor key under --storage-root",
-    )
-    pilot_smoke.add_argument(
-        "--storage-root", default="output/production",
-        help="Storage root containing canonical anchor files",
-    )
-    pilot_smoke.add_argument(
-        "--output", required=True, help="Smoke result JSON path"
-    )
-    pilot_smoke.add_argument(
-        "--motion-public-dir", default="motion/public",
-        help="Remotion public directory used for exported props",
-    )
-    pilot_smoke.add_argument(
-        "--render", action="store_true",
-        help="Render and ffprobe the five-second MP4",
-    )
-    pilot_smoke.add_argument(
-        "--browser-executable",
-        default="C:/Program Files/Google/Chrome/Application/chrome.exe",
-        help="Chrome/Chromium executable used by Remotion render",
-    )
-    pilot_smoke.add_argument(
-        "--render-output", default="output/pilot-anchor-smoke-5s.mp4",
-        help="MP4 output path used with --render",
-    )
-
-    trailer = commands.add_parser("trailer", help="Plan and inspect a locked 180-second trailer")
-    trailer_commands = trailer.add_subparsers(dest="trailer_command", required=True)
-    trailer_init = trailer_commands.add_parser("init", help="Write the locked EŞİK//80 trailer brief")
-    trailer_init.add_argument("--trailer-id", default="esik80-trailer-v1")
-    trailer_init.add_argument("--output", required=True)
-    trailer_plan = trailer_commands.add_parser("plan", help="Plan a traceable four-beat trailer from an episode plan")
-    trailer_plan.add_argument("--input", required=True, help="Episode plan or preparation JSON")
-    trailer_plan.add_argument("--output", required=True)
-    trailer_plan.add_argument("--brief", help="TrailerBrief JSON; defaults to the locked v1 brief")
-    trailer_inspect = trailer_commands.add_parser("inspect", help="Inspect a trailer plan")
-    trailer_inspect.add_argument("--input", required=True)
-    trailer_inspect.add_argument("--full", action="store_true")
-    trailer_package = trailer_commands.add_parser("package", help="Create auditable Wan2.2 shot packages")
-    trailer_package.add_argument("--input", required=True, help="Trailer plan JSON")
-    trailer_package.add_argument("--sources", required=True, help="JSON mapping shot IDs to source image and motion metadata")
-    trailer_package.add_argument("--output", required=True)
-    trailer_animatic = trailer_commands.add_parser("animatic", help="Build and optionally render a trailer animatic")
-    trailer_animatic.add_argument("--input", required=True, help="Trailer plan JSON")
-    trailer_animatic.add_argument("--output", required=True, help="Animatic result JSON")
-    trailer_animatic.add_argument("--assets", help="JSON mapping trailer shot IDs to asset keys")
-    trailer_animatic.add_argument("--audio-cues", help="JSON list of timeline-bound MUSIC/SFX cues")
-    trailer_animatic.add_argument("--shot-id", action="append", dest="shot_ids", default=[])
-    trailer_animatic.add_argument("--mode", choices=("STRICT", "PLACEHOLDER"), default="STRICT")
-    trailer_animatic.add_argument("--storage-root", default="output/production")
-    trailer_animatic.add_argument("--motion-public-dir", default="motion/public")
-    trailer_animatic.add_argument("--render", action="store_true")
-    trailer_animatic.add_argument("--render-output")
-    trailer_preflight = trailer_commands.add_parser("preflight", help="Check rented Wan2.2 worker configuration")
-    trailer_preflight.add_argument("--worker", required=True)
-
-    script = commands.add_parser("script", help="Break a script into executable shots")
-    script_commands = script.add_subparsers(dest="script_command", required=True)
-    breakdown = script_commands.add_parser("breakdown")
-    breakdown.add_argument("--input", required=True, help="UTF-8 text script")
-    breakdown.add_argument("--character-bible", required=True)
-    breakdown.add_argument("--script-id", required=True)
-    breakdown.add_argument("--output", help="Optional JSON output file")
-
-    story = commands.add_parser(
-        "story",
-        help="Review a screenplay against locked canon and record human approval",
-    )
-    story_commands = story.add_subparsers(dest="story_command", required=True)
-    for name, help_text in (
-        ("review", "Gate an existing screenplay through canon and story reviewers"),
-        ("approve", "Lock a review-ready screenplay under a named human approver"),
-    ):
-        story_command = story_commands.add_parser(name, help=help_text)
-        story_command.add_argument(
-            "--input", required=True, help="EpisodeScript JSON or Fountain screenplay"
-        )
-        story_command.add_argument(
-            "--episode-id",
-            default="episode-001",
-            help="Script id used when normalizing a Fountain screenplay",
-        )
-        story_command.add_argument(
-            "--title",
-            default="Untitled episode",
-            help="Episode title used when normalizing a Fountain screenplay",
-        )
-    story_commands.choices["approve"].add_argument(
-        "--approved-by", required=True, help="Named human approving the locked script"
-    )
-    story_commands.choices["review"].add_argument(
-        "--output", help="Optional JSON review report path; prints to stdout otherwise"
-    )
-    story_commands.choices["approve"].add_argument(
-        "--output",
-        help=(
-            "Optional locked-screenplay path, written only when the gate "
-            "passes; prints to stdout otherwise"
-        ),
-    )
-
-    render = commands.add_parser("render", help="Render approved anime shots")
-    render_commands = render.add_subparsers(dest="render_command", required=True)
-    shot = render_commands.add_parser("shot")
-    shot.add_argument("--plan", required=True, help="Shot JSON or breakdown JSON")
-    shot.add_argument("--shot-id", help="Required when --plan contains multiple shots")
-    shot.add_argument("--background-key", required=True)
-    shot.add_argument("--audio-key", required=True)
-    shot.add_argument("--output-key", required=True)
-
-    blender = commands.add_parser("blender", help="Blender Integration and A8.2 tools")
-    blender_commands = blender.add_subparsers(dest="blender_command", required=True)
-
-    register = blender_commands.add_parser("register-views")
-    register.add_argument(
-        "--input", required=True, help="Path to multiview reference image"
-    )
-
-    turntable = blender_commands.add_parser("turntable")
-    turntable.add_argument("--model", required=True, help="Path to 3D model")
-    turntable.add_argument(
-        "--output-dir", default="output/blender", help="Directory for output"
-    )
-    turntable.add_argument(
-        "--quality", default="preview", help="Render quality (preview, high)"
-    )
-
-    benchmark = blender_commands.add_parser("benchmark")
-    benchmark.add_argument("--model", required=True, help="Path to 3D model")
-
-    rig = commands.add_parser("rig", help="A9 Rig and Acting Validation Tools")
-    rig_commands = rig.add_subparsers(dest="rig_command", required=True)
-
-    validate = rig_commands.add_parser("validate")
-    validate.add_argument("--model", required=True, help="Path to blender model")
-
-    preview = rig_commands.add_parser("preview")
-    preview.add_argument("--model", required=True, help="Path to blender model")
-    preview.add_argument("--action", required=True, help="Action name to preview")
-    preview.add_argument(
-        "--output", default="output/blender/preview.mp4", help="Output video path"
-    )
-
-    preproduction = commands.add_parser(
-        "preproduction", help="Run the locked P1-P8 anime pre-production workflow"
-    )
-    preproduction_commands = preproduction.add_subparsers(
-        dest="preproduction_command", required=True
-    )
-    preproduction_commands.add_parser("status", help="Validate active canon locks")
-    golden_set = preproduction_commands.add_parser(
-        "golden-set", help="Generate a character's ten-image consistency set"
-    )
-    golden_set.add_argument("--character-id", default="akira")
-    golden_set.add_argument("--model-id", required=True)
-    golden_set.add_argument("--model-revision", required=True)
-    golden_set.add_argument(
-        "--output", help="Defaults to output/preproduction/<character>-golden-set.json"
-    )
-    production_plan = preproduction_commands.add_parser(
-        "plan", help="Convert an approved EpisodeScript JSON into a shot hierarchy"
-    )
-    production_plan.add_argument("--input", required=True)
-    production_plan.add_argument(
-        "--character-id",
-        required=True,
-        help=(
-            "Locked Character Bible that conditions the breakdown. Required on "
-            "purpose: a defaulted identity would silently label every shot with "
-            "the wrong character state."
-        ),
-    )
-    production_plan.add_argument("--output", required=True)
-
-    keyframe = commands.add_parser("keyframe", help="Keyframe generation tools")
-    keyframe_commands = keyframe.add_subparsers(dest="keyframe_command", required=True)
-    pair = keyframe_commands.add_parser(
-        "pair", help="Generate unapproved start/end frames with OpenPose"
-    )
-    pair.add_argument("--shot-id", required=True)
-    pair.add_argument("--character-id", default="akira")
-    pair.add_argument("--outfit-id", default="akira-default")
-    pair.add_argument("--prompt-start", required=True)
-    pair.add_argument("--prompt-end", required=True)
-    pair.add_argument("--start-pose", required=True)
-    pair.add_argument("--end-pose", required=True)
-    pair_approve = keyframe_commands.add_parser(
-        "approve-pair", help="Human-approve a generated start/end pair"
-    )
-    pair_approve.add_argument("--shot-id", required=True)
-    pair_approve.add_argument("--manifest", required=True)
-    pair_approve.add_argument("--approved-by", required=True)
-    pair_approve.add_argument(
-        "--check", action="append", dest="checks", default=[],
-        help="Confirm one pair check; repeat for all five required checks",
-    )
-
-    return parser
+logger = logging.getLogger(__name__)
 
 
 def main(
@@ -1503,7 +491,7 @@ async def _run_character_generation(
             raise ValueError(
                 "Selected design candidate is not present in the manifest."
             )
-        approval = await container.character_canonical_approval_service.approve_candidate(
+        design_approval = await container.character_canonical_approval_service.approve_candidate(
             brief,
             CharacterDesignCandidate.from_dict(selected),
             approved_by=arguments.approved_by,
@@ -1511,7 +499,7 @@ async def _run_character_generation(
             output_prefix=arguments.output_prefix,
             brief_consistency_confirmed=bool(arguments.confirm_brief_consistency),
         )
-        print(_write_json(arguments.output, approval.to_dict()))
+        print(_write_json(arguments.output, design_approval.to_dict()))
         return 0
     if arguments.character_command == "turnaround":
         from core.domain.value_objects.character_design import (
@@ -1522,7 +510,7 @@ async def _run_character_generation(
         raw_approval = json.loads(Path(arguments.approval).read_text(encoding="utf-8"))
         if not isinstance(raw_approval, dict):
             raise TypeError("Canonical approval receipt must contain an object.")
-        pack = await container.character_view_pack_generation_service.generate_canonical_views(
+        view_pack = await container.character_view_pack_generation_service.generate_canonical_views(
             brief,
             CharacterCanonicalApproval.from_dict(raw_approval),
             output_prefix=arguments.output_prefix,
@@ -1530,11 +518,11 @@ async def _run_character_generation(
             # requested sweep silently rendered a single seed per view.
             view_candidate_count=arguments.seeds,
         )
-        print(_write_json(arguments.manifest, pack.to_dict()))
+        print(_write_json(arguments.manifest, view_pack.to_dict()))
         return 0
     if arguments.character_command == "approve-view-pack":
         raw_version = str(arguments.version).strip().casefold().removeprefix("v")
-        approval = await container.character_view_pack_generation_service.approve_view_pack(
+        view_pack_approval = await container.character_view_pack_generation_service.approve_view_pack(
             character_id=arguments.character,
             character_version=int(raw_version),
             approved_by=arguments.approved_by,
@@ -1542,7 +530,7 @@ async def _run_character_generation(
             acceptance_path=arguments.acceptance,
             confirmed_checks=list(arguments.checks or []),
         )
-        payload = approval.to_dict()
+        payload = view_pack_approval.to_dict()
         if arguments.output:
             print(_write_json(arguments.output, payload))
         else:
@@ -1601,7 +589,7 @@ async def _run_character_generation(
                     "Pose references must be a JSON object of view-to-storage-key strings."
                 )
             pose_references = raw_pose_references
-        pack = await service.generate_reference_pack(
+        reference_pack = await service.generate_reference_pack(
             character,
             anchor_storage_key=arguments.approved_anchor_key,
             output_prefix=arguments.output_prefix,
@@ -1613,9 +601,9 @@ async def _run_character_generation(
             pose_references=pose_references,
         )
         payload = {
-            **pack.to_dict(),
+            **reference_pack.to_dict(),
             "automatic_review_deferred": arguments.defer_visual_review,
-            "pack_complete": len(pack.candidates) == 23,
+            "pack_complete": len(reference_pack.candidates) == 23,
             "seed_offset": arguments.seed_offset,
         }
         print(_write_json(arguments.manifest, payload))
@@ -1632,14 +620,14 @@ async def _run_character_generation(
                 "anatomy_pass",
             )
         }
-        approval = await service.approve_pilot(
+        pilot_approval = await service.approve_pilot(
             character,
             anchor_storage_key=arguments.approved_anchor_key,
             pilot_storage_key=arguments.pilot_key,
             approved_by=arguments.approved_by,
             checks=checks,
         )
-        print(_write_json(arguments.output, approval.to_dict()))
+        print(_write_json(arguments.output, pilot_approval.to_dict()))
         return 0
     if arguments.character_command == "approve-references":
         from dataclasses import replace
@@ -1665,8 +653,8 @@ async def _run_character_generation(
             character.narrative_profile = replace(
                 character.narrative_profile, locked=True
             )
-        report = CharacterBibleValidationService().validate(character)
-        if not report.is_complete:
+        validation_report = CharacterBibleValidationService().validate(character)
+        if not validation_report.is_complete:
             raise ValueError("Approved references unexpectedly became invalid.")
         print(
             _write_json(
@@ -1697,12 +685,12 @@ def _load_json_object(path: str | Path) -> dict[str, Any]:
 
 
 def _load_episode_plan_inputs(arguments: argparse.Namespace):
+    from core.application.services.asset_approval_service import AssetApprovalService
+    from core.domain.value_objects.asset_approval import AssetApprovalReceipt
     from core.domain.value_objects.background_production import (
         BackgroundCandidate,
         BackgroundCandidatePack,
     )
-    from core.application.services.asset_approval_service import AssetApprovalService
-    from core.domain.value_objects.asset_approval import AssetApprovalReceipt
     from core.domain.value_objects.character_pose_pack import (
         CharacterPosePackApproval,
         CharacterPosePackManifest,
@@ -1795,8 +783,15 @@ def _load_episode_plan_inputs(arguments: argparse.Namespace):
                     ),
                     approval_receipt=raw_receipt,
                 )
-            except Exception:
-                pass
+            except Exception as error:
+                # A receipt that does not verify leaves the pack unapproved; the
+                # reference project must not silently claim human approval.
+                logger.warning(
+                    "Ignoring unverifiable approval receipt for background pack "
+                    "'%s': %s",
+                    pack.location_id,
+                    error,
+                )
         background_packs[pack.location_id] = pack
     non_cast_voices: tuple[Any, ...] = ()
     if getattr(arguments, "world_bible", None):
@@ -1851,9 +846,9 @@ def _run_trailer_command(arguments: argparse.Namespace) -> int:
         return 0
     if arguments.trailer_command == "animatic":
         from core.application.services.trailer_animatic_service import TrailerAnimaticService
-        from infrastructure.storage.local_fs_storage import LocalFsStorage
         from core.domain.value_objects.trailer_audio_cue import TrailerAudioCue
         from core.domain.value_objects.trailer_plan import TrailerPlan
+        from infrastructure.storage.local_fs_storage import LocalFsStorage
         plan = TrailerPlan.from_dict(service.load(arguments.input))
         assets = service.load(arguments.assets) if arguments.assets else {}
         raw_cues = service.load(arguments.audio_cues) if arguments.audio_cues else []
@@ -1925,19 +920,24 @@ def _run_trailer_command(arguments: argparse.Namespace) -> int:
         print(json.dumps(Wan22PackageService.preflight(arguments.worker), ensure_ascii=False, indent=2))
         return 0
     if arguments.trailer_command == "inspect":
-        payload = service.load(arguments.input)
-        plan = payload
-        shots = plan.get("shots", [])
-        timeline = plan.get("timeline", {})
+        plan_payload = service.load(arguments.input)
+        shots = plan_payload.get("shots", [])
+        timeline = plan_payload.get("timeline", {})
         summary = {
-            "trailer_id": plan.get("timeline", {}).get("trailer_id", ""),
+            "trailer_id": plan_payload.get("timeline", {}).get("trailer_id", ""),
             "fps": timeline.get("fps"),
             "duration_frames": timeline.get("duration_frames"),
             "shot_count": len(shots) if isinstance(shots, list) else 0,
             "beat_count": len(timeline.get("beats", [])) if isinstance(timeline, dict) else 0,
-            "warnings": plan.get("warnings", []),
+            "warnings": plan_payload.get("warnings", []),
         }
-        print(json.dumps(plan if arguments.full else summary, ensure_ascii=False, indent=2))
+        print(
+            json.dumps(
+                plan_payload if arguments.full else summary,
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
         return 0
     raise ValueError(f"Unsupported trailer command: {arguments.trailer_command}")
 
@@ -2340,6 +1340,11 @@ async def _run_blender_commands(
             MultiviewAssetRegistrationService,
         )
 
+        if container.character_bible is None:
+            raise ValueError(
+                "register-views needs a character bible; the container was built "
+                "without one."
+            )
         service = MultiviewAssetRegistrationService(container.storage)
         updated_bible = await service.register_multiview_asset(
             bible=container.character_bible, image_path=arguments.input

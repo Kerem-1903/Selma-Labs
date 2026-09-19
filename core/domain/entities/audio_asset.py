@@ -71,7 +71,7 @@ class AudioAsset:
         sample_rate_hz: int | None = None,
         channels: int | None = None,
         metadata: dict[str, Any] | None = None,
-    ) -> "AudioAsset":
+    ) -> AudioAsset:
         return cls(
             id=str(uuid4()),
             source_provider=source_provider,
@@ -113,7 +113,7 @@ class AudioAsset:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AudioAsset":
+    def from_dict(cls, data: dict[str, Any]) -> AudioAsset:
         """Rehydrate an asset previously persisted in a pipeline artifact."""
         return cls(
             id=str(data["id"]),

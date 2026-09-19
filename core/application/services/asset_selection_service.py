@@ -1,11 +1,12 @@
 import logging
 import math
-from typing import Sequence
+from collections.abc import Sequence
+
+from core.application.selection.selection_rule import SelectionRule
+from core.domain.value_objects.adjusted_asset_score import AdjustedAssetScore
 from core.domain.value_objects.scene import Scene
 from core.domain.value_objects.scored_asset import ScoredAsset
-from core.domain.value_objects.adjusted_asset_score import AdjustedAssetScore
 from core.domain.value_objects.selection_context import SelectionContext
-from core.application.selection.selection_rule import SelectionRule
 
 logger = logging.getLogger(__name__)
 

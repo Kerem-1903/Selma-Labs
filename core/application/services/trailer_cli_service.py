@@ -9,7 +9,6 @@ from typing import Any
 from core.application.services.trailer_director_service import TrailerDirectorService
 from core.domain.value_objects.episode_director_plan import EpisodeDirectorPlan
 from core.domain.value_objects.trailer_brief import TrailerBrief
-from core.domain.value_objects.trailer_plan import TrailerPlan
 
 
 class TrailerCliService:

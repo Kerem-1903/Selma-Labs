@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from core.domain.exceptions import PreProductionValidationError
 
@@ -72,7 +73,7 @@ class Wan22AnimationPackage:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "Wan22AnimationPackage":
+    def from_dict(cls, data: Mapping[str, Any]) -> Wan22AnimationPackage:
         return cls(
             shot_id=str(data.get("shot_id", "")),
             source_image_key=str(data.get("source_image_key", "")),

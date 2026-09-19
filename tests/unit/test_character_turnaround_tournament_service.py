@@ -399,7 +399,6 @@ async def test_tournament_chains_views_through_the_shipped_request_shape(tmp_pat
 
 @pytest.mark.asyncio
 async def test_tournament_keeps_the_least_drifted_seed_per_view(tmp_path):
-    source = _source_png()
 
     class PerSeedProvider(CleanProvider):
         async def generate_keyframe(self, request):

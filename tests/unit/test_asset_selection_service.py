@@ -1,14 +1,16 @@
 import pytest
+
+from core.application.selection.rules.asset_reuse_rule import AssetReuseRule
+from core.application.selection.rules.keyword_fatigue_rule import KeywordFatigueRule
+from core.application.selection.rules.provider_fatigue_rule import ProviderFatigueRule
+from core.application.selection.selection_rule import SelectionRule
+from core.application.services.asset_selection_service import AssetSelectionService
 from core.domain.entities.media_asset import MediaAsset
-from core.domain.value_objects.scene import Scene
 from core.domain.value_objects.asset_score import AssetScore
+from core.domain.value_objects.scene import Scene
 from core.domain.value_objects.scored_asset import ScoredAsset
 from core.domain.value_objects.selection_context import SelectionContext
-from core.application.selection.rules.asset_reuse_rule import AssetReuseRule
-from core.application.selection.rules.provider_fatigue_rule import ProviderFatigueRule
-from core.application.selection.rules.keyword_fatigue_rule import KeywordFatigueRule
-from core.application.services.asset_selection_service import AssetSelectionService
-from core.application.selection.selection_rule import SelectionRule
+
 
 def dummy_asset(aid: str, provider: str, tags: list[str], score: float) -> ScoredAsset:
     return ScoredAsset(

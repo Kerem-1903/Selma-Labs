@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from core.domain.value_objects.trailer_plan import TrailerPlan
 from core.application.services.trailer_manifest_service import TrailerAssetManifest
+from core.domain.value_objects.trailer_plan import TrailerPlan
 
 
 class TrailerGateService:

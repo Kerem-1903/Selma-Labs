@@ -3,12 +3,11 @@ from __future__ import annotations
 import json
 import math
 
-from core.domain.entities.script import Script
 from core.application.services.narrative_quality_service import NarrativeQualityService
+from core.domain.entities.script import Script
 from core.domain.ports.script_rewriter_port import ScriptRewriterPort
 from core.domain.value_objects.fact_check_report import FactCheckReport
 from infrastructure.providers.nvidia.nvidia_chat_client import NvidiaChatClient
-
 
 SYSTEM_PROMPT = """You rewrite narration for short educational vertical videos.
 Use only facts directly stated in the supplied source extracts. Remove or replace

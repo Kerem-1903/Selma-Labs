@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path

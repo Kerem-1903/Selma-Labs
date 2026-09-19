@@ -282,7 +282,7 @@ class CharacterCanonicalApproval:
             raise PreProductionValidationError(
                 "Canonical approval must contain both anchors or neither."
             )
-        if self.face_anchor is not None:
+        if self.face_anchor is not None and self.fullbody_anchor is not None:
             if self.face_anchor.role != "FACE" or self.fullbody_anchor.role != "FULL_BODY":
                 raise PreProductionValidationError(
                     "Canonical approval anchor roles are not correctly assigned."

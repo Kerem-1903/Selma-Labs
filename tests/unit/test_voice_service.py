@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import pytest
 
-from core.application.services.voice_service import VoiceService
 from core.application.services.voice_direction_service import VoiceDirectionService
+from core.application.services.voice_service import VoiceService
 from core.domain.entities.script import Script
 from core.domain.exceptions import ProviderTimeoutError, StorageError, VoiceGenerationError
 from core.domain.ports.storage_port import StoragePort

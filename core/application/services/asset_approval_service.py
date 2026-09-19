@@ -5,8 +5,9 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 from core.domain.exceptions import PreProductionValidationError
 from core.domain.value_objects.asset_approval import AssetApprovalReceipt, derive_asset_state

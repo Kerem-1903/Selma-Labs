@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -13,7 +13,7 @@ class BlenderRenderManifest:
     output_video_path: str
     engine: str = "EEVEE"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "render_id": self.render_id,
             "frame_count": self.frame_count,
@@ -24,7 +24,7 @@ class BlenderRenderManifest:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "BlenderRenderManifest":
+    def from_dict(cls, data: dict[str, Any]) -> BlenderRenderManifest:
         return cls(
             render_id=data["render_id"],
             frame_count=int(data["frame_count"]),

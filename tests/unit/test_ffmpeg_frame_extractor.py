@@ -1,5 +1,6 @@
-import httpx
 from pathlib import Path
+
+import httpx
 
 from core.domain.entities.media_asset import MediaAsset
 from infrastructure.providers.frame_extraction.ffmpeg_frame_extractor import (

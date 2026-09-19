@@ -1,7 +1,8 @@
-from dataclasses import dataclass
-from typing import Mapping
-from types import MappingProxyType
 import math
+from collections.abc import Mapping
+from dataclasses import dataclass
+from types import MappingProxyType
+
 from core.domain.value_objects.scored_asset import ScoredAsset
 
 _EMPTY_PENALTIES: Mapping[str, float] = MappingProxyType({})

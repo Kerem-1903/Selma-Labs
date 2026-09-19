@@ -35,7 +35,7 @@ class NarrativeContract:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "NarrativeContract":
+    def from_dict(data: dict[str, Any]) -> NarrativeContract:
         return NarrativeContract(
             topic=str(data["topic"]),
             language=str(data.get("language") or "und"),
@@ -78,7 +78,7 @@ class NarrativeBeat:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "NarrativeBeat":
+    def from_dict(data: dict[str, Any]) -> NarrativeBeat:
         return NarrativeBeat(
             index=int(data["index"]),
             role=str(data["role"]),

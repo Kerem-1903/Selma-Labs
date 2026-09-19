@@ -1,4 +1,6 @@
-from core.application.services.narration_text_preparation_service import NarrationTextPreparationService
+from core.application.services.narration_text_preparation_service import (
+    NarrationTextPreparationService,
+)
 from core.domain.entities.script import Script
 
 

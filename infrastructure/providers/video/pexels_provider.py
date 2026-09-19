@@ -43,7 +43,6 @@ metadata for a future scene-matching sprint.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from typing import Optional
 
 import httpx
 
@@ -235,7 +234,7 @@ class PexelsProvider(VideoSourcePort):
         )
 
     @staticmethod
-    def _select_video_file(video_files: list[dict]) -> Optional[dict]:
+    def _select_video_file(video_files: list[dict]) -> dict | None:
         """Pick the best available encoded file: prefer mp4 files, then
         prefer 'hd' quality over 'sd'. Falls back to the first available
         file if nothing matches the preferred type/quality — still usable,

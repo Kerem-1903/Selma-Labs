@@ -16,13 +16,19 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.10"
+      # Pinned to the versions the lock file resolves, so the gate cannot change
+      # underneath a green run.
       - name: Install static-analysis tools
-        run: python -m pip install "ruff>=0.16.0" "mypy>=1.11.0"
-      - name: Ruff correctness gate
+        run: python -m pip install "ruff==0.16.8" "mypy==2.3.1"
+      - name: Ruff gate
         run: python -m ruff check .
-      - name: Mypy (advisory until the baseline is clean)
+      - name: Mypy gate (core/domain, config, cli)
+        run: python -m mypy
+      # Advisory: the debt still carried by core/application and infrastructure,
+      # counted in docs/CODE_REVIEW.md. Blocking once that count reaches zero.
+      - name: Mypy debt report (advisory)
         continue-on-error: true
-        run: python -m mypy core config cli
+        run: python -m mypy core config cli --follow-imports=normal
 
   a9-windows-contract:
     runs-on: windows-latest
@@ -64,14 +70,23 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-          cache-dependency-path: requirements-ci.txt
+          cache-dependency-path: |
+            requirements-ci.txt
+            requirements-ci.lock.txt
       - name: Install FFmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
-      - name: Install quality-gate dependencies
+      # The baseline installs the lock, so a green run pins every transitive
+      # version. The 3.11 job installs the loose specifiers on purpose: it is a
+      # compatibility signal, not the reproducible baseline.
+      - name: Install locked quality-gate dependencies
+        if: matrix.python-version == '3.10'
+        run: python -m pip install -r requirements-ci.lock.txt
+      - name: Install quality-gate dependencies (3.11 signal)
+        if: matrix.python-version == '3.11'
         run: python -m pip install -r requirements-ci.txt
       - name: Run Python tests
         run: python -m pytest -q

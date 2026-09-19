@@ -36,7 +36,7 @@ Sprint 2.1 until a second consumer of caching actually appears.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -46,21 +46,21 @@ class MediaAsset:
     provider_asset_id: str = ""
     media_type: str = "video"
     original_url: str = ""
-    thumbnail_url: Optional[str] = None
-    width: Optional[int] = None
-    height: Optional[int] = None
-    duration_seconds: Optional[float] = None
-    fps: Optional[float] = None
+    thumbnail_url: str | None = None
+    width: int | None = None
+    height: int | None = None
+    duration_seconds: float | None = None
+    fps: float | None = None
     tags: list[str] = field(default_factory=list)
     attribution: str = ""
     license: str = ""
-    local_path: Optional[str] = None
-    score: Optional[float] = None
+    local_path: str | None = None
+    score: float | None = None
     # Reserved for a future AI Vision analysis step (Sprint 6+ scene
     # matching). Empty and unread by anything in this sprint.
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def with_local_path(self, local_path: str) -> "MediaAsset":
+    def with_local_path(self, local_path: str) -> MediaAsset:
         """Return a copy of this asset with ``local_path`` set.
 
         MediaAsset is frozen like every other domain object in this

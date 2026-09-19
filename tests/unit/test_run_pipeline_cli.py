@@ -6,8 +6,7 @@ import sys
 
 from scripts.run_factory import build_arg_parser as factory_arg_parser
 from scripts.run_factory import main as factory_main
-from scripts.run_pipeline import build_arg_parser
-from scripts.run_pipeline import main
+from scripts.run_pipeline import build_arg_parser, main
 
 
 def test_compatibility_alias_exports_the_factory_entry_points():

@@ -31,7 +31,6 @@ from core.domain.value_objects.word_timing import WordTiming
 from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
 from infrastructure.providers.voice.elevenlabs_provider import ElevenLabsVoiceProvider
 
-
 OUTPUT_DIRECTORY = PROJECT_ROOT / "output" / "self-healing-english-v3"
 TITLE = "Self-Healing Materials"
 BASE_SCRIPT = (

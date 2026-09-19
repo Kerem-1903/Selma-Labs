@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import pytest
 from contextlib import asynccontextmanager
+
+import pytest
 
 from core.application.orchestration.run_executor import RunExecutor
 from core.domain.entities.pipeline_run import PipelineRun, PipelineRunStatus

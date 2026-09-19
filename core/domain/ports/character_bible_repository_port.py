@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+
 from core.domain.entities.character_bible import CharacterBible
+
 
 class CharacterBibleRepositoryPort(ABC):
     """

@@ -3,6 +3,7 @@ import json
 import urllib.parse
 from typing import Any
 
+
 class CacheKeyFactory:
     """
     Generates deterministic, collision-resistant cache keys.

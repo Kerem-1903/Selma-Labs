@@ -5,7 +5,6 @@ from pathlib import Path
 
 import edge_tts
 
-
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "output" / "hidden-designs-45" / "voice-previews"
 TEXT = (

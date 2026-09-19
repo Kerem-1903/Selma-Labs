@@ -24,7 +24,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from core.domain.value_objects.timeline_clip import TimelineClip
 from core.domain.value_objects.timeline_sfx import TimelineSfx
@@ -33,7 +33,7 @@ from core.domain.value_objects.timeline_sfx import TimelineSfx
 @dataclass(frozen=True)
 class Timeline:
     id: str
-    asset_match_plan_id: Optional[str]
+    asset_match_plan_id: str | None
     clips: list[TimelineClip]
     total_duration_seconds: float
     created_at: datetime
@@ -49,10 +49,10 @@ class Timeline:
     @staticmethod
     def create(
         *,
-        asset_match_plan_id: Optional[str],
+        asset_match_plan_id: str | None,
         clips: list[TimelineClip],
-        sfx_tracks: list[TimelineSfx] = None,
-    ) -> "Timeline":
+        sfx_tracks: list[TimelineSfx] | None = None,
+    ) -> Timeline:
         total_duration_seconds = (
             max(clip.scene.end_time for clip in clips) if clips else 0.0
         )

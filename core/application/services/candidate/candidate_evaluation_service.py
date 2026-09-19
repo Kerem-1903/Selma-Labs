@@ -4,7 +4,10 @@ import uuid
 from typing import Any
 
 from core.domain.entities.candidate.keyframe_candidate import CandidateStatus, KeyframeCandidate
-from core.domain.ports.candidate.keyframe_candidate_repository_port import KeyframeCandidateRepositoryPort
+from core.domain.ports.candidate.keyframe_candidate_repository_port import (
+    KeyframeCandidateRepositoryPort,
+)
+
 
 class CandidateEvaluationService:
     def __init__(self, repository: KeyframeCandidateRepositoryPort) -> None:

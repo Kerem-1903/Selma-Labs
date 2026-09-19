@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from typing import Any
+
 
 @dataclass(frozen=True)
 class CameraConstraints:
@@ -7,7 +8,7 @@ class CameraConstraints:
     lens: str
     movement: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "angle": self.angle,
             "lens": self.lens,
@@ -15,7 +16,7 @@ class CameraConstraints:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CameraConstraints":
+    def from_dict(cls, data: dict[str, Any]) -> "CameraConstraints":
         return cls(
             angle=data.get("angle", ""),
             lens=data.get("lens", ""),
@@ -25,16 +26,16 @@ class CameraConstraints:
 @dataclass(frozen=True)
 class ActionConstraints:
     primary_action: str
-    secondary_actions: List[str] = field(default_factory=list)
+    secondary_actions: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "primary_action": self.primary_action,
             "secondary_actions": self.secondary_actions
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ActionConstraints":
+    def from_dict(cls, data: dict[str, Any]) -> "ActionConstraints":
         return cls(
             primary_action=data.get("primary_action", ""),
             secondary_actions=data.get("secondary_actions", [])
@@ -46,7 +47,7 @@ class VisualConstraints:
     environment_style: str
     weather: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "lighting": self.lighting,
             "environment_style": self.environment_style,
@@ -54,7 +55,7 @@ class VisualConstraints:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "VisualConstraints":
+    def from_dict(cls, data: dict[str, Any]) -> "VisualConstraints":
         return cls(
             lighting=data.get("lighting", ""),
             environment_style=data.get("environment_style", ""),

@@ -1,10 +1,15 @@
-import pytest
-import asyncio
 import random
 from unittest.mock import AsyncMock, patch
-from core.domain.entities.media_asset import MediaAsset
-from core.application.utils.resilient_provider_decorator import ResilientSearchProviderDecorator, ProviderRetryExhausted
+
+import pytest
+
 from core.application.services.search_orchestrator_service import SearchOrchestratorService
+from core.application.utils.resilient_provider_decorator import (
+    ProviderRetryExhausted,
+    ResilientSearchProviderDecorator,
+)
+from core.domain.entities.media_asset import MediaAsset
+
 
 def dummy_asset(aid: str, provider: str = "test") -> MediaAsset:
     return MediaAsset(id=aid, provider=provider, media_type="video")

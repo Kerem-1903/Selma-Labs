@@ -1,10 +1,12 @@
 import json
-import pytest
 from unittest import mock
 from unittest.mock import AsyncMock
 
-from infrastructure.providers.blender.blender_scene_adapter import BlenderSceneAdapter
+import pytest
+
 from core.domain.value_objects.blender_render_manifest import BlenderRenderManifest
+from infrastructure.providers.blender.blender_scene_adapter import BlenderSceneAdapter
+
 
 @pytest.fixture
 def mock_blender_binary():

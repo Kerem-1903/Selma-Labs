@@ -20,6 +20,10 @@ from pathlib import Path
 
 from config.container import create_container
 from config.settings import get_settings
+from core.application.services.character_pose_pack_service import (
+    CharacterPosePackService,
+)
+from core.application.services.model_lock_service import load_model_lock
 from core.domain.value_objects.production_infra import PreflightReport
 from infrastructure.providers.keyframe.comfyui_keyframe_provider import (
     ComfyUIKeyframeProvider,
@@ -27,10 +31,6 @@ from infrastructure.providers.keyframe.comfyui_keyframe_provider import (
 from infrastructure.providers.keyframe.comfyui_memory_releaser import (
     ComfyUiMemoryReleaser,
 )
-from core.application.services.character_pose_pack_service import (
-    CharacterPosePackService,
-)
-from core.application.services.model_lock_service import load_model_lock
 from infrastructure.providers.vision.ultralytics_character_view_detector import (
     UltralyticsCharacterViewDetector,
 )
@@ -116,11 +116,13 @@ async def main() -> int:
                 "pose_strength": 1.0,
             },
         )
-        def with_identity(weights, end_at):
+        def with_identity(weights, end_at, template=base):
+            # ``template`` is bound as a default so the closure keeps this
+            # iteration's request instead of whatever ``base`` ends up as.
             return replace(
-                base,
+                template,
                 visual_constraints={
-                    **base.visual_constraints,
+                    **template.visual_constraints,
                     "identity_reference_weights": list(weights),
                     "identity_end_at": end_at,
                 },

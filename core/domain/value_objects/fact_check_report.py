@@ -39,7 +39,7 @@ class FactCheckReport:
         claims: list[FactClaim],
         sources: list[FactSource],
         provider_used: str,
-    ) -> "FactCheckReport":
+    ) -> FactCheckReport:
         verified = bool(claims) and all(
             claim.verdict == "supported"
             and bool(claim.source_urls)

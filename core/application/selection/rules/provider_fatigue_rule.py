@@ -1,7 +1,9 @@
+import math
+
 from core.application.selection.selection_rule import SelectionRule
 from core.domain.value_objects.scored_asset import ScoredAsset
 from core.domain.value_objects.selection_context import SelectionContext
-import math
+
 
 class ProviderFatigueRule(SelectionRule):
     def __init__(self, penalty_per_occurrence: float):

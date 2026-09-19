@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import re
 import time
@@ -27,6 +28,8 @@ from infrastructure.repositories.local_json_character_bible_repository import (
 from infrastructure.repositories.local_json_run_repository import LocalJsonRunRepository
 from infrastructure.storage.local_fs_storage import LocalFsStorage
 from scripts.run_factory import build_orchestrator
+
+logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 app = FastAPI(title="SELMA Labs - Luma Edition")
@@ -99,7 +102,10 @@ async def list_characters():
     for path in sorted(root.glob("*.json")):
         try:
             bible = await repository.load(path.stem)
-        except Exception:
+        except Exception as error:
+            logger.warning(
+                "Skipping unreadable character bible '%s': %s", path.name, error
+            )
             continue
         characters.append(
             {
@@ -408,7 +414,9 @@ async def api_publish(job_id: str, platform: str = Form(...)):
         if not video_path.exists():
              raise FileNotFoundError(f"Video missing at {video_path}")
 
-        from infrastructure.providers.publish.omnichannel_upload_provider import OmnichannelUploadProvider
+        from infrastructure.providers.publish.omnichannel_upload_provider import (
+            OmnichannelUploadProvider,
+        )
         uploader = OmnichannelUploadProvider()
 
         result_id = await uploader.upload_video(
@@ -492,7 +500,7 @@ async def system_metrics():
     try:
         from core.application.services.system_monitor import get_system_stats
         return JSONResponse(get_system_stats())
-    except Exception as e:
+    except Exception:
         return JSONResponse({"cpu": "--", "ram": "--", "disk": "--", "gpu": "N/A"})
 
 @app.get("/api/stats")
@@ -504,7 +512,7 @@ async def stats():
             "avg_view_rate": "0%",
             "best_format": "N/A"
         })
-    except Exception as e:
+    except Exception:
         return JSONResponse({"total_videos": 0, "avg_view_rate": "0%", "best_format": "N/A"})
 
 @app.get("/api/status/{job_id}")

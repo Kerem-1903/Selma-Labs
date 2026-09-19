@@ -1,14 +1,15 @@
 from dataclasses import dataclass
-from typing import List, Dict, Any
+from typing import Any
+
 
 @dataclass(frozen=True)
 class Outfit:
     id: str
     character_id: str
     description: str
-    reference_image_keys: List[str]
+    reference_image_keys: list[str]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "character_id": self.character_id,
@@ -17,7 +18,7 @@ class Outfit:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Outfit":
+    def from_dict(cls, data: dict[str, Any]) -> "Outfit":
         return cls(
             id=data["id"],
             character_id=data["character_id"],

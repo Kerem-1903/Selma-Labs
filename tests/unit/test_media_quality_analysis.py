@@ -6,8 +6,8 @@ import pytest
 
 from core.application.services.post_render_quality_service import PostRenderQualityService
 from core.domain.exceptions import RenderExecutionError
-from core.domain.value_objects.media_quality_signals import MediaQualitySignals
 from core.domain.value_objects.media_inspection import MediaInspection
+from core.domain.value_objects.media_quality_signals import MediaQualitySignals
 from infrastructure.providers.render.ffmpeg_media_quality_analysis_provider import (
     FfmpegMediaQualityAnalysisProvider,
 )

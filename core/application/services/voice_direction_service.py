@@ -4,7 +4,6 @@ from __future__ import annotations
 from core.domain.entities.script import Script
 from core.domain.value_objects.voice_direction import VoiceDirection
 
-
 _ENERGY_MARKERS = {
     "speed", "power", "technology", "experiment", "electric", "explosion",
     "hız", "güç", "teknoloji", "deney", "elektrik", "patlama",

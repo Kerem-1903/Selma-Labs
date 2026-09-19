@@ -1,5 +1,5 @@
+
 import pytest
-from typing import List
 
 from core.application.services.subtitle_translation_service import SubtitleTranslationService
 from core.domain.entities.subtitle_track import SubtitleTrack
@@ -16,7 +16,7 @@ class FakeTranslationPort(TranslationPort):
     def provider_identity(self) -> str:
         return "fake:translation"
 
-    async def translate_texts(self, texts: List[str], target_language: str) -> List[str]:
+    async def translate_texts(self, texts: list[str], target_language: str) -> list[str]:
         if self.simulate_mismatch:
             return ["mismatched length array"]
         return [f"[{target_language}] {t}" for t in texts]

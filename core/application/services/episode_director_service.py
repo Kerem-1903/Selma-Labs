@@ -11,7 +11,6 @@ from typing import Any
 from core.application.services.canon_validation_service import normalize_canon_name
 from core.domain.entities.direction_bible import NonCastVoice
 from core.domain.entities.episode_script import EpisodeScript
-from core.domain.value_objects.episode_director_decision import EpisodeDirectorDecision, EpisodeSceneDecision
 from core.domain.entities.location_bible import LocationBible
 from core.domain.exceptions import PreProductionValidationError, ProviderError, ScenePlanningError
 from core.domain.ports.episode_director_decision_port import EpisodeDirectorDecisionPort
@@ -20,8 +19,11 @@ from core.domain.value_objects.background_production import (
     BackgroundProductionPlan,
 )
 from core.domain.value_objects.character_pose_pack import (
-    CharacterPosePackManifest,
     POSE_PACK_POSE_IDS,
+    CharacterPosePackManifest,
+)
+from core.domain.value_objects.episode_director_decision import (
+    EpisodeSceneDecision,
 )
 from core.domain.value_objects.episode_director_plan import (
     DirectorBackgroundRequirement,

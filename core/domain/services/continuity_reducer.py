@@ -1,18 +1,19 @@
-from typing import List
 import copy
-from core.domain.entities.continuity_state import ContinuityState
+
 from core.domain.entities.character_state import CharacterState
+from core.domain.entities.continuity_state import ContinuityState
 from core.domain.events.continuity_event import (
-    ContinuityEvent,
-    CharacterEnteredLocation,
     CharacterChangedOutfit,
-    CharacterPickedUpObject,
     CharacterDroppedObject,
+    CharacterEmotionChanged,
+    CharacterEnteredLocation,
     CharacterInjured,
-    OutfitDamaged,
+    CharacterPickedUpObject,
+    ContinuityEvent,
     ObjectBroken,
-    CharacterEmotionChanged
+    OutfitDamaged,
 )
+
 
 class ContinuityReducer:
     @staticmethod
@@ -81,7 +82,7 @@ class ContinuityReducer:
         return new_state
 
     @staticmethod
-    def replay(initial_state: ContinuityState, events: List[ContinuityEvent]) -> ContinuityState:
+    def replay(initial_state: ContinuityState, events: list[ContinuityEvent]) -> ContinuityState:
         current_state = initial_state
         # Sort events by sequence to ensure chronological replay
         sorted_events = sorted(events, key=lambda e: e.sequence)

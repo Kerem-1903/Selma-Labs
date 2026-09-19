@@ -37,7 +37,7 @@ class CreativeQualityCheck:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "CreativeQualityCheck":
+    def from_dict(data: dict[str, Any]) -> CreativeQualityCheck:
         return CreativeQualityCheck(
             name=str(data["name"]),
             category=str(data["category"]),
@@ -97,7 +97,7 @@ class CreativeQualityReport:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "CreativeQualityReport":
+    def from_dict(data: dict[str, Any]) -> CreativeQualityReport:
         human_review = dict(data.get("human_review") or {})
         return CreativeQualityReport(
             score=int(data["score"]),

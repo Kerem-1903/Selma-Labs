@@ -1,14 +1,15 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from typing import Any
+
 
 @dataclass(frozen=True)
 class StyleProfile:
     base_style: str
-    lighting_preferences: List[str] = field(default_factory=list)
-    color_palette: List[str] = field(default_factory=list)
-    negative_prompts: List[str] = field(default_factory=list)
+    lighting_preferences: list[str] = field(default_factory=list)
+    color_palette: list[str] = field(default_factory=list)
+    negative_prompts: list[str] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "base_style": self.base_style,
             "lighting_preferences": self.lighting_preferences,
@@ -17,7 +18,7 @@ class StyleProfile:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "StyleProfile":
+    def from_dict(cls, data: dict[str, Any]) -> "StyleProfile":
         return cls(
             base_style=data.get("base_style", ""),
             lighting_preferences=data.get("lighting_preferences", []),

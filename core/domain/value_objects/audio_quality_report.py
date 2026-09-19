@@ -29,7 +29,7 @@ class AudioQualityCheck:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "AudioQualityCheck":
+    def from_dict(data: dict[str, Any]) -> AudioQualityCheck:
         return AudioQualityCheck(
             name=str(data["name"]),
             category=str(data["category"]),
@@ -78,7 +78,7 @@ class AudioQualityReport:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "AudioQualityReport":
+    def from_dict(data: dict[str, Any]) -> AudioQualityReport:
         return AudioQualityReport(
             score=int(data["score"]),
             threshold=int(data.get("threshold", 90)),

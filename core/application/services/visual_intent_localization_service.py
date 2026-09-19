@@ -1,8 +1,8 @@
 """Localize stock-search concepts without changing narration or subtitles."""
 from __future__ import annotations
 
-from collections.abc import Sequence
 import re
+from collections.abc import Sequence
 
 from core.domain.ports.translation_port import TranslationPort
 from core.domain.value_objects.visual_intent import VisualIntent

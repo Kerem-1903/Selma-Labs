@@ -1,15 +1,15 @@
-import pytest
 from core.domain.events.continuity_event import (
-    ContinuityEvent,
-    CharacterEnteredLocation,
     CharacterChangedOutfit,
-    CharacterPickedUpObject,
     CharacterDroppedObject,
+    CharacterEmotionChanged,
+    CharacterEnteredLocation,
     CharacterInjured,
-    OutfitDamaged,
+    CharacterPickedUpObject,
+    ContinuityEvent,
     ObjectBroken,
-    CharacterEmotionChanged
+    OutfitDamaged,
 )
+
 
 def test_event_polymorphic_serialization():
     events = [

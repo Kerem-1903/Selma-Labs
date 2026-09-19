@@ -18,7 +18,6 @@ from core.domain.ports.word_alignment_port import WordAlignmentPort
 from core.domain.value_objects.selected_highlight import SelectedHighlight
 from core.domain.value_objects.word_timing import WordTiming
 
-
 LOGGER = logging.getLogger(__name__)
 
 

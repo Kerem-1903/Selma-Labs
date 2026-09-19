@@ -1,17 +1,36 @@
+import typing
+
 import pytest
+
+from core.application.services.candidate.candidate_evaluation_service import (
+    CandidateEvaluationService,
+)
 from core.application.services.keyframe_generation_service import KeyframeGenerationService
-from core.application.services.candidate.candidate_evaluation_service import CandidateEvaluationService
 from core.domain.entities.candidate.keyframe_candidate import CandidateStatus
 from core.domain.entities.shot_contract import ShotContract
 from core.domain.exceptions import KeyframeGenerationError, StorageError
-from infrastructure.repositories.candidate.sqlite_keyframe_candidate_repository import SqliteKeyframeCandidateRepository
-from infrastructure.repositories.local_json_shot_storyboard_repository import LocalJsonShotStoryboardRepository
-from infrastructure.repositories.local_json_character_bible_repository import LocalJsonCharacterBibleRepository
-from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort, KeyframeGenerationRequest
-from core.domain.value_objects.generated_keyframe import GeneratedKeyframe
-import typing
+from core.domain.ports.keyframe_generation_port import (
+    KeyframeGenerationPort,
+    KeyframeGenerationRequest,
+)
 from core.domain.ports.storage_port import StoragePort
+from core.domain.value_objects.generated_keyframe import GeneratedKeyframe
+from core.domain.value_objects.shot_constraints import (
+    ActionConstraints,
+    CameraConstraints,
+    VisualConstraints,
+)
 from core.domain.value_objects.storage_reference import StorageReference
+from infrastructure.repositories.candidate.sqlite_keyframe_candidate_repository import (
+    SqliteKeyframeCandidateRepository,
+)
+from infrastructure.repositories.local_json_character_bible_repository import (
+    LocalJsonCharacterBibleRepository,
+)
+from infrastructure.repositories.local_json_shot_storyboard_repository import (
+    LocalJsonShotStoryboardRepository,
+)
+
 
 class MockGenerator(KeyframeGenerationPort):
     def __init__(self):
@@ -84,7 +103,6 @@ def keyframe_service(evaluation_service, storyboard_repo, bible_repo, storage):
         candidate_evaluation=evaluation_service
     )
 
-from core.domain.value_objects.shot_constraints import CameraConstraints, ActionConstraints, VisualConstraints
 
 @pytest.mark.asyncio
 async def test_a7_human_review_workflow(keyframe_service, evaluation_service):

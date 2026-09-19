@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
+
 from core.domain.entities.media_asset import MediaAsset
 from core.domain.value_objects.video_generation_request import VideoGenerationRequest
+
 
 class VideoGenerationPort(ABC):
     """

@@ -1,10 +1,10 @@
+import asyncio
 import logging
 import os
-import uuid
-import asyncio
+
+from core.domain.exceptions import ProviderError
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.value_objects.generated_audio import GeneratedAudio
-from core.domain.exceptions import ProviderError
 
 logger = logging.getLogger(__name__)
 
@@ -27,8 +27,8 @@ class LocalVoiceCloneProvider(VoiceGeneratorPort):
         if self.tts is None:
             logger.info("Yükleniyor: Local XTTS Voice Cloning Modeli (Bu işlem ilk seferde vakit alabilir)...")
             try:
-                from TTS.api import TTS
                 import torch
+                from TTS.api import TTS
                 device = "cuda" if torch.cuda.is_available() else "cpu"
                 self.tts = TTS(self.model_name).to(device)
                 logger.info(f"Model {device} üzerinde başarıyla yüklendi.")

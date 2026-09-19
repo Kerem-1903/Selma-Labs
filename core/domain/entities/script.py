@@ -38,7 +38,7 @@ class Script:
         provider_used: str,
         narrative_contract: NarrativeContract | None = None,
         narrative_beats: tuple[NarrativeBeat, ...] = (),
-    ) -> "Script":
+    ) -> Script:
         """Factory that derives word count and stamps identity/creation time.
 
         Kept as a factory (rather than a plain constructor call) so that
@@ -63,7 +63,7 @@ class Script:
         self,
         contract: NarrativeContract,
         beats: tuple[NarrativeBeat, ...],
-    ) -> "Script":
+    ) -> Script:
         """Attach validated creative metadata without changing script identity."""
         return replace(
             self,

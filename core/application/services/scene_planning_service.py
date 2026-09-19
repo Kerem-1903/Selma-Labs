@@ -36,8 +36,8 @@ from core.domain.entities.script import Script
 from core.domain.entities.voice_track import VoiceTrack
 from core.domain.exceptions import ScenePlanningError
 from core.domain.ports.scene_planning_port import ScenePlanningPort
-from core.domain.value_objects.scene import Scene
 from core.domain.value_objects.narrative_contract import NarrativeBeat
+from core.domain.value_objects.scene import Scene
 from core.domain.value_objects.selected_highlight import SelectedHighlight
 from core.domain.value_objects.subtitle_cue import SubtitleCue
 from core.domain.value_objects.visual_intent import VisualIntent

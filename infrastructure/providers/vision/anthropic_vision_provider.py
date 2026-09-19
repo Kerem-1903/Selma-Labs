@@ -1,6 +1,5 @@
 import base64
 import json
-from typing import List
 
 import anthropic
 
@@ -25,7 +24,7 @@ class AnthropicVisionProvider(VisionAnalysisPort):
     def provider_identity(self) -> str:
         return f"anthropic:{self._model_name}"
 
-    async def analyze(self, frame_bytes: List[bytes], scene_context: str) -> VisionAnalysisResult:
+    async def analyze(self, frame_bytes: list[bytes], scene_context: str) -> VisionAnalysisResult:
         if not frame_bytes:
             raise ProviderError("No frames provided for vision analysis.")
 

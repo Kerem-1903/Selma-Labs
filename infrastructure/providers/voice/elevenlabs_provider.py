@@ -12,8 +12,8 @@ handful of lines.
 from __future__ import annotations
 
 import base64
-from io import BytesIO
 import re
+from io import BytesIO
 
 import httpx
 from mutagen.mp3 import MP3

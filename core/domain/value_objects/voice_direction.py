@@ -39,7 +39,7 @@ class VoiceDirection:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "VoiceDirection":
+    def from_dict(data: dict[str, Any]) -> VoiceDirection:
         return VoiceDirection(
             profile=str(data["profile"]),
             speed=float(data["speed"]),

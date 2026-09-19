@@ -1,5 +1,7 @@
-from typing import Protocol, Any
+from typing import Any, Protocol
+
 from core.domain.entities.media_asset import MediaAsset
+
 
 class VideoSearchProvider(Protocol):
     """

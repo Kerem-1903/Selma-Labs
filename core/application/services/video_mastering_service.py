@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import uuid
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 

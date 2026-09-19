@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import AsyncContextManager
+from contextlib import AbstractAsyncContextManager
 
 from core.domain.entities.pipeline_run import PipelineRun
 
@@ -21,6 +21,6 @@ class RunRepositoryPort(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def lock_run(self, run_id: str) -> AsyncContextManager[None]:
+    def lock_run(self, run_id: str) -> AbstractAsyncContextManager[None]:
         """Acquire an exclusive lease for decisions and writes on one run."""
         raise NotImplementedError

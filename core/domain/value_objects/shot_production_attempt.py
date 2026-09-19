@@ -54,7 +54,7 @@ class ShotProductionAttempt:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ShotProductionAttempt":
+    def from_dict(cls, data: dict[str, Any]) -> ShotProductionAttempt:
         return cls(
             shot_contract_id=str(data["shot_contract_id"]),
             attempt_number=int(data["attempt_number"]),

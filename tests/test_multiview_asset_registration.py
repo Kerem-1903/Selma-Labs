@@ -1,12 +1,14 @@
-import pytest
-import io
-from PIL import Image
-from unittest import mock
 from unittest.mock import AsyncMock
 
-from core.application.services.multiview_asset_registration_service import MultiviewAssetRegistrationService
+import pytest
+from PIL import Image
+
+from core.application.services.multiview_asset_registration_service import (
+    MultiviewAssetRegistrationService,
+)
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.value_objects.character_identity import ReferenceView
+
 
 @pytest.fixture
 def dummy_image(tmp_path):

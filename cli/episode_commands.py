@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from core.application.services.episode_animatic_service import EpisodeAnimaticService
 from core.domain.value_objects.episode_director_plan import EpisodeDirectorPlan

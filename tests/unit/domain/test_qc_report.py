@@ -1,4 +1,5 @@
-from core.domain.value_objects.qc_report import QCReport, QCDecision, QCMetric, DetectedDefect
+from core.domain.value_objects.qc_report import DetectedDefect, QCDecision, QCMetric, QCReport
+
 
 def test_qc_report_serialization():
     metric1 = QCMetric(name="identity_score", score=0.95, threshold=0.90, passed=True)

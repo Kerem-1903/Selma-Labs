@@ -19,8 +19,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 from config.settings import Settings, get_settings
+from core.application.ports.video_search_provider import VideoSearchProvider
 from core.application.selection.rules.asset_reuse_rule import AssetReuseRule
 from core.application.selection.rules.keyword_fatigue_rule import KeywordFatigueRule
 from core.application.selection.rules.provider_fatigue_rule import ProviderFatigueRule
@@ -199,7 +201,7 @@ def get_fact_check_provider(settings: Settings) -> FactCheckPort:
     )
 
     if settings.fact_check_provider == "selmagpt":
-        primary = SelmaGPTFactCheckProvider(
+        primary: FactCheckPort = SelmaGPTFactCheckProvider(
             api_url=settings.selmagpt_api_url,
             model=settings.selmagpt_model_name,
             timeout_seconds=settings.fact_check_primary_timeout_seconds,
@@ -287,7 +289,7 @@ def get_voice_provider(settings: Settings) -> VoiceGeneratorPort:
             reference_audio_path=settings.local_voice_reference_path
         )
     elif settings.voice_provider == "elevenlabs":
-        base_provider: VoiceGeneratorPort = ElevenLabsVoiceProvider(
+        base_provider = ElevenLabsVoiceProvider(
             api_key=settings.elevenlabs_api_key,
             model_id=settings.elevenlabs_model_id,
             stability=settings.elevenlabs_stability,
@@ -347,7 +349,11 @@ def get_pipeline_video_source_provider(settings: Settings) -> VideoSourcePort:
     base_provider = get_video_source_provider(settings)
     provider_name = getattr(base_provider, "name", settings.video_provider)
     resilient_provider = ResilientSearchProviderDecorator(
-        inner_provider=base_provider,
+        # The decorator's protocol asks for ``search(query, **kwargs)`` and a
+        # ``name``; VideoSourcePort declares the narrower ``search(query,
+        # max_results)``. Every concrete provider satisfies both at runtime, and
+        # the port is the contract the rest of the pipeline depends on.
+        inner_provider=cast(VideoSearchProvider, base_provider),
         timeout_seconds=settings.provider_timeout_seconds,
         max_retries=settings.provider_max_retries,
         base_delay=settings.provider_retry_backoff,
@@ -357,7 +363,7 @@ def get_pipeline_video_source_provider(settings: Settings) -> VideoSourcePort:
     orchestrator = SearchOrchestratorService(
         providers=[resilient_provider], orchestrator_name="video_search"
     )
-    search_provider = orchestrator
+    search_provider: VideoSearchProvider = orchestrator
     if settings.search_cache_enabled:
         search_provider = SearchCacheService(
             provider=orchestrator,
@@ -387,7 +393,7 @@ def get_asset_selection_service(settings: Settings) -> AssetSelectionService:
 
 def get_vision_provider(settings: Settings) -> VisionAnalysisPort:
     if settings.vision_provider == "anthropic":
-        base_provider = AnthropicVisionProvider(
+        base_provider: VisionAnalysisPort = AnthropicVisionProvider(
             api_key=settings.anthropic_api_key,
             model_name=settings.vision_model,
         )
@@ -419,7 +425,7 @@ def get_vision_provider(settings: Settings) -> VisionAnalysisPort:
             f"Unknown vision_provider configured: {settings.vision_provider!r}. "
             "Supported: ['anthropic', 'nvidia', 'openai', 'selmagpt']"
         )
-    fallback_provider = None
+    fallback_provider: VisionAnalysisPort | None = None
     if (
         settings.vision_fallback_provider == "nvidia"
         and settings.vision_provider != "nvidia"
@@ -877,7 +883,9 @@ def get_translation_provider(settings: Settings | None = None) -> TranslationPor
     if settings is None:
         settings = get_settings()
     if settings.translation_provider == "claude":
-        base_provider = ClaudeTranslationProvider(api_key=settings.anthropic_api_key)
+        base_provider: TranslationPort = ClaudeTranslationProvider(
+            api_key=settings.anthropic_api_key
+        )
         return CachingTranslationProvider(base_provider)
     if settings.translation_provider == "selmagpt":
         from infrastructure.providers.translation.selmagpt_translation_provider import (

@@ -49,9 +49,9 @@ from core.domain.entities.asset_match_plan import AssetMatchPlan
 from core.domain.entities.media_asset import MediaAsset
 from core.domain.entities.scene_plan import ScenePlan
 from core.domain.exceptions import SceneAssetMatchingError
+from core.domain.value_objects.asset_score import AssetScore
 from core.domain.value_objects.scene import Scene
 from core.domain.value_objects.scene_asset_match import SceneAssetMatch
-from core.domain.value_objects.asset_score import AssetScore
 from core.domain.value_objects.scored_asset import ScoredAsset
 
 logger = logging.getLogger("selma.scene_asset_matching_service")

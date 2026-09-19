@@ -129,10 +129,11 @@ class StructuredMark:
             anchor=MarkAnchor.from_dict(anchor)
             if isinstance(anchor, Mapping)
             else None,
-            head_bbox=(
+            head_bbox=cast(
+                "tuple[float, float, float, float] | None",
                 tuple(float(value) for value in data["head_bbox"])
                 if data.get("head_bbox") is not None
-                else None
+                else None,
             ),
             mirror_side=cast(MirrorSide, data.get("mirror_side", "none")),
             shape_grammar=str(data.get("shape_grammar", "")),

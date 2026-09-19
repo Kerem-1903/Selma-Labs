@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from core.domain.exceptions import PreProductionValidationError
 from core.domain.value_objects.trailer_brief import TrailerBrief
@@ -38,7 +39,7 @@ class TrailerBeat:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "TrailerBeat":
+    def from_dict(cls, data: Mapping[str, Any]) -> TrailerBeat:
         return cls(
             beat_id=str(data.get("beat_id", "")),
             title=str(data.get("title", "")),
@@ -56,7 +57,7 @@ class TrailerTimeline:
     beats: tuple[TrailerBeat, ...]
 
     @classmethod
-    def from_brief(cls, brief: TrailerBrief) -> "TrailerTimeline":
+    def from_brief(cls, brief: TrailerBrief) -> TrailerTimeline:
         boundaries = (0, 912, 2064, 3624, 4320)
         labels = (
             ("normal-world", "Normal dünya ve rahatsızlık", "Dünyayı ve ilk huzursuzluğu kur."),
@@ -92,7 +93,7 @@ class TrailerTimeline:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "TrailerTimeline":
+    def from_dict(cls, data: Mapping[str, Any]) -> TrailerTimeline:
         return cls(
             trailer_id=str(data.get("trailer_id", "")),
             fps=int(data.get("fps", 0)),

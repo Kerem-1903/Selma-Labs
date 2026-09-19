@@ -1,17 +1,19 @@
 from dataclasses import dataclass, field
-from typing import Dict, Any
+from typing import Any
+
 from .character_state import CharacterState
+
 
 @dataclass
 class ContinuityState:
     id: str
-    world_snapshot: Dict[str, CharacterState] = field(default_factory=dict)
-    object_states: Dict[str, str] = field(default_factory=dict)
+    world_snapshot: dict[str, CharacterState] = field(default_factory=dict)
+    object_states: dict[str, str] = field(default_factory=dict)
 
     def update_character(self, state: CharacterState) -> None:
         self.world_snapshot[state.character_id] = state
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "world_snapshot": {
@@ -22,7 +24,7 @@ class ContinuityState:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ContinuityState":
+    def from_dict(cls, data: dict[str, Any]) -> "ContinuityState":
         snapshot = {
             char_id: CharacterState.from_dict(state_data)
             for char_id, state_data in data.get("world_snapshot", {}).items()

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import base64
-from io import BytesIO
 import json
 import re
+from io import BytesIO
 
 from PIL import Image, UnidentifiedImageError
 

@@ -5,15 +5,22 @@ set through a tracked GitHub issue and lands through a focused pull request.
 
 ## Now — engineering hygiene
 
-- Keep the correctness static-analysis gate green and tighten the lint ratchet in
-  the order recorded in [the code review](../CODE_REVIEW.md).
-- Split the large character-quality working set into reviewable commits before it
-  lands (see the code review's commit strategy).
-- Produce a Python dependency lock and let CI consume it instead of the loose
-  `>=` specifiers.
-- Move the remaining `cli/main.py` commands into `cli/*_commands.py` and shrink
-  the monolith.
-- Clear the mypy baseline and make the type check blocking.
+- Keep the static-analysis gate green and tighten the lint ratchet in the order
+  recorded in [the code review](../CODE_REVIEW.md). Stage 2 is done and blocking:
+  pyflakes, import order, pyupgrade, bugbear and the blind-except guards, with the
+  whole tree clean. Next are `SIM`, the bandit rules and the remaining
+  `raise ... from` sites.
+- Land every future change as a focused pull request. The character-quality
+  working set already reached `main`'s branch as one commit; re-splitting that
+  history is not worth a rebase, so the discipline starts from here.
+- Extend the dependency lock to the GPU runtime set. The quality-gate lock
+  (`requirements-ci.lock.txt`) is in place and CI installs it; `requirements.txt`
+  still resolves from `>=` because compiling it needs a Linux/GPU machine.
+- Move the remaining `cli/main.py` handlers into `cli/*_commands.py`. The argument
+  parser is extracted already (`cli/parsers/`), so what is left is command logic.
+- Widen the blocking type check. `core/domain`, `config` and `cli` are clean and
+  blocking; `core/application` and `infrastructure` carry 146 findings reported by
+  the advisory CI step and enter the gate as they reach zero.
 
 ## Now — repository and production clarity
 

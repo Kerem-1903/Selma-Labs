@@ -1,6 +1,8 @@
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Any
+
 from .character_identity import ReferenceView
+
 
 @dataclass(frozen=True)
 class CharacterReference:
@@ -13,7 +15,7 @@ class CharacterReference:
     content_hash: str = ""
     revision: int = 1
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "character_id": self.character_id,
@@ -26,7 +28,7 @@ class CharacterReference:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CharacterReference":
+    def from_dict(cls, data: dict[str, Any]) -> "CharacterReference":
         return cls(
             id=data["id"],
             character_id=data["character_id"],

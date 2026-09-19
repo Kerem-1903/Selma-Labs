@@ -1,11 +1,14 @@
-import pytest
 import asyncio
 import time
 from unittest.mock import AsyncMock, patch
-from core.domain.entities.media_asset import MediaAsset
+
+import pytest
+
 from core.application.services.cache_key_factory import CacheKeyFactory
-from core.infrastructure.cache.in_memory_cache import InMemoryCache
 from core.application.services.search_cache_service import SearchCacheService
+from core.domain.entities.media_asset import MediaAsset
+from core.infrastructure.cache.in_memory_cache import InMemoryCache
+
 
 def dummy_asset(aid: str) -> MediaAsset:
     return MediaAsset(id=aid, provider="test", media_type="video")

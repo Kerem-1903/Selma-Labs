@@ -984,7 +984,7 @@ def test_restore_puts_the_archived_render_back_and_files_the_displaced_one(tmp_p
 
     # The verdict is attributed and dated, not implied.
     receipt = json.loads(
-        asyncio.run(storage.load(f"characters/mira/v1/view-pack-restore.json")).decode(
+        asyncio.run(storage.load("characters/mira/v1/view-pack-restore.json")).decode(
             "utf-8"
         )
     )

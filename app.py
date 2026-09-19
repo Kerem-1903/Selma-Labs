@@ -1,19 +1,23 @@
-import gradio as gr
-import asyncio
 import os
 import sys
 from pathlib import Path
 
-# Add project root to sys path
+import gradio as gr
+
+# Install the project root before the application imports below: this module is
+# launched both as a script and through Gradio's reloader, and the second case
+# does not put the repository root on sys.path by itself. The imports after the
+# bootstrap are therefore intentionally not at the top of the file.
 PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from config.settings import get_settings
-from scripts.run_factory import build_orchestrator
-from core.domain.entities.pipeline_run import PipelineRun
-from infrastructure.repositories.sqlite_video_repository import SQLiteVideoRepository
-import uuid
+import uuid  # noqa: E402
+
+from config.settings import get_settings  # noqa: E402
+from core.domain.entities.pipeline_run import PipelineRun  # noqa: E402
+from scripts.run_factory import build_orchestrator  # noqa: E402
+
 
 async def generate_short(topic: str, language: str, music_theme: str, privacy: str, generation_engine: str, voice_provider: str, apply_mastering: bool = True, i2v_image: str = None):
     settings = get_settings()
@@ -299,11 +303,10 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
     refresh_stats_btn.click(fn=load_brain_stats, inputs=None, outputs=[total_vid_out, avg_view_out, best_format_out, strategy_out])
 
     # Real-Time Monitor Logic
-    from core.application.services.system_monitor import get_system_stats
-
-
     # Logging capture setup
     import logging
+
+    from core.application.services.system_monitor import get_system_stats
     log_file = "output/system.log"
     os.makedirs("output", exist_ok=True)
     file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
@@ -315,7 +318,7 @@ with gr.Blocks(title="SELMA Labs - Yönetmen Stüdyosu") as demo:
         stats = get_system_stats()
         logs = ""
         try:
-            with open(log_file, "r", encoding="utf-8") as lf:
+            with open(log_file, encoding="utf-8") as lf:
                 lines = lf.readlines()
                 logs = "".join(lines[-15:]) # Son 15 log
         except (OSError, UnicodeError):

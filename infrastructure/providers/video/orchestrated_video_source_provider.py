@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Mapping
 
 from core.application.ports.video_search_provider import VideoSearchProvider
 from core.domain.entities.media_asset import MediaAsset

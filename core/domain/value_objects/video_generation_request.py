@@ -1,14 +1,15 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
+from typing import Any
+
 
 @dataclass(frozen=True)
 class VideoGenerationRequest:
     shot_contract_id: str
     target_duration_seconds: float
-    reference_image_keys: List[str] = field(default_factory=list)
-    generation_constraints: Dict[str, Any] = field(default_factory=dict)
+    reference_image_keys: list[str] = field(default_factory=list)
+    generation_constraints: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "shot_contract_id": self.shot_contract_id,
             "target_duration_seconds": self.target_duration_seconds,
@@ -17,7 +18,7 @@ class VideoGenerationRequest:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "VideoGenerationRequest":
+    def from_dict(cls, data: dict[str, Any]) -> "VideoGenerationRequest":
         return cls(
             shot_contract_id=data["shot_contract_id"],
             target_duration_seconds=data["target_duration_seconds"],

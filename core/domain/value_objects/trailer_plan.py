@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from core.domain.exceptions import PreProductionValidationError
 from core.domain.value_objects.trailer_timeline import TrailerTimeline
@@ -65,7 +66,7 @@ class TrailerShot:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "TrailerShot":
+    def from_dict(cls, data: Mapping[str, Any]) -> TrailerShot:
         return cls(
             shot_id=str(data.get("shot_id", "")),
             beat_id=str(data.get("beat_id", "")),
@@ -123,7 +124,7 @@ class TrailerPlan:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "TrailerPlan":
+    def from_dict(cls, data: Mapping[str, Any]) -> TrailerPlan:
         raw_timeline = data.get("timeline", {})
         if not isinstance(raw_timeline, Mapping):
             raise TypeError("Trailer plan timeline must be an object.")

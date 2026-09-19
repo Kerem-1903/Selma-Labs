@@ -2,7 +2,6 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-
 ROOT = Path(__file__).resolve().parents[1]
 FOOTAGE = ROOT / "motion" / "public" / "internet-outage" / "footage"
 review_dir = ROOT / "output" / "internet-mid-review"

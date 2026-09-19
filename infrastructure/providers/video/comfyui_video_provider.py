@@ -1,13 +1,15 @@
-import aiohttp
 import asyncio
-import logging
 import json
-import uuid
+import logging
 import os
-from core.domain.ports.video_generation_port import VideoGenerationPort
-from core.domain.value_objects.video_generation_request import VideoGenerationRequest
+import uuid
+
+import aiohttp
+
 from core.domain.entities.media_asset import MediaAsset
 from core.domain.exceptions import ProviderError
+from core.domain.ports.video_generation_port import VideoGenerationPort
+from core.domain.value_objects.video_generation_request import VideoGenerationRequest
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +80,7 @@ class ComfyUIVideoProvider(VideoGenerationPort):
         logger.info(f"Generating video with ComfyUI. Prompt: '{prompt}'")
 
         try:
-            with open(self.workflow_path, "r") as f:
+            with open(self.workflow_path) as f:
                 workflow = json.load(f)
         except FileNotFoundError:
             raise ProviderError(f"ComfyUI workflow file not found at {self.workflow_path}")
@@ -112,7 +114,7 @@ class ComfyUIVideoProvider(VideoGenerationPort):
                                 vae_encode_id = node_id
                                 break
                         if vae_encode_id:
-                            for node_id, node_data in workflow.items():
+                            for _node_id, node_data in workflow.items():
                                 if node_data.get("class_type") == "KSampler":
                                     node_data["inputs"]["latent_image"] = [vae_encode_id, 0]
                                     break
@@ -120,7 +122,7 @@ class ComfyUIVideoProvider(VideoGenerationPort):
         if hasattr(settings, "comfyui_mode") and settings.comfyui_mode == "i2v":
             if hasattr(settings, "i2v_image_path") and settings.i2v_image_path:
                 source_image = os.path.abspath(settings.i2v_image_path)
-                for node_id, node_data in workflow.items():
+                for _node_id, node_data in workflow.items():
                     if node_data.get("class_type") in ["LoadImage"]:
                         node_data["inputs"]["image"] = source_image
                         logger.info(f"Injected source image {source_image} into I2V workflow.")
@@ -131,7 +133,7 @@ class ComfyUIVideoProvider(VideoGenerationPort):
                         vae_encode_id = node_id
                         break
                 if vae_encode_id:
-                    for node_id, node_data in workflow.items():
+                    for _node_id, node_data in workflow.items():
                         if node_data.get("class_type") == "KSampler":
                             node_data["inputs"]["latent_image"] = [vae_encode_id, 0]
                             break
@@ -140,7 +142,7 @@ class ComfyUIVideoProvider(VideoGenerationPort):
         # You MUST edit this section to match your specific workflow's Text Prompt Node ID.
         # Here we assume node "6" is a CLIPTextEncode node and has the "text" field.
         found_node = False
-        for node_id, node_data in workflow.items():
+        for _node_id, node_data in workflow.items():
             if node_data.get("class_type") == "CLIPTextEncode":
                 # Check for negative prompt (usually node 7 or containing negative words in defaults, but for safety we just inject positive)
                 # To handle styles, we append style modifiers if the workflow file name implies it.
@@ -177,7 +179,7 @@ class ComfyUIVideoProvider(VideoGenerationPort):
             subfolder = ""
             folder_type = ""
 
-            for node_id, node_output in outputs.items():
+            for _node_id, node_output in outputs.items():
                 if "gifs" in node_output: # VideoCombine often puts mp4s in 'gifs' array
                     file_info = node_output["gifs"][0]
                     video_filename = file_info["filename"]

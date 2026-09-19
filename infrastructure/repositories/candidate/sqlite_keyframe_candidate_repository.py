@@ -5,7 +5,10 @@ import sqlite3
 from typing import Any
 
 from core.domain.entities.candidate.keyframe_candidate import KeyframeCandidate
-from core.domain.ports.candidate.keyframe_candidate_repository_port import KeyframeCandidateRepositoryPort
+from core.domain.ports.candidate.keyframe_candidate_repository_port import (
+    KeyframeCandidateRepositoryPort,
+)
+
 
 class SqliteKeyframeCandidateRepository(KeyframeCandidateRepositoryPort):
     def __init__(self, db_path: str = "keyframe_candidates.db") -> None:

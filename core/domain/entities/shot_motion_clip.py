@@ -56,12 +56,12 @@ class ShotMotionClip:
         if self.render_profile not in {"DRAFT", "BALANCED", "FINAL"}:
             raise ValueError("Motion clip render profile is unsupported.")
 
-    def approve(self) -> "ShotMotionClip":
+    def approve(self) -> ShotMotionClip:
         if self.status == MotionClipStatus.REJECTED:
             raise ValueError("A rejected motion clip cannot be approved.")
         return replace(self, status=MotionClipStatus.APPROVED)
 
-    def reject(self) -> "ShotMotionClip":
+    def reject(self) -> ShotMotionClip:
         if self.status == MotionClipStatus.APPROVED:
             raise ValueError("An approved motion clip cannot be rejected.")
         return replace(self, status=MotionClipStatus.REJECTED)
@@ -88,7 +88,7 @@ class ShotMotionClip:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ShotMotionClip":
+    def from_dict(cls, data: dict[str, Any]) -> ShotMotionClip:
         return cls(
             id=str(data["id"]),
             shot_contract_id=str(data["shot_contract_id"]),

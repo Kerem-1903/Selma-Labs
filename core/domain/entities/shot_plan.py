@@ -26,7 +26,7 @@ class ShotPlan:
         continuity_timeline_id: str,
         continuity_through_sequence: int,
         contracts: tuple[ShotContract, ...],
-    ) -> "ShotPlan":
+    ) -> ShotPlan:
         return ShotPlan(
             id=str(uuid.uuid4()),
             script_id=script_id,
@@ -49,7 +49,7 @@ class ShotPlan:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "ShotPlan":
+    def from_dict(data: dict[str, Any]) -> ShotPlan:
         return ShotPlan(
             id=str(data["id"]),
             script_id=str(data["script_id"]),

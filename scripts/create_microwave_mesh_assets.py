@@ -9,7 +9,6 @@ from pathlib import Path
 import edge_tts
 from mutagen.mp3 import MP3
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "motion" / "public" / "microwave-mesh"
 OUTPUT = ROOT / "output" / "microwave_mesh"

@@ -1,8 +1,7 @@
 """Pure application service for grouping word timings into readable cues."""
 from __future__ import annotations
 
-from collections.abc import Sequence
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 
 from core.domain.exceptions import CuePartitioningError
 from core.domain.value_objects.subtitle_cue import SubtitleCue

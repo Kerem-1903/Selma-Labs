@@ -4,8 +4,8 @@ import pytest
 
 from core.application.services.scene_planning_service import ScenePlanningService
 from core.domain.exceptions import ScenePlanningError
-from core.domain.value_objects.selected_highlight import SelectedHighlight
 from core.domain.value_objects.narrative_contract import NarrativeBeat
+from core.domain.value_objects.selected_highlight import SelectedHighlight
 from core.domain.value_objects.subtitle_cue import SubtitleCue
 from core.domain.value_objects.word_timing import WordTiming
 

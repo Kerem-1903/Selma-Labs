@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Mapping
+from typing import Any
 
 from core.domain.exceptions import PreProductionValidationError
 
@@ -64,7 +65,7 @@ class ModelCapability:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "ModelCapability":
+    def from_dict(cls, data: Mapping[str, Any]) -> ModelCapability:
         return cls(
             model_id=str(data.get("model_id", "")),
             revision=str(data.get("revision", "")),

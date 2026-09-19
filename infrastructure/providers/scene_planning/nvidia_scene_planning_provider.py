@@ -4,8 +4,8 @@ from core.domain.ports.scene_planning_port import ScenePlanningPort
 from core.domain.value_objects.scene import Scene
 from infrastructure.providers.nvidia.nvidia_chat_client import NvidiaChatClient
 from infrastructure.providers.scene_planning.claude_scene_planning_provider import (
-    ClaudeScenePlanningProvider,
     SYSTEM_PROMPT,
+    ClaudeScenePlanningProvider,
 )
 
 

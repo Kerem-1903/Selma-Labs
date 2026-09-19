@@ -31,7 +31,6 @@ from core.application.services.character_identity_prompt_service import (
 from core.domain.value_objects.character_creation_brief import CharacterCreationBrief
 from scripts.run_flux2_klein_edit import request_json, wait_for_output, workflow
 
-
 GENERATED_VIEWS = (
     "THREE_QUARTER_LEFT",
     "PROFILE_LEFT",

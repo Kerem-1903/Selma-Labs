@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import replace
-from typing import Sequence
 
 from core.domain.value_objects.visual_edit_plan import VisualEditBeat, VisualEditPlan
 from core.domain.value_objects.visual_intent import VisualIntent

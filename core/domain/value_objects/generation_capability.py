@@ -87,7 +87,7 @@ class KeyframeProviderProfile:
         object.__setattr__(self, "capabilities", normalized)
 
     @classmethod
-    def empty(cls) -> "KeyframeProviderProfile":
+    def empty(cls) -> KeyframeProviderProfile:
         return cls(schema_version=1, capabilities={})
 
     def provider_for(
@@ -109,7 +109,7 @@ class KeyframeProviderProfile:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "KeyframeProviderProfile":
+    def from_dict(cls, data: Mapping[str, Any]) -> KeyframeProviderProfile:
         raw_capabilities = data.get("capabilities", {})
         if not isinstance(raw_capabilities, Mapping):
             raise PreProductionValidationError(

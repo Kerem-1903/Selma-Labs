@@ -96,7 +96,7 @@ class YoutubePerformanceRecord:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "YoutubePerformanceRecord":
+    def from_dict(data: dict[str, Any]) -> YoutubePerformanceRecord:
         return YoutubePerformanceRecord(
             video_id=str(data["video_id"]),
             published_at=datetime.fromisoformat(str(data["published_at"]).replace("Z", "+00:00")),
@@ -195,7 +195,7 @@ class PerformanceGuidance:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "PerformanceGuidance":
+    def from_dict(data: dict[str, Any]) -> PerformanceGuidance:
         return PerformanceGuidance(
             content_format=str(data["content_format"]),
             sample_size=int(data["sample_size"]),

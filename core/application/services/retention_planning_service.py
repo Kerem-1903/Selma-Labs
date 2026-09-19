@@ -17,7 +17,6 @@ from core.domain.value_objects.retention_plan import (
 )
 from core.domain.value_objects.youtube_performance import PerformanceGuidance
 
-
 _ROLE_PURPOSES = {
     "hook": "state_the_promise_and_open_curiosity",
     "context": "give_only_the_context_needed_for_the_answer",

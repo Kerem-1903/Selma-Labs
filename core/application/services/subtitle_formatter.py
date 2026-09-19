@@ -58,7 +58,6 @@ data now.
 from __future__ import annotations
 
 from core.domain.entities.subtitle_track import SubtitleTrack
-from core.domain.value_objects.subtitle_cue import SubtitleCue
 
 
 def _format_srt_timecode(seconds: float) -> str:

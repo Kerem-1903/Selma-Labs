@@ -26,11 +26,11 @@ from core.application.services.character_canonical_approval_service import (
     CharacterCanonicalApprovalService,
 )
 from core.application.services.character_design_service import CharacterDesignService
-from core.application.services.character_identity_prompt_service import (
-    CharacterIdentityPromptService,
-)
 from core.application.services.character_golden_set_service import (
     CharacterGoldenSetService,
+)
+from core.application.services.character_identity_prompt_service import (
+    CharacterIdentityPromptService,
 )
 from core.application.services.character_onboarding_service import (
     CharacterOnboardingService,
@@ -38,17 +38,16 @@ from core.application.services.character_onboarding_service import (
 from core.application.services.character_pose_pack_service import (
     CharacterPosePackService,
 )
+from core.application.services.character_turnaround_drift_service import (
+    CharacterTurnaroundDriftService,
+    load_drift_thresholds,
+)
 from core.application.services.character_view_pack_approval_service import (
     CharacterViewPackApprovalService,
 )
 from core.application.services.character_view_pack_asset_service import (
     CharacterViewPackAssetService,
 )
-from core.application.services.character_turnaround_drift_service import (
-    CharacterTurnaroundDriftService,
-    load_drift_thresholds,
-)
-from core.domain.value_objects.generation_capability import GenerationCapability
 from core.application.services.character_view_pack_generation_service import (
     CharacterViewPackGenerationService,
 )
@@ -82,8 +81,10 @@ from core.application.services.structured_mark_validation_service import (
 from core.application.services.view_framing_gate import ViewFramingGate
 from core.domain.entities.character_bible import CharacterBible
 from core.domain.ports.canon_repository_port import CanonRepositoryPort
+from core.domain.ports.golden_set_evaluator_port import GoldenSetEvaluatorPort
 from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
 from core.domain.ports.storage_port import StoragePort
+from core.domain.value_objects.generation_capability import GenerationCapability
 from core.domain.value_objects.render_config import RenderConfig
 from infrastructure.compositor.layered_compositor import LayeredCompositor
 from infrastructure.providers.keyframe.golden_set_keyframe_adapter import (
@@ -264,7 +265,9 @@ def create_container(
             resolved.preproduction_approval_dir
         ),
     )
-    golden_evaluator = LocalGoldenReviewEvaluator(resolved.golden_review_manifest)
+    golden_evaluator: GoldenSetEvaluatorPort = LocalGoldenReviewEvaluator(
+        resolved.golden_review_manifest
+    )
     if resolved.golden_marker_gate_enabled:
         configured_providers = tuple(
             provider.strip()

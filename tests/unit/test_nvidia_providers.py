@@ -7,22 +7,22 @@ import httpx
 import pytest
 from PIL import Image
 
+from core.domain.entities.script import Script
 from core.domain.exceptions import (
     ProviderAuthError,
     ProviderError,
     ProviderQuotaExceededError,
 )
-from core.domain.entities.script import Script
 from core.domain.value_objects.fact_check_report import FactCheckReport, FactClaim
 from core.domain.value_objects.fact_source import FactSource
 from infrastructure.providers.nvidia.nvidia_chat_client import NvidiaChatClient
 from infrastructure.providers.scene_planning.nvidia_scene_planning_provider import (
     NvidiaScenePlanningProvider,
 )
-from infrastructure.providers.script.nvidia_script_provider import NvidiaScriptProvider
 from infrastructure.providers.script.nvidia_fact_grounded_rewriter import (
     NvidiaFactGroundedRewriter,
 )
+from infrastructure.providers.script.nvidia_script_provider import NvidiaScriptProvider
 from infrastructure.providers.translation.nvidia_translation_provider import (
     NvidiaTranslationProvider,
 )

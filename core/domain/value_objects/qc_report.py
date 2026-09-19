@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Any
 from enum import Enum
+from typing import Any
+
 
 class QCDecision(str, Enum):
     PASS = "PASS"
@@ -15,7 +16,7 @@ class QCMetric:
     threshold: float
     passed: bool
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "score": self.score,
@@ -24,7 +25,7 @@ class QCMetric:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "QCMetric":
+    def from_dict(cls, data: dict[str, Any]) -> "QCMetric":
         return cls(
             name=data["name"],
             score=data["score"],
@@ -35,10 +36,10 @@ class QCMetric:
 @dataclass(frozen=True)
 class DetectedDefect:
     description: str
-    frame_range: List[int]
+    frame_range: list[int]
     severity: str
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "description": self.description,
             "frame_range": self.frame_range,
@@ -46,7 +47,7 @@ class DetectedDefect:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DetectedDefect":
+    def from_dict(cls, data: dict[str, Any]) -> "DetectedDefect":
         return cls(
             description=data["description"],
             frame_range=data.get("frame_range", []),
@@ -57,10 +58,10 @@ class DetectedDefect:
 @dataclass(frozen=True)
 class QCReport:
     decision: QCDecision
-    metrics: List[QCMetric] = field(default_factory=list)
-    defects: List[DetectedDefect] = field(default_factory=list)
+    metrics: list[QCMetric] = field(default_factory=list)
+    defects: list[DetectedDefect] = field(default_factory=list)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "decision": self.decision.value,
             "metrics": [m.to_dict() for m in self.metrics],
@@ -68,7 +69,7 @@ class QCReport:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "QCReport":
+    def from_dict(cls, data: dict[str, Any]) -> "QCReport":
         return cls(
             decision=QCDecision(data["decision"]),
             metrics=[QCMetric.from_dict(m) for m in data.get("metrics", [])],

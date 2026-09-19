@@ -1,7 +1,8 @@
 import logging
-import psutil
-import subprocess
 import shutil
+import subprocess
+
+import psutil
 
 logger = logging.getLogger(__name__)
 

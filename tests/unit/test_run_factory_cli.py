@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from scripts.run_factory import build_arg_parser
-from scripts.run_factory import _require_factory_configuration
+from scripts.run_factory import _require_factory_configuration, build_arg_parser
 
 
 def test_factory_cli_requires_audio_path_and_uses_durable_defaults():

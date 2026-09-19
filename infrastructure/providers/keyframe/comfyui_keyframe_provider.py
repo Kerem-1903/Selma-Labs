@@ -181,7 +181,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         workflow_hash = ""
         try:
             async with self._session_factory(timeout=timeout) as session:
-                for node_id, (asset_id, storage_key) in zip(
+                for node_id, (_asset_id, storage_key) in zip(
                     reference_nodes, selected_references
                 ):
                     uploaded_name = await self._upload_reference(

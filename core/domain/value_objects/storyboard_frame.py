@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import PurePosixPath
-import re
 from typing import Any
 
 
@@ -56,7 +56,7 @@ class StoryboardFrame:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "StoryboardFrame":
+    def from_dict(cls, data: dict[str, Any]) -> StoryboardFrame:
         return cls(
             id=str(data["id"]),
             shot_contract_id=str(data["shot_contract_id"]),

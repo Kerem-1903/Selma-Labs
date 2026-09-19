@@ -1,13 +1,13 @@
 import asyncio
 import logging
-from datetime import datetime
-from scripts.run_factory import build_orchestrator
-from config.settings import get_settings
-from infrastructure.repositories.sqlite_video_repository import SQLiteVideoRepository
-from core.domain.entities.pipeline_run import PipelineRun
-from pathlib import Path
 import uuid
+from datetime import datetime
+from pathlib import Path
+
+from config.settings import get_settings
+from core.domain.entities.pipeline_run import PipelineRun
 from scripts.discover_trending_topic import get_trending_topic
+from scripts.run_factory import build_orchestrator
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +61,11 @@ class SchedulerBot:
                 logger.info(f"Trend bulundu: {topic}")
 
                 # 2. Pipeline'ı Tetikle
-                from infrastructure.repositories.local_json_run_repository import LocalJsonRunRepository
                 import os
+
+                from infrastructure.repositories.local_json_run_repository import (
+                    LocalJsonRunRepository,
+                )
                 run_id = str(uuid.uuid4())
 
                 os.makedirs(".selma_runs", exist_ok=True)

@@ -1,14 +1,14 @@
 """Perceptual clip selection and finite reuse budgets for Shorts timelines."""
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import replace
 from io import BytesIO
-from typing import Sequence
 
 from PIL import Image, UnidentifiedImageError
 
-from core.domain.exceptions import AssetDiversityError
 from core.domain.entities.media_asset import MediaAsset
+from core.domain.exceptions import AssetDiversityError
 from core.domain.ports.frame_extraction_port import FrameExtractionPort
 from core.domain.value_objects.asset_diversity import AssetUsage
 from core.domain.value_objects.scored_asset import ScoredAsset

@@ -8,7 +8,6 @@ import unicodedata
 from core.domain.exceptions import NarrativeQualityError
 from core.domain.value_objects.hook_variant import HookExperiment, HookVariantScore
 
-
 _STOPWORDS = {
     "a", "an", "and", "are", "can", "does", "for", "from", "how", "is",
     "of", "the", "this", "to", "what", "why", "ve", "bir", "bu", "için",

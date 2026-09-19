@@ -6,9 +6,10 @@ import asyncio
 import hashlib
 import json
 import sys
+from collections.abc import Sequence
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from core.application.orchestration.pipeline_orchestrator import (
@@ -163,7 +164,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
 
 
 def build_orchestrator(
-    repository: "RunRepositoryPort",
+    repository: RunRepositoryPort,
     output_directory: Path,
     target_duration_ms: int,
     *,
@@ -172,67 +173,69 @@ def build_orchestrator(
     content_language: str | None = None,
     visual_manifest_path: str | Path | None = None,
     settings=None,
-) -> "PipelineOrchestrator":
+) -> PipelineOrchestrator:
     """Instantiate adapters and services without placing business logic in CLI code."""
     from config.provider_registry import (
+        get_background_music_provider,
         get_fact_check_provider,
         get_fact_source_provider,
-        get_background_music_provider,
         get_pipeline_video_source_provider,
         get_script_provider,
         get_script_rewriter_provider,
         get_translation_provider,
+        get_video_generation_port,
         get_vision_asset_scoring_service,
         get_voice_provider,
-        get_video_generation_port,
         get_youtube_upload_port,
     )
-    from core.application.services.vision_safety_gate import VisionSafetyGate
     from config.settings import get_settings
     from core.application.orchestration.pipeline_orchestrator import PipelineOrchestrator
     from core.application.orchestration.run_executor import RunExecutor
     from core.application.services.alignment_quality_service import AlignmentQualityService
-    from core.application.services.audio_quality_gate_service import AudioQualityGateService
     from core.application.services.asset_diversity_service import AssetDiversityService
+    from core.application.services.audio_quality_gate_service import AudioQualityGateService
+    from core.application.services.brand_narration_service import BrandNarrationService
     from core.application.services.caption_ux_service import CaptionUxService
     from core.application.services.creative_quality_gate_service import (
         CreativeQualityGateService,
     )
-    from core.application.services.brand_narration_service import BrandNarrationService
     from core.application.services.cue_partitioning_service import CuePartitioningService
     from core.application.services.editorial_rhythm_service import EditorialRhythmService
-    from core.application.services.music_intelligence_service import MusicIntelligenceService
     from core.application.services.music_director_service import MusicDirectorService
+    from core.application.services.music_intelligence_service import MusicIntelligenceService
+    from core.application.services.narration_text_preparation_service import (
+        NarrationTextPreparationService,
+    )
     from core.application.services.narrative_quality_service import NarrativeQualityService
-    from core.application.services.narration_text_preparation_service import NarrationTextPreparationService
-    from core.application.services.premium_subtitle_formatter import PremiumSubtitleFormatter
     from core.application.services.post_render_quality_service import PostRenderQualityService
+    from core.application.services.premium_subtitle_formatter import PremiumSubtitleFormatter
     from core.application.services.remotion_timeline_service import RemotionTimelineService
     from core.application.services.retention_planning_service import RetentionPlanningService
     from core.application.services.scene_planning_service import ScenePlanningService
-    from core.application.services.sound_design_planning_service import SoundDesignPlanningService
     from core.application.services.script_fact_check_service import ScriptFactCheckService
     from core.application.services.script_service import ScriptService
+    from core.application.services.sound_design_planning_service import SoundDesignPlanningService
     from core.application.services.video_search_service import VideoSearchService
-    from core.application.services.voice_service import VoiceService
-    from core.application.services.voice_direction_service import VoiceDirectionService
-    from core.application.services.visual_intent_localization_service import (
-        VisualIntentLocalizationService,
-    )
+    from core.application.services.vision_safety_gate import VisionSafetyGate
     from core.application.services.visual_edit_planning_service import (
         VisualEditPlanningService,
+    )
+    from core.application.services.visual_intent_localization_service import (
+        VisualIntentLocalizationService,
     )
     from core.application.services.visual_quality_gate_service import (
         VisualQualityGateService,
     )
-    from core.application.services.youtube_upload_package_service import (
-        YoutubeUploadPackageService,
-    )
+    from core.application.services.voice_direction_service import VoiceDirectionService
+    from core.application.services.voice_service import VoiceService
     from core.application.services.youtube_performance_learning_service import (
         YoutubePerformanceLearningService,
     )
-    from core.domain.value_objects.scene import Scene
+    from core.application.services.youtube_upload_package_service import (
+        YoutubeUploadPackageService,
+    )
     from core.domain.value_objects.caption_ux import CaptionSafeZoneProfile
+    from core.domain.value_objects.scene import Scene
     from infrastructure.providers.audio.librosa_highlight_selector import (
         LibrosaHighlightSelector,
     )
@@ -245,21 +248,21 @@ def build_orchestrator(
     from infrastructure.providers.frame_extraction.ffmpeg_frame_extractor import (
         FfmpegFrameExtractor,
     )
-    from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
-    from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
-    from infrastructure.providers.render.ffprobe_media_inspection_provider import (
-        FfprobeMediaInspectionProvider,
-    )
     from infrastructure.providers.render.ffmpeg_media_quality_analysis_provider import (
         FfmpegMediaQualityAnalysisProvider,
     )
-    from infrastructure.storage.local_fs_storage import LocalFsStorage
-    from infrastructure.repositories.sqlite_youtube_performance_repository import (
-        SQLiteYoutubePerformanceRepository,
+    from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
+    from infrastructure.providers.render.ffprobe_media_inspection_provider import (
+        FfprobeMediaInspectionProvider,
     )
+    from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
     from infrastructure.providers.video.local_visual_manifest_provider import (
         LocalVisualManifestProvider,
     )
+    from infrastructure.repositories.sqlite_youtube_performance_repository import (
+        SQLiteYoutubePerformanceRepository,
+    )
+    from infrastructure.storage.local_fs_storage import LocalFsStorage
 
     class MusicOnlyScenePlanningProvider:
         """Compatibility adapter unused by music-first visual planning."""
@@ -642,7 +645,7 @@ async def run(arguments: argparse.Namespace) -> str:
 
 async def _run_autonomous(
     arguments: argparse.Namespace,
-    repository: "RunRepositoryPort",
+    repository: RunRepositoryPort,
     output_directory: Path,
     settings: object,
 ) -> str:
@@ -704,8 +707,8 @@ async def _run_autonomous(
 
 
 async def _renew_inbox_lease(
-    inbox: "AudioInboxPort",
-    job: "AudioInboxJob",
+    inbox: AudioInboxPort,
+    job: AudioInboxJob,
     lease_seconds: int,
 ) -> None:
     """Keep a durable inbox claim alive while its pipeline run is executing."""
@@ -744,7 +747,7 @@ def _build_run_input_fingerprint(arguments: argparse.Namespace, settings: object
             "topic": " ".join(arguments.topic.split()),
             "duration_seconds": arguments.duration_seconds,
             "language": arguments.language.strip().lower(),
-            "voice_id": arguments.voice_id or getattr(settings, "elevenlabs_voice_id"),
+            "voice_id": arguments.voice_id or settings.elevenlabs_voice_id,
             "background_music": not arguments.no_background_music,
             "music_theme": arguments.music_theme,
             "music_track": arguments.music_track,

@@ -3,7 +3,9 @@ import json
 import os
 import sys
 import time
+
 import bpy
+
 
 def setup_eevee_toon_shader(contour_type="inverted_hull", use_custom_face_normals=True):
     # Setup base materials for toon shader

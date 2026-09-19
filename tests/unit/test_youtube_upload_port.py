@@ -1,6 +1,11 @@
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import patch, MagicMock
-from infrastructure.providers.publish.google_api_youtube_upload_provider import GoogleApiYoutubeUploadProvider
+
+from infrastructure.providers.publish.google_api_youtube_upload_provider import (
+    GoogleApiYoutubeUploadProvider,
+)
+
 
 @pytest.mark.asyncio
 async def test_youtube_upload_mock_mode_when_no_credentials():
@@ -14,9 +19,9 @@ async def test_youtube_upload_mock_mode_when_no_credentials():
 @pytest.mark.asyncio
 async def test_youtube_upload_real_mode_success():
     with patch("os.path.exists", return_value=True), \
-         patch("infrastructure.providers.publish.google_api_youtube_upload_provider.Credentials.from_authorized_user_file") as mock_creds, \
+         patch("infrastructure.providers.publish.google_api_youtube_upload_provider.Credentials.from_authorized_user_file"), \
          patch("infrastructure.providers.publish.google_api_youtube_upload_provider.build") as mock_build, \
-         patch("infrastructure.providers.publish.google_api_youtube_upload_provider.MediaFileUpload") as mock_media:
+         patch("infrastructure.providers.publish.google_api_youtube_upload_provider.MediaFileUpload"):
 
         # Mock the googleapiclient response
         mock_youtube = MagicMock()

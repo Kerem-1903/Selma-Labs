@@ -1,7 +1,9 @@
-import aiohttp
 import logging
-from core.domain.ports.translation_port import TranslationPort
+
+import aiohttp
+
 from core.domain.exceptions import ProviderError
+from core.domain.ports.translation_port import TranslationPort
 
 logger = logging.getLogger(__name__)
 
@@ -13,6 +15,22 @@ class SelmaGPTTranslationProvider(TranslationPort):
         self.api_url = api_url
         self.model = model
         self.timeout_seconds = timeout_seconds
+
+    @property
+    def provider_identity(self) -> str:
+        return f"selmagpt:{self.model}"
+
+    async def translate_texts(self, texts: list[str], target_language: str) -> list[str]:
+        """Translate each text in order.
+
+        The port's plural method is the one the subtitle pipeline calls; this
+        adapter only implemented the singular form, so the class stayed abstract
+        and the ``translation_provider = "selmagpt"`` branch raised
+        ``TypeError`` on instantiation. Length and order are preserved.
+        """
+        return [
+            await self.translate_text(text, target_language) for text in texts
+        ]
 
     async def translate_text(self, text: str, target_language: str) -> str:
         logger.info(f"Translating text to {target_language} via SelmaGPT...")

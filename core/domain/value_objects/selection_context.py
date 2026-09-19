@@ -1,5 +1,7 @@
 from dataclasses import dataclass, field
+
 from core.domain.entities.media_asset import MediaAsset
+
 
 @dataclass(frozen=True)
 class SelectionContext:

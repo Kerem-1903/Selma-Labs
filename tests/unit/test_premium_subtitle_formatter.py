@@ -7,8 +7,8 @@ import pytest
 from core.application.services.premium_subtitle_formatter import PremiumSubtitleFormatter
 from core.domain.exceptions import KaraokeFormattingError
 from core.domain.value_objects.subtitle_cue import SubtitleCue
-from core.domain.value_objects.word_timing import WordTiming
 from core.domain.value_objects.visual_intent import VisualIntent
+from core.domain.value_objects.word_timing import WordTiming
 
 
 def test_format_writes_persistent_phrase_and_active_word_overlays():

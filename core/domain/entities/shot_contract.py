@@ -1,7 +1,14 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional
+from typing import Any
+
+from core.domain.value_objects.shot_constraints import (
+    ActionConstraints,
+    CameraConstraints,
+    VisualConstraints,
+)
+
 from .character_state import CharacterState
-from core.domain.value_objects.shot_constraints import CameraConstraints, ActionConstraints, VisualConstraints
+
 
 @dataclass
 class ShotContract:
@@ -9,15 +16,15 @@ class ShotContract:
     camera_constraints: CameraConstraints
     action_constraints: ActionConstraints
     visual_constraints: VisualConstraints
-    required_character_states: List[CharacterState] = field(default_factory=list)
-    required_object_states: Dict[str, str] = field(default_factory=dict)
-    script_id: Optional[str] = None
-    scene_index: Optional[int] = None
-    continuity_snapshot_id: Optional[str] = None
+    required_character_states: list[CharacterState] = field(default_factory=list)
+    required_object_states: dict[str, str] = field(default_factory=dict)
+    script_id: str | None = None
+    scene_index: int | None = None
+    continuity_snapshot_id: str | None = None
     continuity_through_sequence: int = 0
     narrative_evidence: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "camera_constraints": self.camera_constraints.to_dict(),
@@ -35,7 +42,7 @@ class ShotContract:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ShotContract":
+    def from_dict(cls, data: dict[str, Any]) -> "ShotContract":
         states = [
             CharacterState.from_dict(state_data)
             for state_data in data.get("required_character_states", [])

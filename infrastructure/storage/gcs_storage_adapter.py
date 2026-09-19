@@ -1,9 +1,11 @@
-from google.cloud import storage
-import typing
-import os
 import asyncio
+import typing
+
+from google.cloud import storage
+
 from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.storage_reference import StorageReference
+
 
 class GCSStorageAdapter(StoragePort):
     def __init__(self, bucket_name: str, credentials_path: str = None):

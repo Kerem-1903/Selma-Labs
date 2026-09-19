@@ -8,6 +8,44 @@ use semantic versioning.
 
 ### Changed
 
+- **Static analysis is a real gate now.** The `lint` job already ran ruff
+  blocking on correctness rules with mypy advisory; the tree is clean under a
+  much wider selection (`B`, `E4`, `E9`, `E722`, `F`, `I`, `S110`, `S112`, `UP`),
+  so that class of defect cannot land again. 600 findings were fixed
+  automatically across 273 files and the last 11 by hand. The pass found a real
+  closure bug: the pose-isolation diagnostic's `with_identity` helper never bound
+  its loop variable, so every variant could have been built from the last
+  iteration's request.
+- **`cli/main.py` is a dispatcher again.** Its 1016-line `build_parser()` became
+  four per-family builders under `cli/parsers/`, taking the file from 2585 to
+  1580 lines. The move is provably behaviour-neutral: `format_help()` and the
+  full argument schema (dest, option strings, defaults, nargs, choices) are
+  identical before and after.
+- **Silent failures now speak.** Three swallowed exceptions report what they
+  dropped: an unverifiable background approval receipt, an unreadable character
+  bible in the dashboard, and a long-form render carrying dynamic SFX it never
+  mixes -- that last one used to log that it was injecting tracks it did not
+  inject. Unused loop variables in the ComfyUI providers are renamed, and the
+  subtitle-immutability test that passed on any exception now asserts
+  `FrozenInstanceError` specifically.
+- **Two adapters that could never be instantiated are fixed.**
+  `SelmaGPTScenePlanningProvider` never defined the port's abstract
+  `provider_identity`, and `SelmaGPTTranslationProvider` was missing both that and
+  the port's actual entry point, `translate_texts` (it only had the singular
+  form). Both classes stayed abstract, so `scene_planning_provider = "selmagpt"`
+  and `translation_provider = "selmagpt"` raised `TypeError` the moment the
+  registry picked them. The type check found them; both now satisfy the port.
+- **The type check blocks.** mypy is green and blocking for `core/domain`,
+  `config` and `cli` (228 files), covering the contract, composition and
+  entry-point layers. The 200 findings it started from are down to 146, all in
+  `core/application` and `infrastructure`, which the advisory CI step reports
+  until they reach zero.
+- **CI installs a lock.** `requirements-ci.lock.txt` pins all 96 transitive
+  packages the quality-gate job resolves; `requirements-ci.txt` stays the
+  human-edited input and documents the recompile command. The 3.11 job keeps
+  installing the loose file on purpose, because it is the compatibility signal
+  rather than the reproducible baseline.
+
 - The character pose pack is now a **three-pose** library. `THREE_QUARTER_LEFT`
   and `THREE_QUARTER_RIGHT` were removed, and the two OpenPose three-quarter
   templates were deleted from the yaw rig, the generator and the catalog. The

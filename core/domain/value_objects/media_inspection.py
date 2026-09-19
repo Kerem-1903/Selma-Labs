@@ -72,7 +72,7 @@ class MediaInspection:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "MediaInspection":
+    def from_dict(data: dict[str, Any]) -> MediaInspection:
         return MediaInspection(
             format_names=tuple(str(value) for value in data.get("format_names", [])),
             duration_seconds=float(data["duration_seconds"]),

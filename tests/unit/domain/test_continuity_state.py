@@ -1,6 +1,7 @@
 from core.domain.entities.character_state import CharacterState
 from core.domain.entities.continuity_state import ContinuityState
 
+
 def test_continuity_state_initialization():
     state = ContinuityState(id="world_1")
     assert state.id == "world_1"

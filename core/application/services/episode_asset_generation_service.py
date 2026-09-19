@@ -9,9 +9,10 @@ factory services and reports failures without pretending that an asset exists.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from core.application.services.background_factory_service import (
     BackgroundFactoryService,

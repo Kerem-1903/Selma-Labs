@@ -1,6 +1,9 @@
 import pytest
+
 from core.domain.exceptions import ProviderAuthError
-from infrastructure.providers.translation.claude_translation_provider import ClaudeTranslationProvider
+from infrastructure.providers.translation.claude_translation_provider import (
+    ClaudeTranslationProvider,
+)
 
 
 def test_provider_requires_api_key():

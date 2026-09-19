@@ -12,7 +12,6 @@ from core.domain.value_objects.narrative_quality_report import (
     NarrativeQualityReport,
 )
 
-
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?…])\s+")
 _QUESTION_WORDS = {
     "neden": "cause",

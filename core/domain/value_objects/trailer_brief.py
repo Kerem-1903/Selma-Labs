@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from core.domain.exceptions import PreProductionValidationError
 
@@ -69,7 +70,7 @@ class TrailerBrief:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "TrailerBrief":
+    def from_dict(cls, data: Mapping[str, Any]) -> TrailerBrief:
         return cls(
             trailer_id=str(data.get("trailer_id", "")),
             title=str(data.get("title", "EŞİK//80")),

@@ -3,26 +3,26 @@ from __future__ import annotations
 import json
 import re
 import shutil
-from dataclasses import replace
 from collections.abc import Sequence
+from dataclasses import replace
 from pathlib import Path
 
+from core.application.services.subtitle_formatter import SubtitleFormatter
 from core.domain.entities.media_asset import MediaAsset
 from core.domain.entities.rendered_video import RenderedVideo
 from core.domain.entities.script import Script
 from core.domain.entities.subtitle_track import SubtitleTrack
 from core.domain.exceptions import UploadPreparationError
 from core.domain.ports.media_inspection_port import MediaInspectionPort
-from core.domain.value_objects.media_inspection import MediaInspection
-from core.domain.value_objects.creative_quality_report import CreativeQualityReport
 from core.domain.value_objects.audio_quality_report import AudioQualityReport
+from core.domain.value_objects.creative_quality_report import CreativeQualityReport
+from core.domain.value_objects.media_inspection import MediaInspection
+from core.domain.value_objects.subtitle_cue import SubtitleCue
 from core.domain.value_objects.visual_quality_report import VisualQualityReport
 from core.domain.value_objects.youtube_upload_package import (
     UploadReadinessCheck,
     YoutubeUploadPackage,
 )
-from core.domain.value_objects.subtitle_cue import SubtitleCue
-from core.application.services.subtitle_formatter import SubtitleFormatter
 
 MAX_SHORT_DURATION_SECONDS = 180.0
 MAX_TITLE_CHARACTERS = 100

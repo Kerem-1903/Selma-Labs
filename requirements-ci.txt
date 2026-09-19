@@ -1,5 +1,11 @@
-# Deterministic quality-gate environment. GPU/model runtimes remain in
+# Human-edited input for the quality-gate environment; GPU/model runtimes stay in
 # requirements.txt and are exercised by provider-contract tests with fakes.
+#
+# `requirements-ci.lock.txt` is the compiled pin set that CI installs on the 3.10
+# baseline. Recompile it whenever this file changes:
+#
+#   python -m piptools compile requirements-ci.txt \
+#       --output-file requirements-ci.lock.txt
 anthropic>=0.40.0
 pydantic-settings>=2.15.0
 pytest>=8.0.0
@@ -20,7 +26,8 @@ google-auth-oauthlib>=1.2.0
 fastapi>=0.100.0
 python-multipart>=0.0.6
 jinja2>=3.1.0
-# Static analysis. Ruff owns the blocking correctness gate; mypy runs advisory
-# until its baseline is clean (see docs/CODE_REVIEW.md).
+# Static analysis. Ruff and the scoped mypy gate both block; the wider mypy run
+# is advisory until the remaining debt in core/application and infrastructure is
+# cleared (see docs/CODE_REVIEW.md).
 ruff>=0.16.0
 mypy>=1.11.0

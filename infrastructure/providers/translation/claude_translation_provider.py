@@ -1,6 +1,5 @@
 import json
 import logging
-from typing import List
 
 import anthropic
 
@@ -32,7 +31,7 @@ class ClaudeTranslationProvider(TranslationPort):
     def provider_identity(self) -> str:
         return f"anthropic:{self._model_name}"
 
-    async def translate_texts(self, texts: List[str], target_language: str) -> List[str]:
+    async def translate_texts(self, texts: list[str], target_language: str) -> list[str]:
         if not texts:
             return []
 

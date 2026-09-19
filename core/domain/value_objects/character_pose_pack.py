@@ -215,6 +215,8 @@ class CharacterPosePackManifest:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> CharacterPosePackManifest:
+        raw_snapshot = data.get("style_lock_snapshot", {})
+        raw_receipt = data.get("approval_receipt")
         return cls(
             schema_version=int(data.get("schema_version", 0)),
             character_id=str(data.get("character_id", "")),
@@ -232,12 +234,12 @@ class CharacterPosePackManifest:
             artifact_mode=str(data.get("artifact_mode", "DISCOVERY")),
             production_eligible=bool(data.get("production_eligible", False)),
             style_lock_snapshot=(
-                dict(data.get("style_lock_snapshot", {}))
-                if isinstance(data.get("style_lock_snapshot", {}), Mapping)
-                else {}
+                dict(raw_snapshot) if isinstance(raw_snapshot, Mapping) else {}
             ),
             human_approved=bool(data.get("human_approved", False)),
-            approval_receipt=(dict(data.get("approval_receipt")) if isinstance(data.get("approval_receipt"), Mapping) else None),
+            approval_receipt=(
+                dict(raw_receipt) if isinstance(raw_receipt, Mapping) else None
+            ),
         )
 
 
@@ -294,6 +296,7 @@ class CharacterPosePackApproval:
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> CharacterPosePackApproval:
         raw_hashes = data.get("pose_hashes", {})
+        raw_receipt = data.get("asset_approval_receipt")
         return cls(
             schema_version=int(data.get("schema_version", 0)),
             character_id=str(data.get("character_id", "")),
@@ -307,5 +310,7 @@ class CharacterPosePackApproval:
             approved_by=str(data.get("approved_by", "")),
             approved_at=datetime.fromisoformat(str(data.get("approved_at", ""))),
             confirmed_checks=tuple(str(item) for item in data.get("confirmed_checks", ())),
-            asset_approval_receipt=(dict(data.get("asset_approval_receipt")) if isinstance(data.get("asset_approval_receipt"), Mapping) else None),
+            asset_approval_receipt=(
+                dict(raw_receipt) if isinstance(raw_receipt, Mapping) else None
+            ),
         )

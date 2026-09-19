@@ -44,7 +44,7 @@ class MediaQualitySignals:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "MediaQualitySignals":
+    def from_dict(data: dict[str, Any]) -> MediaQualitySignals:
         return MediaQualitySignals(
             opening_black_seconds=float(data["opening_black_seconds"]),
             total_black_seconds=float(data["total_black_seconds"]),

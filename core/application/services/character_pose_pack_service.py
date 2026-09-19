@@ -21,6 +21,10 @@ from core.application.services.asset_approval_service import AssetApprovalServic
 from core.application.services.character_identity_prompt_service import (
     CharacterIdentityPromptService,
 )
+from core.application.services.character_pack_rejection_store import (
+    load_rejection,
+    record_rejection,
+)
 from core.application.services.character_view_quality_gate import (
     CharacterViewQualityGate,
 )
@@ -29,10 +33,10 @@ from core.domain.exceptions import KeyframeGenerationError, StorageError
 from core.domain.ports.keyframe_generation_port import KeyframeGenerationPort
 from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.character_creation_brief import CharacterCreationBrief
+from core.domain.value_objects.character_design import CharacterCanonicalApproval
 from core.domain.value_objects.character_identity_contract import (
     CharacterIdentityContract,
 )
-from core.domain.value_objects.character_design import CharacterCanonicalApproval
 from core.domain.value_objects.character_pack_rejection import (
     REJECTION_SCHEMA_VERSION,
     CharacterPackRejection,
@@ -46,11 +50,6 @@ from core.domain.value_objects.character_pose_pack import (
 from core.domain.value_objects.character_view_qc import (
     CharacterViewObservation,
     CharacterViewQcReport,
-)
-
-from core.application.services.character_pack_rejection_store import (
-    load_rejection,
-    record_rejection,
 )
 from core.domain.value_objects.keyframe_generation_request import (
     KeyframeGenerationRequest,
@@ -321,7 +320,7 @@ class CharacterPosePackService:
 
         await self._ensure_pose_templates()
         existing_ids = {pose.pose_id for pose in poses}
-        for index, (pose_id, expected_view, _filename) in enumerate(self._POSES):
+        for pose_id, expected_view, _filename in self._POSES:
             if pose_id in existing_ids:
                 continue
             accepted: CharacterPoseEvidence | None = None

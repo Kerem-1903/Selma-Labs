@@ -16,18 +16,17 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Optional
 
+from core.application.services.narration_text_preparation_service import (
+    NarrationTextPreparationService,
+)
+from core.application.services.voice_direction_service import VoiceDirectionService
 from core.domain.entities.script import Script
 from core.domain.entities.voice_track import VoiceTrack
 from core.domain.exceptions import VoiceGenerationError
 from core.domain.ports.storage_port import StoragePort
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.value_objects.generated_audio import GeneratedAudio
-from core.application.services.voice_direction_service import VoiceDirectionService
-from core.application.services.narration_text_preparation_service import (
-    NarrationTextPreparationService,
-)
 
 logger = logging.getLogger("selma.voice_service")
 
@@ -52,7 +51,7 @@ class VoiceService:
         self._direction_service = direction_service
         self._text_preparation_service = text_preparation_service
 
-    async def generate(self, script: Script, voice_name: Optional[str] = None) -> VoiceTrack:
+    async def generate(self, script: Script, voice_name: str | None = None) -> VoiceTrack:
         """Generate and persist narration audio for ``script``.
 
         Args:

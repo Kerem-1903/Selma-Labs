@@ -2,7 +2,9 @@ import argparse
 import json
 import sys
 import time
+
 import bpy
+
 
 def run_benchmark(model_path):
     resolutions = [
@@ -34,10 +36,8 @@ def run_benchmark(model_path):
 
         # VRAM in MB
         try:
-            # Note: This is an approximation of peak memory used by Blender in MB
-            vram_usage = (bpy.context.scene.render.engine == 'BLENDER_EEVEE' or bpy.context.scene.render.engine == 'BLENDER_EEVEE_NEXT')
-            # Currently Blender API doesn't expose EEVEE VRAM directly via Python without parsing log output
-            # We provide a placeholder for VRAM usage (or system RAM for CPU) via sys info
+            # Blender does not expose EEVEE VRAM through the Python API without
+            # parsing engine logs, so the process RSS is reported as a proxy.
             import psutil
             process = psutil.Process()
             memory_info = process.memory_info()

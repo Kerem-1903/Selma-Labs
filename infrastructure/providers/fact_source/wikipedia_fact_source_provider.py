@@ -157,10 +157,10 @@ class WikipediaFactSourceProvider(FactSourcePort):
             if not page_key:
                 continue
             article_response = await client.get(
-                (
+                
                     "https://api.wikimedia.org/core/v1/wikipedia/"
                     f"{language}/page/{quote(page_key, safe='')}/with_html"
-                )
+                
             )
             if article_response.status_code == 404:
                 continue

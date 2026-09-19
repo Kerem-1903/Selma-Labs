@@ -244,7 +244,6 @@ async def test_provider_errors_propagate_and_stop_processing():
 @pytest.mark.asyncio
 async def test_respects_configured_candidates_per_scene():
     plan = _scene_plan(scenes=[_scene()])
-    video_source = FakeVideoSourcePort()
 
     captured_max_results = {}
 

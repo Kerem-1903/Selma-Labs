@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 from core.domain.value_objects.blender_render_manifest import BlenderRenderManifest
 
@@ -19,7 +19,7 @@ class BlenderSceneRendererPort(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def run_benchmark(self, model_path: str) -> Dict[str, Any]:
+    async def run_benchmark(self, model_path: str) -> dict[str, Any]:
         """
         Runs rendering benchmarks at multiple resolutions (e.g., 540p, 720p, 1080p).
         Returns a dictionary with benchmark metrics.

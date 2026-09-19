@@ -16,7 +16,6 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Optional
 
 from core.domain.value_objects.scene import Scene
 
@@ -24,8 +23,8 @@ from core.domain.value_objects.scene import Scene
 @dataclass(frozen=True)
 class ScenePlan:
     id: str
-    script_id: Optional[str]
-    voice_track_id: Optional[str]
+    script_id: str | None
+    voice_track_id: str | None
     total_duration_seconds: float
     provider_used: str
     scenes: list[Scene]
@@ -34,12 +33,12 @@ class ScenePlan:
     @staticmethod
     def create(
         *,
-        script_id: Optional[str],
-        voice_track_id: Optional[str],
+        script_id: str | None,
+        voice_track_id: str | None,
         total_duration_seconds: float,
         provider_used: str,
         scenes: list[Scene],
-    ) -> "ScenePlan":
+    ) -> ScenePlan:
         return ScenePlan(
             id=str(uuid.uuid4()),
             script_id=script_id,

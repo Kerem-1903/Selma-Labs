@@ -4,7 +4,7 @@ import logging
 import os
 import uuid
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from core.domain.ports.blender_scene_renderer_port import BlenderSceneRendererPort
 from core.domain.value_objects.blender_render_manifest import BlenderRenderManifest
@@ -80,13 +80,13 @@ class BlenderSceneAdapter(BlenderSceneRendererPort):
             raise RuntimeError(f"Render completed but manifest was not found at {manifest_path}")
 
         try:
-            with open(manifest_path, "r", encoding="utf-8") as f:
+            with open(manifest_path, encoding="utf-8") as f:
                 manifest_data = json.load(f)
             return BlenderRenderManifest.from_dict(manifest_data)
         except Exception as e:
             raise RuntimeError(f"Failed to parse blender render manifest: {e}")
 
-    async def run_benchmark(self, model_path: str) -> Dict[str, Any]:
+    async def run_benchmark(self, model_path: str) -> dict[str, Any]:
         """
         Executes a headless blender subprocess to run benchmark tests.
         """

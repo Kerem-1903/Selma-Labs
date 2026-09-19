@@ -76,7 +76,7 @@ class SubtitleCue:
         *,
         index: int = 0,
         scene_index: int = -1,
-    ) -> "SubtitleCue":
+    ) -> SubtitleCue:
         """Create one word-timed cue with derived display text and timing."""
         if not words:
             raise ValueError("SubtitleCue requires at least one WordTiming.")

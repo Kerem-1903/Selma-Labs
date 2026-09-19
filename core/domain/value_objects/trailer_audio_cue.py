@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from core.domain.exceptions import PreProductionValidationError
 
@@ -53,7 +54,7 @@ class TrailerAudioCue:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "TrailerAudioCue":
+    def from_dict(cls, data: Mapping[str, Any]) -> TrailerAudioCue:
         return cls(
             cue_id=str(data.get("cue_id", "")),
             kind=str(data.get("kind", "")),

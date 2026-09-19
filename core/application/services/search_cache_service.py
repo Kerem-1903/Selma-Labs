@@ -1,9 +1,11 @@
-import logging
 import asyncio
-from typing import Protocol, Any, Sequence
-from core.domain.entities.media_asset import MediaAsset
+import logging
+from collections.abc import Sequence
+from typing import Any, Protocol
+
 from core.application.ports.cache_port import CachePort
 from core.application.services.cache_key_factory import CacheKeyFactory
+from core.domain.entities.media_asset import MediaAsset
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +35,17 @@ class SearchCacheService:
         self._provider_name = provider_name
         self._default_ttl = default_ttl
         self._negative_ttl = negative_ttl
-        
+
+    @property
+    def name(self) -> str:
+        """The search-provider identity this decorator stands in for.
+
+        Caching is transparent: callers that read ``provider.name`` must keep
+        seeing the wrapped stack's own name, not the cache namespace.
+        """
+        return self._provider_name
+
+
     async def search(self, query: str, **kwargs: Any) -> list[MediaAsset]:
         cache_key = CacheKeyFactory.generate(self._provider_name, query, **kwargs)
         

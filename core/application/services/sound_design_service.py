@@ -1,9 +1,8 @@
 import logging
-import random
-from typing import Optional
+
+from core.domain.entities.script import Script
 from core.domain.entities.timeline import Timeline
 from core.domain.value_objects.timeline_sfx import TimelineSfx
-from core.domain.entities.script import Script
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +15,7 @@ class SoundDesignService:
     def __init__(self, sfx_library_path: str = "assets/sfx"):
         self.sfx_library_path = sfx_library_path
 
-    def inject_sfx(self, timeline: Timeline, script: Optional[Script] = None) -> Timeline:
+    def inject_sfx(self, timeline: Timeline, script: Script | None = None) -> Timeline:
         logger.info(f"Applying Auto Sound Design to timeline {timeline.id}")
         sfx_tracks = []
 

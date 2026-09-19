@@ -101,28 +101,16 @@ class FfmpegRenderProvider(RenderPort):
         import logging
         logger = logging.getLogger(__name__)
 
-        # Parse SFX into sound design plan
-        sound_design_plan = None
-        timeline_data = timeline.to_dict()
-        if timeline_data and "sfx_tracks" in timeline_data and timeline_data["sfx_tracks"]:
-            sfx_cues = []
-            for sfx in timeline_data["sfx_tracks"]:
-                kind = "transition" if sfx["sfx_type"] == "whoosh" else "hook_impact"
-                sfx_cues.append({
-                    "timestamp_ms": int(sfx["start_time"] * 1000),
-                    "kind": kind,
-                    "duration_ms": 1500,
-                    "gain_db": -6.0 if sfx.get("volume", 1.0) > 0.5 else -12.0,
-                    "reason": f"SFX: {sfx['sfx_type']}"
-                })
-
-            sound_design_plan = {
-                "duration_ms": int(timeline.total_duration_seconds * 1000),
-                "ambience_profile": "none",
-                "cues": sfx_cues,
-                "music_automation": []
-            }
-            logger.info(f"Injecting {len(sfx_cues)} dynamic SFX tracks into audio filter graph.")
+        # Dynamic SFX are mixed by the Shorts audio graph; this long-form path
+        # muxes narration and the ASS subtitle track only. Say so instead of
+        # building a sound-design plan nothing downstream reads.
+        if timeline.sfx_tracks:
+            logger.warning(
+                "Timeline '%s' carries %d dynamic SFX track(s); the long-form FFmpeg "
+                "render path mixes narration only and will not apply them.",
+                timeline.id,
+                len(timeline.sfx_tracks),
+            )
 
         if not timeline.clips:
             raise RenderError(f"Cannot render Timeline '{timeline.id}': it has no clips.")

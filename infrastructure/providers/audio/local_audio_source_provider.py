@@ -4,7 +4,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -15,7 +15,6 @@ from core.domain.exceptions import (
     UnsupportedAudioFormatError,
 )
 from core.domain.ports.audio_source_port import AudioSourcePort
-
 
 _SUPPORTED_MEDIA_TYPES = {
     ".mp3": "audio/mpeg",

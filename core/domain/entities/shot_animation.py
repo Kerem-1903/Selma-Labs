@@ -70,7 +70,7 @@ class AnimationShotPlan:
         )
         if self.keyframe_approved and not self.source_image_storage_key:
             raise ValueError("An approved animation shot requires a source image storage key.")
-        for name, value in (
+        optional_keys: tuple[tuple[str, str | None], ...] = (
             ("start_keyframe_key", self.start_keyframe_key),
             ("end_keyframe_key", self.end_keyframe_key),
             ("start_pose_reference_key", self.start_pose_reference_key),
@@ -79,9 +79,10 @@ class AnimationShotPlan:
             ("keyframe_pair_approval_key", self.keyframe_pair_approval_key),
             ("pose_pack_manifest_key", self.pose_pack_manifest_key),
             ("pose_pack_approval_key", self.pose_pack_approval_key),
-        ):
-            if value:
-                _validate_storage_key(value, name)
+        )
+        for option_name, option_value in optional_keys:
+            if option_value:
+                _validate_storage_key(option_value, option_name)
         if bool(self.start_pose_reference_key) != bool(self.end_pose_reference_key):
             raise ValueError("Start and end pose references must be supplied together.")
         if bool(self.keyframe_pair_manifest_key) != bool(self.keyframe_pair_approval_key):

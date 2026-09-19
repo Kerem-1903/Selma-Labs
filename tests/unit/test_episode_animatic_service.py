@@ -7,12 +7,12 @@ from core.application.services.asset_approval_service import AssetApprovalServic
 from core.application.services.episode_animatic_service import EpisodeAnimaticService
 from core.application.services.episode_director_service import EpisodeDirectorService
 from core.application.services.location_bible_factory_service import LocationBibleFactoryService
-from infrastructure.providers.render.remotion_animatic_exporter import RemotionAnimaticExporter
-from infrastructure.storage.local_fs_storage import LocalFsStorage
 from core.domain.value_objects.background_production import (
     BackgroundCandidate,
     BackgroundCandidatePack,
 )
+from infrastructure.providers.render.remotion_animatic_exporter import RemotionAnimaticExporter
+from infrastructure.storage.local_fs_storage import LocalFsStorage
 
 
 def _location():

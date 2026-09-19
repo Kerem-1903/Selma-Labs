@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from math import isclose
-from typing import Any, Mapping
+from typing import Any
 
 from core.domain.exceptions import PreProductionValidationError
 
@@ -80,7 +81,7 @@ class DirectorCharacterRequirement:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "DirectorCharacterRequirement":
+    def from_dict(cls, data: Mapping[str, Any]) -> DirectorCharacterRequirement:
         raw_refs = data.get("pose_asset_refs", {})
         return cls(
             character_id=str(data.get("character_id", "")),
@@ -131,7 +132,7 @@ class DirectorBackgroundRequirement:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "DirectorBackgroundRequirement":
+    def from_dict(cls, data: Mapping[str, Any]) -> DirectorBackgroundRequirement:
         return cls(
             recipe_id=str(data.get("recipe_id", "")),
             location_id=str(data.get("location_id", "")),
@@ -248,7 +249,7 @@ class DirectorShot:
         return self.start_frame + self.duration_frames
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "DirectorShot":
+    def from_dict(cls, data: Mapping[str, Any]) -> DirectorShot:
         return cls(
             shot_id=str(data.get("shot_id", "")),
             scene_id=str(data.get("scene_id", "")),
@@ -324,7 +325,7 @@ class DirectorScene:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "DirectorScene":
+    def from_dict(cls, data: Mapping[str, Any]) -> DirectorScene:
         return cls(
             scene_id=str(data.get("scene_id", "")),
             title=str(data.get("title", "")),
@@ -425,7 +426,7 @@ class EpisodeDirectorPlan:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "EpisodeDirectorPlan":
+    def from_dict(cls, data: Mapping[str, Any]) -> EpisodeDirectorPlan:
         raw_metadata = data.get("metadata", {})
         return cls(
             schema_version=int(data.get("schema_version", 0)),

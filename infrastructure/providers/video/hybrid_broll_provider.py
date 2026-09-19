@@ -1,11 +1,10 @@
-import asyncio
 import logging
 import random
-from typing import Optional
-from core.domain.ports.video_source_port import VideoSourcePort
+
 from core.domain.entities.media_asset import MediaAsset
-from infrastructure.providers.video.pexels_provider import PexelsProvider
+from core.domain.ports.video_source_port import VideoSourcePort
 from infrastructure.providers.video.comfyui_video_provider import ComfyUIVideoProvider
+from infrastructure.providers.video.pexels_provider import PexelsProvider
 
 logger = logging.getLogger(__name__)
 

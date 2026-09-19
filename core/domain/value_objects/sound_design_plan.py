@@ -4,7 +4,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-
 _CUE_KINDS = {
     "hook_impact",
     "transition",
@@ -46,7 +45,7 @@ class AudioCue:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "AudioCue":
+    def from_dict(data: dict[str, Any]) -> AudioCue:
         return AudioCue(
             timestamp_ms=int(data["timestamp_ms"]),
             kind=str(data["kind"]),
@@ -78,7 +77,7 @@ class MusicAutomationPoint:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "MusicAutomationPoint":
+    def from_dict(data: dict[str, Any]) -> MusicAutomationPoint:
         return MusicAutomationPoint(
             timestamp_ms=int(data["timestamp_ms"]),
             relative_gain_db=float(data["relative_gain_db"]),
@@ -142,7 +141,7 @@ class SoundDesignPlan:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "SoundDesignPlan":
+    def from_dict(data: dict[str, Any]) -> SoundDesignPlan:
         return SoundDesignPlan(
             duration_ms=int(data["duration_ms"]),
             ambience_profile=str(data.get("ambience_profile") or "none"),

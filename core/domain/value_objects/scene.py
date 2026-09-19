@@ -18,7 +18,6 @@ moment the provider returns it.
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import Optional
 
 
 @dataclass(frozen=True)
@@ -27,8 +26,8 @@ class Scene:
     narration: str
     search_keywords: list[str]
     detected_objects: list[str]
-    location: Optional[str]
-    mood: Optional[str]
+    location: str | None
+    mood: str | None
     # "high" | "medium" | "low" — free-form str rather than a Literal/enum
     # because a provider adapter is responsible for normalizing whatever a
     # model returns into one of these three; the domain layer just carries
@@ -46,7 +45,7 @@ class Scene:
     start_time: float = 0.0
     end_time: float = 0.0
 
-    def finalize(self, index: int, start_time: float, end_time: float) -> "Scene":
+    def finalize(self, index: int, start_time: float, end_time: float) -> Scene:
         """Return a copy with ``index`` and timing set.
 
         Scene is frozen like every other domain object in this codebase;

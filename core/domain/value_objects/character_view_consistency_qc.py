@@ -10,7 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-
 HUMAN_REQUIRED_CONSISTENCY_CHECKS = (
     "identity_similarity",
     "face_similarity",

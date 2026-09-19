@@ -1,7 +1,6 @@
 import hashlib
 import json
 import logging
-from typing import List
 
 from core.domain.ports.vision_analysis_port import VisionAnalysisPort
 from core.domain.value_objects.vision_analysis_result import VisionAnalysisResult
@@ -19,7 +18,7 @@ class CachingVisionProvider(VisionAnalysisPort):
     def provider_identity(self) -> str:
         return f"cached({self._inner.provider_identity})"
 
-    def _compute_key(self, frame_bytes: List[bytes], scene_context: str) -> str:
+    def _compute_key(self, frame_bytes: list[bytes], scene_context: str) -> str:
         frame_hashes = [hashlib.sha256(b).hexdigest() for b in frame_bytes]
         payload = json.dumps({
             "model": self._inner.provider_identity,
@@ -29,7 +28,7 @@ class CachingVisionProvider(VisionAnalysisPort):
         }, sort_keys=True)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-    async def analyze(self, frame_bytes: List[bytes], scene_context: str) -> VisionAnalysisResult:
+    async def analyze(self, frame_bytes: list[bytes], scene_context: str) -> VisionAnalysisResult:
         key = self._compute_key(frame_bytes, scene_context)
         if key in self._cache:
             logger.info(f"Vision cache hit for key {key[:8]}...")

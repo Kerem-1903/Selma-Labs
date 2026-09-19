@@ -1,9 +1,10 @@
+import logging
 import os
 import uuid
-import logging
 from collections.abc import AsyncIterator
-from core.domain.ports.video_source_port import VideoSourcePort
+
 from core.domain.entities.media_asset import MediaAsset
+from core.domain.ports.video_source_port import VideoSourcePort
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ class UserUploadedAssetProvider(VideoSourcePort):
         """
         logger.info(f"UserUploads provider searching for: '{query}' in {self.upload_directory}")
         count = 0
-        query_words = query.lower().split()
+        query_words = [word for word in query.lower().split() if word]
 
         # Kullanıcı dosyalarını oku
         files = []
@@ -38,7 +39,9 @@ class UserUploadedAssetProvider(VideoSourcePort):
         # Basitçe dosya adında arama kelimesi geçiyorsa döndür.
         # Eğer hiç geçmiyorsa (ya da isimler alakasızsa) boş dönme diye rastgele de verebiliriz,
         # fakat şimdilik eşleşenleri veya sıradakileri veriyoruz.
-        for f in files:
+        matched = [f for f in files if any(word in f.lower() for word in query_words)]
+        ordered_files = matched + [f for f in files if f not in matched]
+        for f in ordered_files:
             if count >= limit:
                 break
 

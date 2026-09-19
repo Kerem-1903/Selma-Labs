@@ -39,7 +39,7 @@ class AssetUsage:
         }
 
     @staticmethod
-    def from_dict(data: dict[str, Any]) -> "AssetUsage":
+    def from_dict(data: dict[str, Any]) -> AssetUsage:
         return AssetUsage(
             asset_id=str(data["asset_id"]),
             perceptual_hashes=tuple(str(value) for value in data.get("perceptual_hashes", [])),

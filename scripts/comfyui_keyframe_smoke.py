@@ -4,15 +4,17 @@ import os
 import sys
 import time
 from pathlib import Path
+
 from PIL import Image, ImageDraw
 
 # Ensure the project root is in sys.path
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
+from config.settings import get_settings
 from core.domain.value_objects.keyframe_generation_request import KeyframeGenerationRequest
 from infrastructure.providers.keyframe.comfyui_keyframe_provider import ComfyUIKeyframeProvider
 from infrastructure.storage.local_fs_storage import LocalFsStorage
-from config.settings import get_settings
+
 
 def build_akira_contract(
     shot_id: str,

@@ -1,13 +1,14 @@
 import pytest
+
 from config.provider_registry import (
     get_asset_selection_service,
     get_audio_mix_provider,
     get_background_music_provider,
     get_fact_check_provider,
     get_fact_source_provider,
-    get_media_inspection_provider,
     get_image_to_video_generation_provider,
     get_keyframe_generation_provider,
+    get_media_inspection_provider,
     get_pipeline_video_source_provider,
     get_render_provider,
     get_scene_planning_provider,
@@ -21,31 +22,41 @@ from config.provider_registry import (
 )
 from config.settings import Settings
 from core.domain.exceptions import RuntimeProfileError
-from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
-from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
 from infrastructure.providers.audio_mix.ffmpeg_audio_mix_provider import FfmpegAudioMixProvider
-from infrastructure.providers.music.local_licensed_music_provider import LocalLicensedMusicProvider
 from infrastructure.providers.fact_check.nvidia_fact_check_provider import NvidiaFactCheckProvider
-from infrastructure.providers.fact_source.wikipedia_fact_source_provider import WikipediaFactSourceProvider
+from infrastructure.providers.fact_source.wikipedia_fact_source_provider import (
+    WikipediaFactSourceProvider,
+)
+from infrastructure.providers.music.local_licensed_music_provider import LocalLicensedMusicProvider
+from infrastructure.providers.render.ffmpeg_render_provider import FfmpegRenderProvider
 from infrastructure.providers.render.ffprobe_media_inspection_provider import (
     FfprobeMediaInspectionProvider,
 )
-from infrastructure.providers.scene_planning.claude_scene_planning_provider import ClaudeScenePlanningProvider
-from infrastructure.providers.scene_planning.nvidia_scene_planning_provider import NvidiaScenePlanningProvider
-from infrastructure.providers.script.nvidia_script_provider import NvidiaScriptProvider
-from infrastructure.providers.script.nvidia_fact_grounded_rewriter import NvidiaFactGroundedRewriter
-from infrastructure.providers.translation.caching_translation_provider import CachingTranslationProvider
-from infrastructure.providers.topic_selection.nvidia_topic_selection_provider import NvidiaTopicSelectionProvider
-from infrastructure.providers.trend.youtube_most_popular_provider import YoutubeMostPopularProvider
-from infrastructure.providers.video.pexels_provider import PexelsProvider
-from infrastructure.providers.video.orchestrated_video_source_provider import (
-    OrchestratedVideoSourceProvider,
+from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
+from infrastructure.providers.scene_planning.claude_scene_planning_provider import (
+    ClaudeScenePlanningProvider,
 )
+from infrastructure.providers.scene_planning.nvidia_scene_planning_provider import (
+    NvidiaScenePlanningProvider,
+)
+from infrastructure.providers.script.nvidia_fact_grounded_rewriter import NvidiaFactGroundedRewriter
+from infrastructure.providers.script.nvidia_script_provider import NvidiaScriptProvider
+from infrastructure.providers.topic_selection.nvidia_topic_selection_provider import (
+    NvidiaTopicSelectionProvider,
+)
+from infrastructure.providers.translation.caching_translation_provider import (
+    CachingTranslationProvider,
+)
+from infrastructure.providers.trend.youtube_most_popular_provider import YoutubeMostPopularProvider
 from infrastructure.providers.video.fake_image_to_video_provider import (
     FakeImageToVideoProvider,
 )
-from infrastructure.providers.voice.caching_voice_provider import CachingVoiceProvider
+from infrastructure.providers.video.orchestrated_video_source_provider import (
+    OrchestratedVideoSourceProvider,
+)
+from infrastructure.providers.video.pexels_provider import PexelsProvider
 from infrastructure.providers.vision.caching_vision_provider import CachingVisionProvider
+from infrastructure.providers.voice.caching_voice_provider import CachingVoiceProvider
 
 
 def test_get_translation_provider_success():
@@ -125,8 +136,9 @@ def test_get_voice_provider_success():
 
 
 def test_get_local_voice_clone_provider_success():
-    from infrastructure.providers.voice.local_voice_clone_provider import LocalVoiceCloneProvider
     from pathlib import Path
+
+    from infrastructure.providers.voice.local_voice_clone_provider import LocalVoiceCloneProvider
 
     settings = Settings(
         voice_provider="local_xtts",

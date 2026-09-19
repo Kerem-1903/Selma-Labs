@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+from core.application.services.script_service import ScriptService
 from core.domain.entities.script import Script
 from core.domain.exceptions import FactCheckError
 from core.domain.ports.fact_check_port import FactCheckPort
 from core.domain.ports.fact_source_port import FactSourcePort
 from core.domain.ports.script_rewriter_port import ScriptRewriterPort
 from core.domain.value_objects.fact_check_report import FactCheckReport
-from core.application.services.script_service import ScriptService
 
 
 class ScriptFactCheckService:

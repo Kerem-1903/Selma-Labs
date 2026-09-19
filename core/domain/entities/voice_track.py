@@ -10,7 +10,6 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
 
 from core.domain.value_objects.speech_segment import SpeechSegment
 from core.domain.value_objects.voice_direction import VoiceDirection
@@ -19,7 +18,7 @@ from core.domain.value_objects.voice_direction import VoiceDirection
 @dataclass(frozen=True)
 class VoiceTrack:
     audio_id: str
-    script_id: Optional[str]
+    script_id: str | None
     duration_seconds: float
     provider: str
     voice_name: str
@@ -37,17 +36,17 @@ class VoiceTrack:
     @staticmethod
     def create(
         *,
-        script_id: Optional[str],
+        script_id: str | None,
         duration_seconds: float,
         provider: str,
         voice_name: str,
         sample_rate: int,
         file_path: str,
-        segments: Optional[list[SpeechSegment]] = None,
+        segments: list[SpeechSegment] | None = None,
         direction: VoiceDirection | None = None,
         spoken_text: str = "",
         pronunciation_replacements: tuple[tuple[str, str], ...] = (),
-    ) -> "VoiceTrack":
+    ) -> VoiceTrack:
         return VoiceTrack(
             audio_id=str(uuid.uuid4()),
             script_id=script_id,

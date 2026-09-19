@@ -11,10 +11,10 @@ and injected.
 from __future__ import annotations
 
 from anthropic import (
-    AsyncAnthropic,
     APIConnectionError,
     APIStatusError,
     APITimeoutError,
+    AsyncAnthropic,
 )
 
 from core.domain.entities.script import Script

@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-
 _SCORE_FIELDS = (
     "identity_similarity",
     "anatomy",

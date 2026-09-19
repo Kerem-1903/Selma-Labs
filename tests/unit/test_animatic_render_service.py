@@ -5,7 +5,6 @@ import asyncio
 from core.application.services.animatic_render_service import AnimaticRenderService
 from core.application.services.episode_animatic_service import EpisodeAnimaticService
 from core.application.services.episode_director_service import EpisodeDirectorService
-from infrastructure.providers.render.remotion_animatic_exporter import RemotionAnimaticExporter
 from infrastructure.storage.local_fs_storage import LocalFsStorage
 
 

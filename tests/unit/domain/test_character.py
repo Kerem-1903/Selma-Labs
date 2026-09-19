@@ -1,5 +1,6 @@
 from core.domain.entities.character import Character
 
+
 def test_character_initialization():
     char = Character(
         id="char_1",

@@ -1,14 +1,15 @@
 """Durable aggregate root for one autonomous Shorts Factory execution."""
 from __future__ import annotations
 
-import uuid
 import hmac
+import uuid
+from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any, cast
 
 from core.domain.exceptions import PipelineRunStateError
 
@@ -66,7 +67,11 @@ class PipelineRun:
         self.input_fingerprint = input_fingerprint
         self.created_at = created_at or now
         self.updated_at = updated_at or now
-        self._artifact_manifest = deepcopy(dict(artifact_manifest or {}))
+        # The manifest is nested mappings by contract; ``dict`` needs the flat
+        # mapping type to copy it without mypy rejecting the invariant value type.
+        self._artifact_manifest = deepcopy(
+            dict(cast("Mapping[str, Any]", artifact_manifest or {}))
+        )
         self.__post_init__()
 
     def __post_init__(self) -> None:
@@ -111,7 +116,7 @@ class PipelineRun:
         return _freeze(self._artifact_manifest)
 
     @classmethod
-    def create(cls, *, max_retries: int = 3) -> "PipelineRun":
+    def create(cls, *, max_retries: int = 3) -> PipelineRun:
         """Start a new pending execution with a unique, durable identity."""
         return cls(run_id=str(uuid.uuid4()), max_retries=max_retries)
 
@@ -277,7 +282,7 @@ class PipelineRun:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "PipelineRun":
+    def from_dict(cls, data: dict[str, Any]) -> PipelineRun:
         """Rehydrate a run previously exported by :meth:`to_dict`."""
         return cls(
             run_id=str(data["run_id"]),

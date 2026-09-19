@@ -1,6 +1,7 @@
-from pathlib import Path
 import json
 import subprocess
+from pathlib import Path
+
 from PIL import Image, ImageDraw
 
 ROOT=Path(__file__).resolve().parents[1]

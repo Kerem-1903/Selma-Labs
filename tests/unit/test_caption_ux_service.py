@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PIL import Image
 import pytest
+from PIL import Image
 
 from core.application.services.caption_ux_service import CaptionUxService
 from core.domain.exceptions import CaptionUxError

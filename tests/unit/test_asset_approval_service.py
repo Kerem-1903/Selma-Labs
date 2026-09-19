@@ -6,7 +6,6 @@ from core.application.services.asset_approval_service import AssetApprovalServic
 from core.domain.exceptions import PreProductionValidationError
 from core.domain.value_objects.asset_approval import derive_asset_state
 
-
 _DIGEST = "a" * 64
 
 

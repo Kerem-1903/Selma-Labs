@@ -5,8 +5,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 JsonWriter = Callable[[str | Path, dict[str, Any]], Path]
 CharacterLoader = Callable[[str | Path], Any]
@@ -81,7 +82,7 @@ def run_character_quality_command(
         character = load_character_bible(arguments.input)
         planned_token = CharacterOnboardingService.plan(character).trigger_token
         trigger_token = arguments.trigger_token or f"{planned_token.rsplit('_v', 1)[0]}_v2"
-        report = CharacterLoraDatasetService().build(
+        dataset_report = CharacterLoraDatasetService().build(
             source_dir=arguments.source,
             output_dir=arguments.output,
             character_id=character.character_id,
@@ -90,8 +91,8 @@ def run_character_quality_command(
             review_manifest=arguments.review_manifest,
             canonical_anchor=arguments.canonical_anchor,
         )
-        print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))
-        return 0 if report.is_ready else 2
+        print(json.dumps(dataset_report.to_dict(), ensure_ascii=False, indent=2))
+        return 0 if dataset_report.is_ready else 2
 
     if arguments.character_command == "audit-dataset":
         from core.application.services.character_lora_dataset_audit_service import (
@@ -123,27 +124,26 @@ def run_character_quality_command(
             CharacterViewConsistencyReportService,
         )
 
-        report = CharacterViewConsistencyReportService().build(
+        consistency_report = CharacterViewConsistencyReportService().build(
             pack_path=arguments.view_pack,
             brief_path=arguments.brief,
             manifest_path=arguments.manifest,
             human_review_path=arguments.human_review,
         )
         if arguments.output:
-            print(write_json(arguments.output, report))
+            print(write_json(arguments.output, consistency_report))
         else:
-            print(json.dumps(report, ensure_ascii=False, indent=2))
-        return 0 if report["status"] == "HUMAN_REVIEW_REQUIRED" else 2
+            print(json.dumps(consistency_report, ensure_ascii=False, indent=2))
+        return 0 if consistency_report["status"] == "HUMAN_REVIEW_REQUIRED" else 2
 
     if arguments.character_command == "drift-report":
+        # Load the band through the same loader production uses, so a diagnostic
+        # run and a rendered pack can never disagree about which band was used.
+        from config.settings import get_settings
         from core.application.services.character_turnaround_drift_service import (
             CharacterTurnaroundDriftService,
             load_drift_thresholds,
         )
-
-        # Load the band through the same loader production uses, so a diagnostic
-        # run and a rendered pack can never disagree about which band was used.
-        from config.settings import get_settings
 
         defaults = get_settings()
         selected = arguments.thresholds or defaults.character_drift_thresholds_path or None
@@ -180,16 +180,16 @@ def run_character_quality_command(
                 )
             )
             return 0
-        report = service.evaluate_paths(
+        drift_report = service.evaluate_paths(
             source_path=arguments.source, views=views, thresholds=thresholds
         )
         if arguments.output:
-            print(write_json(arguments.output, report))
+            print(write_json(arguments.output, drift_report))
         else:
-            print(json.dumps(report, ensure_ascii=False, indent=2))
+            print(json.dumps(drift_report, ensure_ascii=False, indent=2))
         # Exit 2 means "needs human attention", never "rejected": the drift
         # report is advisory evidence, not an approval decision.
-        return 0 if report["status"] == "WITHIN_TOLERANCE" else 2
+        return 0 if drift_report["status"] == "WITHIN_TOLERANCE" else 2
 
     if arguments.character_command == "qc-calibration-create":
         from core.application.services.character_qc_calibration_service import (

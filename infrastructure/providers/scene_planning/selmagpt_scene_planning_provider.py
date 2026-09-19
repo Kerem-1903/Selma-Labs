@@ -1,10 +1,11 @@
-import aiohttp
-import logging
 import json
-from typing import List, Optional
+import logging
+
+import aiohttp
+
+from core.domain.exceptions import ProviderError
 from core.domain.ports.scene_planning_port import ScenePlanningPort
 from core.domain.value_objects.scene import Scene
-from core.domain.exceptions import ProviderError
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,18 @@ class SelmaGPTScenePlanningProvider(ScenePlanningPort):
         self.model = model
         self.timeout_seconds = timeout_seconds
 
-    async def plan_scenes(self, script_text: str, visual_manifest_context: Optional[str] = None) -> List[Scene]:
-        logger.info(f"Planning scenes via SelmaGPT...")
+    @property
+    def provider_identity(self) -> str:
+        """Carried onto ``ScenePlan.provider_used`` by the planning service.
+
+        Without it the port's abstract member stayed unimplemented, so
+        instantiating this provider raised ``TypeError`` and the
+        ``scene_planning_provider = "selmagpt"`` branch could never run.
+        """
+        return f"selmagpt:{self.model}"
+
+    async def plan_scenes(self, script_text: str, visual_manifest_context: str | None = None) -> list[Scene]:
+        logger.info("Planning scenes via SelmaGPT...")
 
         system_prompt = (
             "You are a master cinematic director. Split the provided narration script into a list of exact scenes. "

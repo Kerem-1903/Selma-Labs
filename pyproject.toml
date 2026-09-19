@@ -11,14 +11,32 @@ target-version = "py310"
 line-length = 100
 
 [tool.ruff.lint]
-# Correctness core only, so the gate is green from day one without rewriting the
-# existing tree. The ratchet order for the stricter sets (I/UP autofix, then the
-# full pyflakes F set for __init__ re-exports, then bugbear/simplify) is recorded
-# in docs/CODE_REVIEW.md.
-select = ["E9", "F63", "F7", "F82", "F811", "F823", "E722"]
+# Ratchet stage 2: correctness, pyflakes, import order, pyupgrade, blind-except
+# guards and bugbear. The tree is clean at this level, so the gate blocks on it;
+# the remaining stages (simplify, bandit, raise-from, zip-strict, mypy) are
+# recorded in docs/CODE_REVIEW.md.
+select = ["B", "E4", "E9", "E722", "F", "I", "S110", "S112", "UP"]
+# B008: FastAPI/typer-style call defaults are intentional in this codebase.
+# B904: bare re-raises are reviewed by hand per site rather than mass-edited.
+# B905: zip() length contracts need per-call judgement, not a blanket strict=.
+ignore = ["B008", "B904", "B905"]
+
+[tool.ruff.lint.per-file-ignores]
+# Package inits exist to re-export; that is a use, not a dead import.
+"__init__.py" = ["F401"]
+# Diagnostic scripts extend sys.path before importing project code by design.
+"scripts/*" = ["E402"]
 
 [tool.mypy]
 python_version = "3.10"
 ignore_missing_imports = true
-files = ["core", "config", "cli"]
+# The blocking gate covers the contract, composition and entry-point layers;
+# they are clean and are where a wrong type turns into a wrong production run.
+# ``core/application`` and ``infrastructure`` still carry the debt counted in
+# docs/CODE_REVIEW.md and are checked by the advisory CI step instead:
+#   mypy core config cli          (the debt signal)
+# ``follow_imports = silent`` keeps errors from those imported packages out of
+# the blocking run without losing their types at the call sites.
+files = ["core/domain", "config", "cli"]
+follow_imports = "silent"
 

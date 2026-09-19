@@ -1,7 +1,10 @@
+
 import pytest
-from typing import List
+
 from core.domain.ports.translation_port import TranslationPort
-from infrastructure.providers.translation.caching_translation_provider import CachingTranslationProvider
+from infrastructure.providers.translation.caching_translation_provider import (
+    CachingTranslationProvider,
+)
 
 
 class MockTranslationPort(TranslationPort):
@@ -12,7 +15,7 @@ class MockTranslationPort(TranslationPort):
     def provider_identity(self) -> str:
         return "mock"
 
-    async def translate_texts(self, texts: List[str], target_language: str) -> List[str]:
+    async def translate_texts(self, texts: list[str], target_language: str) -> list[str]:
         self.call_count += 1
         return [f"trans {t}" for t in texts]
 

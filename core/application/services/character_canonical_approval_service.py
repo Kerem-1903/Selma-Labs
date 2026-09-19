@@ -6,7 +6,7 @@ import hashlib
 import io
 import json
 from datetime import datetime, timezone
-from pathlib import Path, PurePosixPath
+from pathlib import PurePosixPath
 
 from PIL import Image, UnidentifiedImageError
 
@@ -16,13 +16,13 @@ from core.application.services.production_manifest_service import (
 from core.domain.exceptions import KeyframeGenerationError, StorageError
 from core.domain.ports.storage_port import StoragePort
 from core.domain.value_objects.character_creation_brief import CharacterCreationBrief
-from core.domain.value_objects.character_identity_contract import CharacterIdentityContract
 from core.domain.value_objects.character_design import (
     CharacterAnchorArtifact,
     CharacterCanonicalApproval,
     CharacterDesignCandidate,
     CharacterDualAnchorPack,
 )
+from core.domain.value_objects.character_identity_contract import CharacterIdentityContract
 
 
 async def _single_chunk(data: bytes):

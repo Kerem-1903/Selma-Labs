@@ -49,9 +49,9 @@ format-agnostic, exactly as domain entities are required to remain.
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass, field as dataclass_field
+from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from datetime import datetime, timezone
-from typing import Optional
 
 from core.domain.value_objects.subtitle_cue import SubtitleCue
 
@@ -59,7 +59,7 @@ from core.domain.value_objects.subtitle_cue import SubtitleCue
 @dataclass(frozen=True)
 class SubtitleTrack:
     id: str
-    scene_plan_id: Optional[str]
+    scene_plan_id: str | None
     cues: list[SubtitleCue]
     total_duration_seconds: float
     created_at: datetime = dataclass_field(default_factory=lambda: datetime.now(timezone.utc))
@@ -67,9 +67,9 @@ class SubtitleTrack:
     @staticmethod
     def create(
         *,
-        scene_plan_id: Optional[str],
+        scene_plan_id: str | None,
         cues: list[SubtitleCue],
-    ) -> "SubtitleTrack":
+    ) -> SubtitleTrack:
         total_duration_seconds = (
             max(cue.end_time for cue in cues) if cues else 0.0
         )

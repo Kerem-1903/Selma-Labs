@@ -27,7 +27,6 @@ from infrastructure.repositories.local_json_character_bible_repository import (
 )
 from infrastructure.storage.local_fs_storage import LocalFsStorage
 
-
 EXPECTED_SHEET_SIZE = (1717, 916)
 AKIRA_VIEW_CROPS: dict[ReferenceView, tuple[int, int, int, int]] = {
     ReferenceView.FRONT: (2, 2, 381, 914),

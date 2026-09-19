@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+
 class CandidateStatus(str, Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
@@ -75,7 +76,7 @@ class KeyframeCandidate:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "KeyframeCandidate":
+    def from_dict(cls, data: dict[str, Any]) -> KeyframeCandidate:
         return cls(
             id=str(data["id"]),
             shot_contract_id=str(data["shot_contract_id"]),

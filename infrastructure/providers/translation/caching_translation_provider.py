@@ -1,7 +1,6 @@
 import hashlib
 import json
 import logging
-from typing import List
 
 from core.domain.ports.translation_port import TranslationPort
 
@@ -11,17 +10,17 @@ logger = logging.getLogger(__name__)
 class CachingTranslationProvider(TranslationPort):
     def __init__(self, inner_provider: TranslationPort) -> None:
         self._inner = inner_provider
-        self._cache: dict[str, List[str]] = {}
+        self._cache: dict[str, list[str]] = {}
 
     @property
     def provider_identity(self) -> str:
         return f"cached({self._inner.provider_identity})"
 
-    def _compute_key(self, texts: List[str], target_language: str) -> str:
+    def _compute_key(self, texts: list[str], target_language: str) -> str:
         payload = json.dumps({"texts": texts, "target_language": target_language}, sort_keys=True)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
-    async def translate_texts(self, texts: List[str], target_language: str) -> List[str]:
+    async def translate_texts(self, texts: list[str], target_language: str) -> list[str]:
         if not texts:
             return []
 

@@ -39,7 +39,6 @@ from infrastructure.providers.render.ffprobe_media_inspection_provider import (
 from infrastructure.providers.render.remotion_render_provider import RemotionRenderProvider
 from infrastructure.providers.voice.elevenlabs_provider import ElevenLabsVoiceProvider
 
-
 OUTPUT_DIRECTORY = PROJECT_ROOT / "output" / "venus_day_year_final"
 PACKAGE_DIRECTORY = OUTPUT_DIRECTORY / "youtube"
 TOPIC = "Venüs'te Bir Gün Neden Bir Yıldan Uzun?"

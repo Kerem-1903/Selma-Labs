@@ -13,11 +13,11 @@ from core.domain.entities.media_asset import MediaAsset
 from core.domain.entities.rendered_video import RenderedVideo
 from core.domain.entities.script import Script
 from core.domain.exceptions import UploadPreparationError
-from core.domain.value_objects.media_inspection import MediaInspection
 from core.domain.value_objects.creative_quality_report import (
     CreativeQualityCheck,
     CreativeQualityReport,
 )
+from core.domain.value_objects.media_inspection import MediaInspection
 from core.domain.value_objects.subtitle_cue import SubtitleCue
 from core.domain.value_objects.word_timing import WordTiming
 

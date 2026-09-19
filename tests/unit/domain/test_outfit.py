@@ -1,5 +1,6 @@
 from core.domain.value_objects.outfit import Outfit
 
+
 def test_outfit_serialization():
     outfit = Outfit(
         id="outfit_1",
