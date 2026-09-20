@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "name": "Sera",
+  "concept": "A calm professional archive researcher presented as a neutral reusable character design",
+  "age_band": "adult",
+  "gender_presentation": "feminine",
+  "body_type": "tall lean adult woman with balanced realistic anime proportions",
+  "face": "sharp symmetrical anime face with a defined jaw and a level unreadable expression",
+  "eyes": "cold grey-green eyes",
+  "hair": "straight black hair cut precisely at jaw level",
+  "signature_marks": [
+    {
+      "label": "single simple silver ring",
+      "count": 1,
+      "character_side": "right",
+      "colour": "#C0C0C0"
+    }
+  ],
+  "outfit": "minimal fitted dark-slate civilian investigator coat with a high collar and no insignia, plain black high-neck top, dark tailored trousers and practical flat black boots",
+  "props": [],
+  "personality": [
+    "precise",
+    "level",
+    "observant",
+    "withholding"
+  ],
+  "style_preset": "clean cinematic anime character design with the selma-anime-v1 series finish",
+  "palette": [
+    "silver",
+    "cold grey-green",
+    "dark slate",
+    "black"
+  ],
+  "avoid": [
+    "logo",
+    "mask",
+    "eyewear",
+    "weapon",
+    "sword",
+    "spear",
+    "staff",
+    "blade",
+    "long hair",
+    "ring on character-left hand",
+    "extra jewelry",
+    "multiple characters",
+    "text",
+    "watermark"
+  ],
+  "view_pack": "standard",
+  "requested_actions": [],
+  "additional_notes": "The first Animagine stage is a neutral reusable full-body identity design, not a collage or action pose. Show one adult woman, one body and one head, fully visible from head to boots. Both hands must be empty and clearly visible; absolutely no weapon, sword, spear, staff, blade or carried prop. Keep exactly one simple silver ring on character-right and never mirror it. Preserve the jaw-length black haircut, cold grey-green eyes, high collar and unmarked coat."
+}

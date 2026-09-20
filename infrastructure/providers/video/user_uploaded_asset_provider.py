@@ -1,7 +1,6 @@
 import logging
 import os
 import uuid
-from collections.abc import AsyncIterator
 
 from core.domain.entities.media_asset import MediaAsset
 from core.domain.ports.video_source_port import VideoSourcePort
@@ -22,13 +21,14 @@ class UserUploadedAssetProvider(VideoSourcePort):
     def name(self) -> str:
         return "UserUploads"
 
-    async def search(self, query: str, limit: int = 5) -> AsyncIterator[MediaAsset]:
+    async def search(self, query: str, max_results: int) -> list[MediaAsset]:
         """
         Klasördeki yüklenmiş videoları tarar ve arama terimine en yakın olanları getirir.
         Şu anlık basit dosya adı eşleşmesi yapar.
         """
         logger.info(f"UserUploads provider searching for: '{query}' in {self.upload_directory}")
         count = 0
+        results: list[MediaAsset] = []
         query_words = [word for word in query.lower().split() if word]
 
         # Kullanıcı dosyalarını oku
@@ -42,27 +42,29 @@ class UserUploadedAssetProvider(VideoSourcePort):
         matched = [f for f in files if any(word in f.lower() for word in query_words)]
         ordered_files = matched + [f for f in files if f not in matched]
         for f in ordered_files:
-            if count >= limit:
+            if count >= max_results:
                 break
 
             file_path = os.path.join(self.upload_directory, f)
             # Yapay Zeka video seçicisine MediaAsset formatında ver.
-            yield MediaAsset(
+            results.append(MediaAsset(
                 id=str(uuid.uuid4()),
                 provider="user_uploads",
                 provider_asset_id=f,
                 media_type="video",
                 original_url=file_path,  # Local path
-                description=f"User uploaded asset: {f}",
                 duration_seconds=10.0, # Approximate, could use ffprobe here
                 width=1080,
                 height=1920,
-                fps=30
-            )
+                fps=30,
+                local_path=file_path,
+                metadata={"description": f"User uploaded asset: {f}"},
+            ))
             count += 1
 
         if count == 0:
             logger.warning("Kullanıcı klasöründe uygun video bulunamadı. Lütfen Medya Havuzuna dosya yükleyin.")
+        return results
 
     async def download(self, asset: MediaAsset) -> bytes:
         """Dosya zaten lokalde olduğu için doğrudan okuyup bytes olarak dön."""

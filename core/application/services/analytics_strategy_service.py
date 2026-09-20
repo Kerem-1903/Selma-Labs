@@ -37,8 +37,8 @@ class AnalyticsStrategyService:
         # Son 20 videoyu değerlendir
         recent_records = sorted(records, key=lambda x: x.published_at, reverse=True)[:20]
 
-        best_formats = {}
-        best_hooks = {}
+        best_formats: dict[str, list[float]] = {}
+        best_hooks: dict[str, list[float]] = {}
 
         for r in recent_records:
             score = (r.average_percentage_viewed * 0.7) + ((r.first_3_second_retention_percentage or 0) * 0.3)
@@ -73,7 +73,7 @@ class AnalyticsStrategyService:
         logger.info(f"AI Strategy Generated: {strategy_prompt}")
         return strategy_prompt
 
-    async def get_dashboard_stats(self) -> dict:
+    async def get_dashboard_stats(self) -> dict[str, object]:
         """UI Dashboard'una beyin istatistiklerini göndermek için."""
         try:
             records = await self.repository.list_records()
@@ -83,7 +83,7 @@ class AnalyticsStrategyService:
             total = len(records)
             avg_view = sum([r.average_percentage_viewed for r in records]) / total
 
-            formats = {}
+            formats: dict[str, int] = {}
             for r in records:
                 formats[r.content_format] = formats.get(r.content_format, 0) + 1
             best_format = max(formats.items(), key=lambda x: x[1])[0]

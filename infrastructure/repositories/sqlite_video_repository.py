@@ -49,7 +49,7 @@ class SQLiteVideoRepository:
                 )
                 conn.commit()
 
-    def get_video(self, video_id: str) -> dict:
+    def get_video(self, video_id: str) -> dict | None:
         """Retrieve a video record by its ID."""
         from contextlib import closing
         with closing(sqlite3.connect(self.db_path, timeout=10.0)) as conn:
@@ -78,7 +78,7 @@ class SQLiteVideoRepository:
                 )
                 conn.commit()
 
-    def save_checkpoint(self, video_id: str, step_name: str, step_status: str, payload: dict, error_message: str = None):
+    def save_checkpoint(self, video_id: str, step_name: str, step_status: str, payload: dict, error_message: str | None = None):
         """Save a saga checkpoint for a specific video and step."""
         from contextlib import closing
         with closing(sqlite3.connect(self.db_path, timeout=10.0)) as conn:
@@ -91,7 +91,7 @@ class SQLiteVideoRepository:
                 )
                 conn.commit()
 
-    def get_latest_checkpoint(self, video_id: str) -> dict:
+    def get_latest_checkpoint(self, video_id: str) -> dict | None:
         """Retrieve the most recent checkpoint for a given video."""
         from contextlib import closing
         with closing(sqlite3.connect(self.db_path, timeout=10.0)) as conn:

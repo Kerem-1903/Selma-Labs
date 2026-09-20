@@ -111,7 +111,7 @@ class LocalJsonRunRepository(RunRepositoryPort):
 
     async def get_all(self) -> list[PipelineRun]:
         """Retrieve all pipeline runs."""
-        runs = []
+        runs: list[PipelineRun] = []
         if not self._base_directory.exists():
             return runs
         for file_path in self._base_directory.glob("*.json"):

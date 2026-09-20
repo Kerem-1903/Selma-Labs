@@ -30,6 +30,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Sequence
+from typing import TypedDict
 
 from core.domain.entities.scene_plan import ScenePlan
 from core.domain.entities.script import Script
@@ -43,6 +44,17 @@ from core.domain.value_objects.subtitle_cue import SubtitleCue
 from core.domain.value_objects.visual_intent import VisualIntent
 
 logger = logging.getLogger("selma.scene_planning_service")
+
+
+class _SemanticVisualSpec(TypedDict):
+    visual_job: str
+    required_subjects: tuple[str, ...]
+    required_actions: tuple[str, ...]
+    required_relations: tuple[str, ...]
+    forbidden_dominant_subjects: tuple[str, ...]
+    explanation_mode: str
+    overlay_labels: tuple[str, ...]
+    explanatory_required: bool
 
 
 class ScenePlanningService:
@@ -236,7 +248,7 @@ class ScenePlanningService:
         narrative_role: str,
         *,
         visual_anchor: str | None,
-    ) -> dict[str, object]:
+    ) -> _SemanticVisualSpec:
         normalized = narration_text.casefold()
         tokens = re.findall(r"[\w']+", normalized, flags=re.UNICODE)
         anatomy_stems = (

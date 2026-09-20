@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import cast
+from typing import Any, Protocol, cast
 
 from core.domain.exceptions import FactCheckError
 from core.domain.ports.fact_check_port import FactCheckPort
@@ -15,6 +15,17 @@ from core.domain.value_objects.fact_source import FactSource
 from infrastructure.providers.nvidia.nvidia_chat_client import NvidiaChatClient
 
 VALID_VERDICTS = {"supported", "contradicted", "uncertain"}
+
+
+class CompletionClient(Protocol):
+    async def complete(
+        self,
+        *,
+        model: str,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        temperature: float = 0.0,
+    ) -> str: ...
 QUOTE_STOPWORDS = {
     "a", "an", "the", "bir", "bu", "ve", "ile",
     "da", "de", "ta", "te",
@@ -90,7 +101,7 @@ class NvidiaFactCheckProvider(FactCheckPort):
         model: str,
         base_url: str = "https://integrate.api.nvidia.com/v1",
         timeout_seconds: float = 180.0,
-        client: NvidiaChatClient | None = None,
+        client: CompletionClient | None = None,
         audit_enabled: bool = True,
         audit_model: str | None = None,
         max_retries: int = 2,
@@ -357,7 +368,7 @@ class NvidiaFactCheckProvider(FactCheckPort):
             if not isinstance(raw_audit, dict):
                 continue
             try:
-                index = int(raw_audit.get("index"))
+                index = int(cast(int | str, raw_audit.get("index")))
             except (TypeError, ValueError):
                 continue
             verdict = str(raw_audit.get("verdict") or "uncertain").strip().lower()

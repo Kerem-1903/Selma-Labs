@@ -494,6 +494,8 @@ class FfmpegRenderProvider(RenderPort):
                     f"({duration}s); cannot render."
                 )
             segment_path = work_dir / f"segment_{i:04d}.mp4"
+            if clip.asset.local_path is None:
+                raise RenderError(f"Scene {clip.scene.index} asset has no local path.")
             phase = i * 1.3
             scaled_width = int(self._width * 1.06)
             scaled_height = int(self._height * 1.06)

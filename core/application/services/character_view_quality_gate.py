@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import re
+from typing import cast
 
 from PIL import Image
 
@@ -15,7 +16,11 @@ from core.application.services.view_framing_gate import ViewFramingGate
 from core.domain.ports.character_view_detector_port import CharacterViewDetectorPort
 from core.domain.value_objects.character_creation_brief import CharacterSignatureMark
 from core.domain.value_objects.character_view_qc import CharacterViewQcReport
-from core.domain.value_objects.structured_mark import MarkAnchor, StructuredMark
+from core.domain.value_objects.structured_mark import (
+    MarkAnchor,
+    StructuredMark,
+    ViewerSide,
+)
 
 
 class CharacterViewQualityGate:
@@ -211,8 +216,17 @@ class CharacterViewQualityGate:
         reasons: list[str] = []
         for index, source in enumerate(enforceable, start=1):
             # A character's left is the viewer's right in a front view.
-            viewer_side = "viewer_right" if source.character_side == "left" else "viewer_left"
+            viewer_side = cast(
+                ViewerSide,
+                "viewer_right" if source.character_side == "left" else "viewer_left",
+            )
             x_center = 0.72 if viewer_side == "viewer_right" else 0.28
+            anchor = MarkAnchor(
+                region="front-hairline",
+                x_center=x_center,
+                y_root=0.08,
+                extent=0.35,
+            )
             mark = StructuredMark(
                 id=f"brief-mark-{index}",
                 label=source.label,
@@ -220,19 +234,14 @@ class CharacterViewQualityGate:
                 viewer_side=viewer_side,
                 count=source.count,
                 color_tolerance_delta_e=24.0,
-                anchor=MarkAnchor(
-                    region="front-hairline",
-                    x_center=x_center,
-                    y_root=0.08,
-                    extent=0.35,
-                ),
+                anchor=anchor,
                 mirror_side="viewer_left" if viewer_side == "viewer_right" else "viewer_right",
             )
             report = self._mark_validator.validate(
                 image=image,
                 mark=mark,
                 head_bbox=pixel_bbox,
-                expected_root_xy=project_anchor(mark.anchor, pixel_bbox),
+                expected_root_xy=project_anchor(anchor, pixel_bbox),
             )
             if not report.passed:
                 for failure in report.failures:

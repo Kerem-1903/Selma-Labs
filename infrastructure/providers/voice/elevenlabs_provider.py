@@ -205,6 +205,8 @@ class ElevenLabsVoiceProvider(VoiceGeneratorPort):
     def _read_mp3_metadata(audio_bytes: bytes) -> tuple[float, int]:
         try:
             info = MP3(BytesIO(audio_bytes)).info
+            if info is None:
+                raise ValueError("MP3 metadata is missing")
             return float(info.length), int(info.sample_rate)
         except Exception as exc:  # noqa: BLE001 - any parse failure means unusable audio
             raise ProviderError(

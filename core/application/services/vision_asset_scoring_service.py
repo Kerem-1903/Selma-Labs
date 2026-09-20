@@ -77,6 +77,19 @@ class VisionAssetScoringService:
             reverse=True,
         )
 
+    async def score_asset(
+        self,
+        *,
+        asset,
+        scene: Scene,
+        context_text: str = "",
+    ) -> float:
+        """Compatibility entry point for the single-asset safety gate."""
+        del context_text
+        candidate = ScoredAsset(asset=asset, score=AssetScore(final_score=0.5))
+        rescored = await self.score_scene(scene, [candidate])
+        return rescored[0].score.final_score
+
     async def score_visual_intent(
         self,
         intent: VisualIntent,
@@ -395,7 +408,7 @@ class VisionAssetScoringService:
         """Map provider-specific motion labels to a small domain vocabulary."""
         observed = (observed_motion or "").lower()
         if expected_motion == "fast-paced":
-            terms = ("fast", "rapid", "dynamic", "quick", "handheld")
+            terms: tuple[str, ...] = ("fast", "rapid", "dynamic", "quick", "handheld")
         elif expected_motion == "slow-motion":
             terms = ("slow", "static", "gentle", "still", "smooth")
         else:

@@ -1,10 +1,13 @@
 import asyncio
+import io
 import logging
 import os
+import wave
 
 from core.domain.exceptions import ProviderError
 from core.domain.ports.voice_generator_port import VoiceGeneratorPort
 from core.domain.value_objects.generated_audio import GeneratedAudio
+from core.domain.value_objects.voice_direction import VoiceDirection
 
 logger = logging.getLogger(__name__)
 
@@ -35,28 +38,35 @@ class LocalVoiceCloneProvider(VoiceGeneratorPort):
             except ImportError:
                 raise ProviderError("TTS modülü bulunamadı. Lütfen 'pip install TTS' komutuyla yükleyin.")
 
-    async def generate_voice(self, text: str, track_id: str, language: str = "tr") -> GeneratedAudio:
+    async def generate_voice(
+        self,
+        text: str,
+        voice_name: str,
+        *,
+        direction: VoiceDirection | None = None,
+    ) -> GeneratedAudio:
+        del direction
         if not text.strip():
             raise ValueError("Klonlanacak metin boş olamaz.")
 
         if not os.path.exists(self.reference_audio_path):
             raise ProviderError(f"Referans ses bulunamadı: {self.reference_audio_path}. Lütfen UI üzerinden bir ses yükleyin.")
 
-        logger.info(f"Ses klonlanıyor... Track ID: {track_id}")
+        logger.info(f"Ses klonlanıyor... Voice: {voice_name}")
 
         # CPU/GPU blocking process olduğu için bunu bir thread'de çalıştırmak en güvenlisidir.
         loop = asyncio.get_event_loop()
 
         output_dir = "output/voice_cache"
         os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.join(output_dir, f"{track_id}.wav")
+        output_path = os.path.join(output_dir, f"{voice_name}.wav")
 
         def _synthesize():
             self._load_model()
             self.tts.tts_to_file(
                 text=text,
                 speaker_wav=self.reference_audio_path,
-                language=language,
+                language="tr",
                 file_path=output_path
             )
 
@@ -70,8 +80,14 @@ class LocalVoiceCloneProvider(VoiceGeneratorPort):
         with open(output_path, "rb") as f:
             audio_bytes = f.read()
 
+        with wave.open(io.BytesIO(audio_bytes), "rb") as audio_file:
+            sample_rate = audio_file.getframerate()
+            duration_seconds = audio_file.getnframes() / sample_rate
+
         return GeneratedAudio(
             audio_bytes=audio_bytes,
-            content_type="audio/wav",
-            metadata={"provider": "local_xtts", "track_id": track_id, "reference": self.reference_audio_path}
+            duration_seconds=duration_seconds,
+            sample_rate=sample_rate,
+            provider="local_xtts",
+            voice_name=voice_name,
         )

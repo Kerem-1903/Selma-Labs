@@ -1,7 +1,7 @@
 import asyncio
 import logging
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Iterable, Sequence
+from typing import Any, cast
 
 from core.application.ports.video_search_provider import VideoSearchProvider
 from core.domain.entities.media_asset import MediaAsset
@@ -51,7 +51,7 @@ class SearchOrchestratorService(VideoSearchProvider):
                 
             if not isinstance(result, list):
                 try:
-                    result = list(result)
+                    result = list(cast(Iterable[MediaAsset], result))
                 except TypeError:
                     logger.error("Provider '%s' returned non-iterable data type: %s", provider.name, type(result))
                     continue

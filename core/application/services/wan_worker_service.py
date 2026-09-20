@@ -197,12 +197,14 @@ class WanWorkerService:
     async def _heartbeat_until_done(
         self, job: WanRenderJob, render_task: asyncio.Task[WanWorkerResult]
     ) -> WanRenderJob | None:
-        current = job
+        current: WanRenderJob | None = job
         interval = max(0.005, min(self._queue.lease_seconds / 3, 0.25))
         while not render_task.done():
             await asyncio.sleep(interval)
             if render_task.done():
                 break
+            if current is None:
+                return None
             current = await self._refresh_lease(current)
             if current is None:
                 return None

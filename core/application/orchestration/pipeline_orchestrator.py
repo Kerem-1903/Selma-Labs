@@ -1444,7 +1444,7 @@ class PipelineOrchestrator:
                 creative_timeline_path,
                 json.dumps(creative_timeline, ensure_ascii=False, indent=2),
             )
-        clip_durations_seconds = [
+        computed_clip_durations = [
             intent.duration_ms / 1_000 for intent in visual_intents
         ]
         expected_duration_seconds = (
@@ -1453,9 +1453,9 @@ class PipelineOrchestrator:
         # Runs checkpointed before time-coded storyboard support can still be
         # resumed. New runs always satisfy this branch and preserve exact cuts;
         # legacy artifacts fall back to the renderer's bounded-cut policy.
-        if (
-            any(duration <= 0 for duration in clip_durations_seconds)
-            or abs(sum(clip_durations_seconds) - expected_duration_seconds) > 0.050
+        clip_durations_seconds: list[float] | None = computed_clip_durations
+        if any(duration <= 0 for duration in computed_clip_durations) or (
+            abs(sum(computed_clip_durations) - expected_duration_seconds) > 0.050
         ):
             clip_durations_seconds = None
         rendered_path = await self._render_port.render_shorts(

@@ -1,7 +1,7 @@
 """OpenAI Responses API fallback for the strict fact-check policy."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from openai import AsyncOpenAI
 
@@ -27,7 +27,7 @@ class _OpenAICompletionClient:
         try:
             response = await self._client.responses.create(
                 model=model,
-                input=messages,
+                input=cast(Any, messages),
                 max_output_tokens=max_tokens,
             )
             text = response.output_text

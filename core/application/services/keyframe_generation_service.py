@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from PIL import Image, ImageDraw, UnidentifiedImageError
 
@@ -39,6 +39,7 @@ from core.domain.services.reference_conditioning_builder import (
 from core.domain.value_objects.character_design import CharacterReferenceDraftPack
 from core.domain.value_objects.character_identity import ReferenceView
 from core.domain.value_objects.character_reference import CharacterReference
+from core.domain.value_objects.generated_keyframe import GeneratedKeyframe
 from core.domain.value_objects.keyframe_generation_request import (
     KeyframeGenerationRequest,
 )
@@ -398,6 +399,10 @@ class KeyframeGenerationService:
             raise KeyframeGenerationError(
                 "Start and end OpenPose references must be distinct and complete."
             )
+        start_pose_key = pose_keys[0]
+        end_pose_key = pose_keys[1]
+        assert start_pose_key is not None and end_pose_key is not None
+        pose_keys = (start_pose_key, end_pose_key)
         pose_hashes = []
         for pose_key in pose_keys:
             assert pose_key is not None
@@ -469,7 +474,9 @@ class KeyframeGenerationService:
 
         quarantined: list[dict[str, object]] = []
         for attempt in range(1, self._pair_max_attempts + 1):
-            generated_items: list[tuple[str, KeyframeGenerationRequest, object, str]] = []
+            generated_items: list[
+                tuple[str, KeyframeGenerationRequest, GeneratedKeyframe, str]
+            ] = []
             for label, action, pose_key, pose_hash in (
                 ("start", shot_plan.prompt, pose_keys[0], pose_hashes[0]),
                 ("end", shot_plan.prompt_end, pose_keys[1], pose_hashes[1]),
@@ -494,10 +501,18 @@ class KeyframeGenerationService:
                     continue
                 generated_items.append((label, request, generated, pose_hash))
 
-            reports = []
+            reports: list[
+                tuple[
+                    str,
+                    KeyframeGenerationRequest,
+                    GeneratedKeyframe,
+                    str,
+                    dict[str, Any],
+                ]
+            ] = []
             for label, request, generated, pose_hash in generated_items:
                 if self._pair_quality_gate is None:
-                    report = {
+                    report: dict[str, Any] = {
                         "label": label,
                         "expected_view": "FRONT",
                         "seed": request.seed or 0,
@@ -564,8 +579,8 @@ class KeyframeGenerationService:
                     character_version=shot_plan.character_state.character_version,
                     prompt_start=shot_plan.prompt,
                     prompt_end=shot_plan.prompt_end,
-                    start_pose_reference_key=pose_keys[0],
-                    end_pose_reference_key=pose_keys[1],
+                    start_pose_reference_key=start_pose_key,
+                    end_pose_reference_key=end_pose_key,
                     frames=tuple(frame_evidence),
                     contact_sheet_storage_key=contact_key,
                     contact_sheet_content_hash=contact_hash,
@@ -587,7 +602,10 @@ class KeyframeGenerationService:
                     {
                         "label": label,
                         "attempt": attempt,
-                        "reason": "; ".join(report.get("reasons", [])) or "pair_quality_failed",
+                        "reason": "; ".join(
+                            str(reason) for reason in report.get("reasons", [])
+                        )
+                        or "pair_quality_failed",
                     }
                 )
                 await self._storage.save(

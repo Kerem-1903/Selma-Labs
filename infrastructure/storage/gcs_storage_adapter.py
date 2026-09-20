@@ -8,7 +8,7 @@ from core.domain.value_objects.storage_reference import StorageReference
 
 
 class GCSStorageAdapter(StoragePort):
-    def __init__(self, bucket_name: str, credentials_path: str = None):
+    def __init__(self, bucket_name: str, credentials_path: str | None = None):
         if credentials_path:
             self.client = storage.Client.from_service_account_json(credentials_path)
         else:

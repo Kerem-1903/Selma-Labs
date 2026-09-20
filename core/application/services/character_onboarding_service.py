@@ -393,12 +393,14 @@ class CharacterOnboardingService:
             if self._streak_pre_gate is not None
             else None
         )
+        streak_pre_gate = self._streak_pre_gate
+        framing_gate = self._framing_gate
         for recipe in recipes:
             accepted = None
             gate_applicable = (
-                self._streak_pre_gate is not None
+                streak_pre_gate is not None
                 and streak_mark is not None
-                and self._streak_pre_gate.applicable_for(recipe.view)
+                and streak_pre_gate.applicable_for(recipe.view)
             )
             conditioning_key = await self._conditioning_reference_for_view(
                 anchor_bytes=anchor_bytes,
@@ -407,8 +409,8 @@ class CharacterOnboardingService:
                 view=recipe.view,
             )
             framing_applicable = (
-                self._framing_gate is not None
-                and self._framing_gate.applicable_for(recipe.view)
+                framing_gate is not None
+                and framing_gate.applicable_for(recipe.view)
             )
             attempts = (
                 self._max_attempts
@@ -441,7 +443,8 @@ class CharacterOnboardingService:
                 )
                 pre_gate_note = None
                 if automatic_review and gate_applicable and streak_mark is not None:
-                    gate = self._streak_pre_gate.evaluate(
+                    assert streak_pre_gate is not None
+                    gate = streak_pre_gate.evaluate(
                         image_bytes=generated.image_bytes,
                         mark=streak_mark,
                     )
@@ -459,7 +462,8 @@ class CharacterOnboardingService:
                     pre_gate_note = gate.reason
                 framing_note = None
                 if automatic_review and framing_applicable:
-                    framing = self._framing_gate.evaluate(
+                    assert framing_gate is not None
+                    framing = framing_gate.evaluate(
                         image_bytes=generated.image_bytes,
                         view=recipe.view,
                     )
@@ -494,10 +498,15 @@ class CharacterOnboardingService:
                     )
                     if refined is None:
                         refine_note = "style refine unavailable; kept base"
-                    elif framing_applicable and not self._framing_gate.evaluate(
-                        image_bytes=refined.image_bytes, view=recipe.view
-                    ).passed:
-                        refine_note = "style refine framing regressed; kept base"
+                    elif framing_applicable:
+                        assert framing_gate is not None
+                        if not framing_gate.evaluate(
+                            image_bytes=refined.image_bytes, view=recipe.view
+                        ).passed:
+                            refine_note = "style refine framing regressed; kept base"
+                        else:
+                            active_generated = refined
+                            refine_note = "style refine applied"
                     else:
                         active_generated = refined
                         refine_note = "style refine applied"

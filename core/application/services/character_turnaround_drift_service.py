@@ -583,7 +583,7 @@ class CharacterTurnaroundDriftService:
 
     @staticmethod
     def _histogram(pixels: np.ndarray) -> np.ndarray:
-        quantized = (pixels.astype(np.uint16) * _PALETTE_LEVELS) // 256
+        quantized: np.ndarray = (pixels.astype(np.uint16) * _PALETTE_LEVELS) // 256
         flat = (
             quantized[:, 0] * _PALETTE_LEVELS * _PALETTE_LEVELS
             + quantized[:, 1] * _PALETTE_LEVELS

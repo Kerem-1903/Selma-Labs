@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 from pathlib import Path
+from typing import cast
 
 from PIL import Image, UnidentifiedImageError
 
@@ -178,8 +179,10 @@ class CharacterViewPackAssetService:
             model_hashes=model_hashes,
             reference_hashes=reference_hashes,
             qc_metrics=report.to_dict(),
-            render_duration_sec=float(generation_metadata.get("render_duration_sec", 0.0)),
-            peak_vram_mb=float(raw_peak) if raw_peak is not None else None,
+            render_duration_sec=float(
+                cast(float | str, generation_metadata.get("render_duration_sec", 0.0))
+            ),
+            peak_vram_mb=float(cast(float | str, raw_peak)) if raw_peak is not None else None,
             state=state,
             prompt_hash=str(generation_metadata.get("prompt_hash", "")),
             workflow_hash=str(generation_metadata.get("workflow_hash", "")),

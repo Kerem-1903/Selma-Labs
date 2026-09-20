@@ -19,6 +19,10 @@ class SelmaGPTProvider(ScriptGeneratorPort):
         self.api_url = api_url
         self.model_name = model_name
 
+    @property
+    def provider_identity(self) -> str:
+        return f"selmagpt:{self.model_name}"
+
     async def generate_script(
         self,
         topic: str,
@@ -76,10 +80,11 @@ class SelmaGPTProvider(ScriptGeneratorPort):
                     data = await response.json()
                     narration = data["choices"][0]["message"]["content"].strip()
 
-                    return Script(
+                    return Script.create(
                         topic=topic,
-                        narration=narration,
+                        full_text=narration,
                         target_duration_seconds=target_duration_seconds,
+                        provider_used=self.provider_identity,
                     )
         except aiohttp.ClientError as e:
             logger.error(f"SelmaGPT connection error: {e}")

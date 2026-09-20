@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 # Try importing ultralytics. If not available, fail gracefully.
 try:
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 class SmartCroppingService:
     def __init__(self, model_name: str = "yolov8n.pt", target_ratio: float = 9/16):
         self.target_ratio = target_ratio
+        self.model: Any | None
         if HAS_ULTRALYTICS:
             # Load the YOLOv8 nano model. It will auto-download if not present.
             self.model = YOLO(model_name)
@@ -62,9 +64,9 @@ class SmartCroppingService:
 
                 # Run YOLO prediction (detects all objects, not just people)
                 results = self.model.predict(frame, verbose=False)
-                if results and len(results[0].boxes) > 0:
+                boxes = results[0].boxes if results else None
+                if boxes is not None and len(boxes) > 0:
                     # Find the largest bounding box in this frame
-                    boxes = results[0].boxes
                     largest_box = max(boxes, key=lambda b: (b.xyxy[0][2] - b.xyxy[0][0]) * (b.xyxy[0][3] - b.xyxy[0][1]))
                     x1, y1, x2, y2 = largest_box.xyxy[0].tolist()
                     centers.append((x1 + x2) / 2)

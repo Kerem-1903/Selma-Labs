@@ -24,7 +24,11 @@ def project_anchor(anchor: MarkAnchor, head_bbox: BBox) -> tuple[float, float]:
 
 def _hex_to_rgb(value: str) -> tuple[int, int, int]:
     value = value.lstrip("#")
-    return tuple(int(value[index : index + 2], 16) for index in (0, 2, 4))
+    return (
+        int(value[0:2], 16),
+        int(value[2:4], 16),
+        int(value[4:6], 16),
+    )
 
 
 class StructuredMarkValidationService:

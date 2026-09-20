@@ -93,7 +93,7 @@ kabul edilen davranıştır ve değiştirilmedi.
 | R12 | Orta | **Lint ratchet'i kademe 2'de ve bloklayıcı.** Kademe 1 yalnız correctness kurallarıydı; kademe 2 `F`, `I`, `UP`, `B`, `E4`, `S110`/`S112` ile ağacı temiz tutuyor. Kapalı kalanlar gerekçesiyle `ignore` listesinde: `B008`, `B904`, `B905`. | `pyproject.toml`, §5 |
 | R13 | Yüksek (ürün) | **Fonksiyonel boşluklar** (dokümanların kendi kaydettiği, kod gereci): çok-karakterli sahnede kimlik seçimi yok (`ep01`'de 25 çekimin 6'sı yanlış karakterle etiketli); profilde üç-çeyrek ayrımı ölçülemiyor; palette drift advisory; LivePortrait mock; ADR-009 Wan gerçek provider bloklu; pose-pack (5) ve keyframe (5) için **10 insan imzası bekliyor**. | `docs/project/status.md`, phase-1 roadmap |
 | R14 | Düşük | **God dosya — yarısı çözüldü.** `build_parser()`'ın 1016 satırı `cli/parsers/` ailelerine taşındı; `cli/main.py` 2585 → 1580 satır ve artık yalnız dispatcher + handler gövdesi. Kalan iş: handler'ları `cli/*_commands.py`'ye indirmek. Taşımanın davranış-nötr olduğu kanıtlandı: `build_parser()`'ın `format_help()` çıktısı ve her argümanın `dest`/`option_strings`/`default`/`nargs`/`choices` kümesi taşımadan önce ve sonra **aynı** (251 KB JSON karşılaştırması). | `wc -l`, `cli/parsers/` |
-| R15 | Düşük | **mypy artık bloklayıcı, ama dar kapsamda.** Baseline 200 hataydı; `core/domain`, `config` ve `cli` temizlendi (54 hata gerçek düzeltmeyle kapandı) ve bu üç katman **bloklayıcı** kapı. `core/application` + `infrastructure` borcu 146 hataya indi ve CI'da advisory adım olarak raporlanıyor; sıfırlandığında onlar da kapıya girer. Kapsam `[tool.mypy]`'de, gerekçesiyle yazılı. | `pyproject.toml`, CI `lint` işi |
+| R15 | Düşük | **mypy tüm üretim Python'unda bloklayıcı.** Baseline 200 hataydı; `core`, `infrastructure`, `config` ve `cli` sıfırlandı ve tek bloklayıcı kapıya alındı. Geçiş, tip düzeltmelerinin yanında üç gerçek sözleşme kusuru buldu: olmayan tek-varlık vision skoru çağrısı, yanlış ComfyUI çağrı imzası ve gölgelenen çift `_save_locked_asset` tanımı. | `pyproject.toml`, CI `lint` işi |
 
 ---
 
@@ -131,18 +131,20 @@ bağlanıyor.
 
 ```toml
 [tool.mypy]
-files = ["core/domain", "config", "cli"]   # bloklayıcı
-follow_imports = "silent"                   # borçlu paketlerin hatasını dışla
+files = ["core", "infrastructure", "config", "cli"]
+follow_imports = "silent"  # üçüncü taraf paket içlerini raporlama
 ```
 
 | Ölçüm | Önce | Sonra |
 |---|---|---|
-| Kapı kapsamındaki hata | 54 | **0** (`Success: no issues found in 228 source files`) |
-| Tüm depo (advisory) | 200 hata / 63 dosya | **146 hata / 49 dosya** |
-| Kapı | `continue-on-error` | **bloklayıcı** |
+| Üretim Python'u hatası | 200 / 63 dosya | **0** |
+| Kapı kapsamı | 228 dosya, dar katmanlar | **`core` + `infrastructure` + `config` + `cli`** |
+| Kapı | Kısmen `continue-on-error` | **tamamı bloklayıcı** |
 
-Kalan 146'nın çoğu `core/application` (68) ve `infrastructure/providers` (70)
-içinde; sıfırlandıkça kapsam genişletilir.
+Son genişletme `core/application` ve `infrastructure` borcunu sıfırladı. Özellikle
+`VisionSafetyGate`'in somut serviste bulunmayan `score_asset` metodunu çağırdığı
+ve `HybridBRollProvider`'ın ComfyUI portuna `VideoGenerationRequest` yerine
+`prompt=` gönderdiği görüldü; her ikisi de seçildiklerinde çalışma zamanı hatasıydı.
 
 **Sonraki kademeler:**
 
@@ -153,8 +155,9 @@ içinde; sıfırlandıkça kapsam genişletilir.
    `strict=` ile yazılmalı, toplu değiştirme değil.
 4. **`RUF100`** bilinçli olarak kapalı: `# noqa: BLE001 - CLI boundary` gibi
    kayıtlar niyet belgeler; `RUF100` bunları "kullanılmayan" sayıp siler.
-5. **mypy kapsamını genişlet** — `core/application`, sonra `infrastructure`;
-   iki paket de sıfıra indiğinde `files = ["core", "config", "cli", "scripts"]`.
+5. **mypy için sıradaki sınır** — üretim ağacı tamamlandı; yalnız bağımsız
+   teşhis/operasyon betikleri tip kapısının dışında. Bunlar davranış sözleşmeleri
+   netleştikçe ayrı bir `scripts` kapısına alınabilir.
 
 ---
 
@@ -194,8 +197,8 @@ yeni özellikte tekrar edebilir; kapı eklendiğinde bir daha sessizce geçemez.
 - [x] R12: lint ratchet kademe 2 — ağaç temiz ve kapı bloklayıcı (§5).
 - [x] R11: `requirements-ci.lock.txt` üretildi ve 3.10 CI işi onu kuruyor;
       GPU çalışma zamanı kilidi ayrı bir makine istiyor (açık madde).
-- [x] R15: kapsamlı mypy kapısı (`core/domain`, `config`, `cli`) bloklayıcı;
-      kalan 146 hata advisory raporda ve sıfırlandıkça kapsam genişleyecek.
+- [x] R15: mypy kapısı `core`, `infrastructure`, `config` ve `cli` genelinde
+      bloklayıcı; üretim Python'u borcu sıfır.
 - [~] R14: `build_parser()` `cli/parsers/`'e taşındı, `main.py` 2585 → 1580;
       kalan iş handler'ları `cli/*_commands.py`'ye indirmek.
 
@@ -217,12 +220,10 @@ yeni özellikte tekrar edebilir; kapı eklendiğinde bir daha sessizce geçemez.
 
 - `python -m pytest tests -q` → **1249/1249 PASS** (3 yeni CLI yüzeyi testi).
 - `python -m ruff check .` → temiz (kademe 2 seçimi, `pyproject.toml`).
-- `python -m mypy` → **Success: no issues found in 228 source files** (bloklayıcı
-  kapsam); `python -m mypy core config cli --follow-imports=normal` → 146 hata
-  (advisory borç raporu).
+- `python -m mypy` → **Success: no issues found** (`core`, `infrastructure`,
+  `config`, `cli`; tamamı bloklayıcı).
 - `requirements-ci.lock.txt` çözülebilirliği `pip install --dry-run` ile
 doğrulandı (96 pin).
 - CLI taşıması davranış-nötr kanıtlandı: `build_parser()` `format_help()` çıktısı
   ve argüman şeması önce/sonra birebir aynı (251 KB şema dökümü karşılaştırması).
-- CI `lint` işi ruff'ı ve kapsamlı mypy'yi bloklayıcı, tam depo mypy'sini advisory
-  çalıştırır.
+- CI `lint` işi ruff'ı ve üretim ağacının tamamındaki mypy'yi bloklayıcı çalıştırır.

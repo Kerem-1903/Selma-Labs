@@ -52,7 +52,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text"
         events.extend(self._format_visual_explanations(visual_intents))
         font_name = "Arial Black"
         active_color = "&H0000D7FF" # Default Yellow
-        outline_w = self._profile.outline_width
+        outline_w: float = self._profile.outline_width
 
         style_name = getattr(self, "_style_name", "hormozi")
         if style_name == "hormozi":

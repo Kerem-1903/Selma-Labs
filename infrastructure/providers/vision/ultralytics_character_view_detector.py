@@ -164,7 +164,11 @@ class UltralyticsCharacterViewDetector(CharacterViewDetectorPort):
         if boxes is None:
             return []
         values = boxes.cpu().tolist() if hasattr(boxes, "cpu") else boxes.tolist()
-        return [tuple(float(value) for value in row[:4]) for row in values]
+        return [
+            (float(row[0]), float(row[1]), float(row[2]), float(row[3]))
+            for row in values
+            if len(row) >= 4
+        ]
 
     @staticmethod
     def _orientation(result: Any, *, face_count: int) -> tuple[str, float]:

@@ -156,8 +156,10 @@ class EpisodePreparationService:
 
         failed_jobs = failed_jobs or {}
         background_groups: dict[str, list[Any]] = defaultdict(list)
-        for requirement in plan.background_requirements:
-            background_groups[requirement.location_id].append(requirement)
+        for background_requirement in plan.background_requirements:
+            background_groups[background_requirement.location_id].append(
+                background_requirement
+            )
         for location_id, requirements in sorted(background_groups.items()):
             required_ids = tuple(dict.fromkeys(item.recipe_id for item in requirements))
             asset_refs = {

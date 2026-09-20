@@ -19,8 +19,8 @@ set through a tracked GitHub issue and lands through a focused pull request.
 - Move the remaining `cli/main.py` handlers into `cli/*_commands.py`. The argument
   parser is extracted already (`cli/parsers/`), so what is left is command logic.
 - Widen the blocking type check. `core/domain`, `config` and `cli` are clean and
-  blocking; `core/application` and `infrastructure` carry 146 findings reported by
-  the advisory CI step and enter the gate as they reach zero.
+  blocking across `core`, `infrastructure`, `config` and `cli`; the former
+  application/adapter advisory debt is now zero and part of the hard gate.
 
 ## Now — repository and production clarity
 

@@ -8,8 +8,8 @@ use semantic versioning.
 
 ### Changed
 
-- **Static analysis is a real gate now.** The `lint` job already ran ruff
-  blocking on correctness rules with mypy advisory; the tree is clean under a
+- **Static analysis is a real gate now.** The `lint` job runs both ruff and mypy
+  as blocking checks; the tree is clean under a
   much wider selection (`B`, `E4`, `E9`, `E722`, `F`, `I`, `S110`, `S112`, `UP`),
   so that class of defect cannot land again. 600 findings were fixed
   automatically across 273 files and the last 11 by hand. The pass found a real
@@ -35,11 +35,10 @@ use semantic versioning.
   form). Both classes stayed abstract, so `scene_planning_provider = "selmagpt"`
   and `translation_provider = "selmagpt"` raised `TypeError` the moment the
   registry picked them. The type check found them; both now satisfy the port.
-- **The type check blocks.** mypy is green and blocking for `core/domain`,
-  `config` and `cli` (228 files), covering the contract, composition and
-  entry-point layers. The 200 findings it started from are down to 146, all in
-  `core/application` and `infrastructure`, which the advisory CI step reports
-  until they reach zero.
+- **The type check blocks across production Python.** mypy is green and blocking
+  for `core`, `infrastructure`, `config` and `cli`. The pass also exposed a
+  missing single-asset vision scoring entry point, a dead hybrid ComfyUI call
+  signature, and a duplicate character-asset writer; all three are fixed.
 - **CI installs a lock.** `requirements-ci.lock.txt` pins all 96 transitive
   packages the quality-gate job resolves; `requirements-ci.txt` stays the
   human-edited input and documents the recompile command. The 3.11 job keeps

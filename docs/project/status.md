@@ -8,7 +8,7 @@ supports both the durable topic/audio factory and a guarded Akira anime pipeline
 | Area | Status |
 |---|---|
 | Python test suite | Verified by CI and the current branch test run |
-| Static analysis | Ruff is blocking and green across correctness, pyflakes, import order, pyupgrade, bugbear and the blind-except guards (`B`, `E4`, `E9`, `E722`, `F`, `I`, `S110`, `S112`, `UP`). mypy is **blocking** for `core/domain`, `config` and `cli` (228 files clean) and advisory for `core/application`/`infrastructure`, which carry the remaining 146 findings. Full findings in [the code review](../CODE_REVIEW.md) |
+| Static analysis | Ruff is blocking and green across correctness, pyflakes, import order, pyupgrade, bugbear and the blind-except guards (`B`, `E4`, `E9`, `E722`, `F`, `I`, `S110`, `S112`, `UP`). mypy is **blocking and clean** for all production Python under `core`, `infrastructure`, `config` and `cli`. Full findings in [the code review](../CODE_REVIEW.md) |
 | Dependency lock | `requirements-ci.lock.txt` (96 pins, `pip-compile`) is what the 3.10 CI job installs; the GPU runtime set in `requirements.txt` is not locked yet |
 | CLI entry point | `cli/main.py` is a dispatcher (1580 lines, down from 2585); the argument parser is composed from per-family builders in `cli/parsers/` |
 | Python and real FFmpeg render CI | Passing on `main` |

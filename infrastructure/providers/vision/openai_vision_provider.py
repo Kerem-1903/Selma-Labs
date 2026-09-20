@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import base64
 import json
-from typing import Any
+from typing import Any, cast
 
 from openai import AsyncOpenAI
 
@@ -57,7 +57,7 @@ class OpenAIVisionProvider(VisionAnalysisPort):
         try:
             response = await self._client.responses.create(
                 model=self._model,
-                input=[{"role": "user", "content": content}],
+                input=cast(Any, [{"role": "user", "content": content}]),
             )
             return self._to_result(response.output_text)
         except ProviderError:

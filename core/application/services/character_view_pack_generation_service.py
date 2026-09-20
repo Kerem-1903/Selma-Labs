@@ -928,6 +928,7 @@ class CharacterViewPackGenerationService:
             "reason": reason,
             "views": entries,
         }
+        restores: list[object] = []
         payload: dict[str, object] = {
             "schema_version": 1,
             "character_id": brief.character_id,
@@ -937,8 +938,9 @@ class CharacterViewPackGenerationService:
         if await self._storage.exists(key):
             existing = json.loads((await self._storage.load(key)).decode("utf-8"))
             if isinstance(existing, dict) and isinstance(existing.get("restores"), list):
-                payload = {**existing, **payload, "restores": list(existing["restores"])}
-        payload["restores"] = [*payload["restores"], record]
+                restores = list(existing["restores"])
+                payload = {**existing, **payload}
+        payload["restores"] = [*restores, record]
         await self._storage.save(
             key,
             (json.dumps(payload, indent=2, sort_keys=True) + "\n").encode(),
@@ -1311,12 +1313,16 @@ class CharacterViewPackGenerationService:
         pack shipped with ``FRONT`` skipped and ``FACE_CLOSEUP`` measured, and
         the report flagged the approved face anchor against itself.
         """
+        face = approval.face_anchor
+        fullbody = approval.fullbody_anchor
+        if face is None or fullbody is None:
+            return False
         return (
             self._inherited_view(
                 view=view,
                 approval=approval,
-                face=approval.face_anchor,
-                fullbody=approval.fullbody_anchor,
+                face=face,
+                fullbody=fullbody,
             )
             is not None
         )

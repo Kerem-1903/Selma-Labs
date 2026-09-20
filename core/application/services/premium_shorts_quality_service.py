@@ -52,7 +52,7 @@ class PremiumShortsQualityService:
             "giant",
             "never",
         )
-        strong_hook = bool(first_scene) and (
+        strong_hook = first_scene is not None and (
             any(marker in hook_text for marker in hook_markers)
             or len(first_scene.narration.split()) <= 8
         )
@@ -70,7 +70,7 @@ class PremiumShortsQualityService:
             ),
             PremiumQualityCheck(
                 "three_second_hook",
-                strong_hook and bool(first_scene) and first_scene.end_time <= 3.2,
+                strong_hook and first_scene is not None and first_scene.end_time <= 3.2,
                 f"hook ends at {first_scene.end_time if first_scene else 0.0:.2f}s",
             ),
             PremiumQualityCheck(

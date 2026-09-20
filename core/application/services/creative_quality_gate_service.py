@@ -142,7 +142,12 @@ class CreativeQualityGateService:
         ))
 
         first_intent = visual_intents[0] if visual_intents else None
-        hook_pacing = bool(first_intent) and first_intent.narrative_role == "hook" and first_intent.start_ms == 0 and first_intent.duration_ms <= 1_300
+        hook_pacing = (
+            first_intent is not None
+            and first_intent.narrative_role == "hook"
+            and first_intent.start_ms == 0
+            and first_intent.duration_ms <= 1_300
+        )
         append(self._check(
             "immediate_hook_pacing", "editing_rhythm", 4 if hook_pacing else 0, 4,
             hook_pacing, False,

@@ -1,7 +1,9 @@
 import asyncio
 import logging
 import os
+import signal
 from pathlib import Path
+from typing import Any, cast
 
 from core.domain.entities.timeline import Timeline
 from core.domain.exceptions import RenderError
@@ -42,19 +44,29 @@ class NVENCFastRenderAdapter(RenderPort):
         tmp_dir = Path(tempfile.gettempdir())
         output_path = str(tmp_dir / f"selma-rendered-{uuid.uuid4().hex}.mp4")
 
-        video_clips = [clip.asset.local_path for clip in timeline.clips if clip.asset and getattr(clip.asset, 'local_path', None)]
+        video_clips = [
+            path
+            for clip in timeline.clips
+            if clip.asset is not None
+            and (path := clip.asset.local_path) is not None
+        ]
         clip_durations = [(clip.scene.end_time - clip.scene.start_time) for clip in timeline.clips]
 
         await self.render_shorts(
             audio_path=narration_audio_path,
-            subtitle_ass_path=subtitle_path,
+            subtitle_ass_path=subtitle_path or "",
             video_clips=video_clips,
             output_path=output_path,
             clip_durations_seconds=clip_durations
         )
 
-        size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
-        return RenderResult(file_path=output_path, file_size_bytes=size)
+        return RenderResult(
+            output_path=output_path,
+            duration_seconds=timeline.total_duration_seconds,
+            width=self.output_width,
+            height=self.output_height,
+            fps=float(timeline.metadata.get("fps", 30.0)),
+        )
 
     async def render_shorts(
         self,
@@ -157,16 +169,19 @@ class NVENCFastRenderAdapter(RenderPort):
 
         logger.info("Starting NVENC fast render with Smart Cropping command: %s", " ".join(cmd))
 
-        kwargs = {}
         if os.name == "posix":
-            kwargs["start_new_session"] = True
-
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            **kwargs
-        )
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                start_new_session=True,
+            )
+        else:
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
 
         try:
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=self.timeout_seconds)
@@ -175,9 +190,10 @@ class NVENCFastRenderAdapter(RenderPort):
                 raise RenderError(f"NVENC rendering failed: {error_msg}")
         except asyncio.TimeoutError as error:
             if os.name == "posix":
-                import signal
                 try:
-                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                    posix_os = cast(Any, os)
+                    posix_signal = cast(Any, signal)
+                    posix_os.killpg(posix_os.getpgid(process.pid), posix_signal.SIGTERM)
                 except ProcessLookupError:
                     pass
             else:
@@ -186,9 +202,10 @@ class NVENCFastRenderAdapter(RenderPort):
         finally:
             if process.returncode is None:
                 if os.name == "posix":
-                    import signal
                     try:
-                        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                        posix_os = cast(Any, os)
+                        posix_signal = cast(Any, signal)
+                        posix_os.killpg(posix_os.getpgid(process.pid), posix_signal.SIGKILL)
                     except ProcessLookupError:
                         pass
                 else:

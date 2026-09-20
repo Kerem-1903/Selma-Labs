@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import math
+from typing import Any, cast
 
 try:
     import librosa
@@ -73,7 +74,7 @@ class LibrosaHighlightSelector(HighlightSelectorPort):
             ]
             onset_frames = [
                 float(value)
-                for value in librosa.onset.onset_strength(
+                for value in cast(Any, librosa).onset.onset_strength(
                     y=waveform,
                     sr=sample_rate,
                     hop_length=self._HOP_LENGTH,

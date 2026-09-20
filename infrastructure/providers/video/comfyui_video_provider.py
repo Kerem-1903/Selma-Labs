@@ -201,11 +201,12 @@ class ComfyUIVideoProvider(VideoGenerationPort):
                 provider_asset_id=video_filename,
                 media_type="video",
                 original_url=local_path, # We treat the local downloaded path as original_url for processing
-                description=prompt,
                 duration_seconds=request.target_duration_seconds, # Approximated based on request
                 width=1080,
                 height=1920,
-                fps=30
+                fps=30,
+                local_path=local_path,
+                metadata={"description": prompt},
             )
 
         except Exception as e:

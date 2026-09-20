@@ -38,6 +38,7 @@ from core.domain.value_objects.keyframe_generation_request import (
 from core.domain.value_objects.production_infra import (
     BLOCKED_PREFLIGHT,
     ModelLock,
+    PreflightReport,
 )
 
 logger = logging.getLogger(__name__)
@@ -106,7 +107,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         self._poll_interval_seconds = poll_interval_seconds
         self._session_factory = session_factory
         self._preflight_service = preflight_service
-        self._preflight_report = None
+        self._preflight_report: PreflightReport | None = None
         self._preflight_lock = asyncio.Lock()
         self._watchdog = watchdog
         self._thermal_guard = thermal_guard
@@ -707,7 +708,7 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
         preferred_views = self._preferred_views(
             str(request.camera_constraints.get("angle", ""))
         )
-        selected: list[tuple[str, str]] = []
+        selected_fallback: list[tuple[str, str]] = []
         for condition in request.character_conditioning:
             references = condition.get("references", [])
             if not isinstance(references, list):
@@ -729,13 +730,13 @@ class ComfyUIKeyframeProvider(KeyframeGenerationPort):
             )
             if chosen is not None:
                 asset_id = str(chosen["asset_id"])
-                selected.append((asset_id, key_by_asset_id[asset_id]))
+                selected_fallback.append((asset_id, key_by_asset_id[asset_id]))
 
-        if not selected and request.reference_asset_ids:
-            selected.append(
+        if not selected_fallback and request.reference_asset_ids:
+            selected_fallback.append(
                 (request.reference_asset_ids[0], request.reference_storage_keys[0])
             )
-        return selected
+        return selected_fallback
 
     @staticmethod
     def _preferred_views(angle: str) -> tuple[str, ...]:

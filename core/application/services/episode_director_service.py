@@ -82,16 +82,15 @@ class EpisodeDirectorService:
         rules director rather than making offline planning unusable.
         """
         if isinstance(screenplay, EpisodeScript):
-            scenes = screenplay.scenes
             provider_input = self._structured_decision_input(screenplay)
+            expected_ids = tuple(scene.id for scene in screenplay.scenes)
         else:
             text = str(screenplay)
             parsed = self._parse_text(text, kwargs.get("episode_id", "episode-001"), kwargs.get("locations", ()))
-            scenes = parsed
             provider_input = self._text_decision_input(text, parsed)
+            expected_ids = tuple(scene.scene_id for scene in parsed)
         try:
             decision = await provider.decide(provider_input)
-            expected_ids = tuple(scene.id for scene in scenes) if isinstance(screenplay, EpisodeScript) else tuple(scene.scene_id for scene in scenes)
             decision_by_id = {item.scene_id: item for item in decision.decisions}
             if set(decision_by_id) != set(expected_ids):
                 raise ScenePlanningError("Episode Director provider did not return exactly one decision per scene.")
@@ -712,7 +711,7 @@ class EpisodeDirectorService:
         # two locations that differ only by their accents collapse onto one
         # storage id. Mirrors the transliteration CharacterCreationBrief uses for
         # a character id.
-        folded = str(value).translate(str.maketrans({"ı": "i", "İ": "I"}))
+        folded = str(value).translate(str.maketrans("ıİ", "iI"))
         folded = (
             unicodedata.normalize("NFKD", folded)
             .encode("ascii", "ignore")

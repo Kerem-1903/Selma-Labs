@@ -8,6 +8,7 @@ import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
+from typing import cast
 
 from PIL import Image, UnidentifiedImageError
 
@@ -260,7 +261,7 @@ class CharacterDesignService:
             else (
                 str(style_reference["storage_key"]),
                 str(style_reference["content_hash"]),
-                float(style_reference["weight"]),
+                float(cast(float | str, style_reference["weight"])),
             )
         )
         for index in range(count):
@@ -579,17 +580,6 @@ class CharacterDesignService:
         }
         data = (json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
         await self._storage.save_stream(f"{root}/run-manifest.json", _single_chunk(data), "application/json")
-
-    async def _save_locked_asset(
-        self, storage_key: str, data: bytes, content_hash: str
-    ) -> None:
-        if await self._storage.exists(storage_key):
-            if hashlib.sha256(await self._storage.load(storage_key)).hexdigest() != content_hash:
-                raise ValueError(f"Character asset '{storage_key}' is already locked to other bytes.")
-            return
-        stored = await self._storage.save(storage_key, data, "image/png")
-        if stored.key != storage_key:
-            raise StorageError("Storage adapter returned a different character asset key.")
 
     async def _quarantine_view(
         self,

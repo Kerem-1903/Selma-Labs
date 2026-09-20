@@ -98,6 +98,13 @@ class ThermalGuardService:
             self._sleep(self.policy.thermal_poll_interval_sec)
             waited += self.policy.thermal_poll_interval_sec
             temperature = self._probe()
+            if temperature is None:
+                return ThermalDecision(
+                    waited_sec=waited,
+                    paused=False,
+                    temperature_celsius=None,
+                    temperature_supported=False,
+                )
         return ThermalDecision(
             waited_sec=waited,
             paused=False,

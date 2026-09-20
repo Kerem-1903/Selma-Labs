@@ -1,0 +1,725 @@
+{
+  "schema_version": 1,
+  "character_id": "sera",
+  "source": "C:\\Users\\LOQ\\Desktop\\Codex Görseli 19 Eyl 2026 21_20_47.png",
+  "source_hash": "784dceaadb85b4977a026993c084e381b66e127fa6cb56de26b9dc6a3409205c",
+  "provider": "comfyui:flux2-edit",
+  "status": "UNAPPROVED_POSE_SET",
+  "poses": [
+    {
+      "pose_id": "neutral-alert",
+      "file": "01-neutral-alert.png",
+      "seed": 2026091901,
+      "provider": "comfyui:flux2-edit",
+      "source_hash": "784dceaadb85b4977a026993c084e381b66e127fa6cb56de26b9dc6a3409205c",
+      "output_hash": "432f926abb4c8417a1c12cf2b7159d425daac86dbf67d9723e77d57b7947a75f",
+      "metadata": {
+        "prompt_id": "9469d246-5f39-4bde-bae9-3930e04b8965",
+        "reference_asset_ids": [
+          "source:784dceaadb85"
+        ],
+        "reference_storage_keys": [
+          "characters/sera/flux-pose-set/source-784dceaadb85.png"
+        ],
+        "reference_content_hashes": [
+          "784dceaadb85b4977a026993c084e381b66e127fa6cb56de26b9dc6a3409205c"
+        ],
+        "pose_storage_key": null,
+        "pose_content_hash": null,
+        "character_lora": null,
+        "model_checkpoint": "flux-2-klein-4b-fp8.safetensors",
+        "workflow_version": null,
+        "workflow_hash": "ff1d24171ac835e97827f1545cd97a130b06331d7eb1b05501d896d4ddd0574d",
+        "output_content_hash": "432f926abb4c8417a1c12cf2b7159d425daac86dbf67d9723e77d57b7947a75f",
+        "prompt_hash": "d2c5f44e23f3d8dbd6e22c07dac036e1d95feb739c3e89e3b04d0d8b88c37348",
+        "model_hashes": {
+          "diffusion_model": "97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6",
+          "text_encoder": "6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+          "vae": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
+          "face_detector": "717923c19b3f4bbf5250b728f1fa6b2cb72a33aed1d236ea9caf0e21ad943e5f",
+          "pose_detector": "c6fa93dd1ee4a2c18c900a45c1d864a1c6f7aba75d84f91648a30b7fb641d212"
+        },
+        "render_duration_sec": 38.859999999869615,
+        "peak_vram_mb": 7277.0,
+        "preflight": {
+          "ok": true,
+          "checks": [
+            {
+              "name": "comfyui_api",
+              "passed": true,
+              "detail": "status=200",
+              "warning": false,
+              "duration_sec": 0.031
+            },
+            {
+              "name": "node_classes",
+              "passed": true,
+              "detail": "all required node classes present",
+              "warning": false,
+              "duration_sec": 0.922
+            },
+            {
+              "name": "queue_api",
+              "passed": true,
+              "detail": "/queue status=200",
+              "warning": false,
+              "duration_sec": 0.016
+            },
+            {
+              "name": "model:diffusion_model:flux-2-klein-4b-fp8.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 9.765
+            },
+            {
+              "name": "model:text_encoder:qwen_3_4b.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 18.125
+            },
+            {
+              "name": "model:vae:flux2-vae.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.907
+            },
+            {
+              "name": "model:face_detector:face_yolov8m.pt",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.125
+            },
+            {
+              "name": "model:pose_detector:yolov8n-pose.pt",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.031
+            },
+            {
+              "name": "disk_free",
+              "passed": true,
+              "detail": "188.0 GB free (required 40.0 GB)",
+              "warning": false,
+              "duration_sec": 0.0
+            },
+            {
+              "name": "ram_free",
+              "passed": true,
+              "detail": "7.4 GB free (required 4.0 GB)",
+              "warning": false,
+              "duration_sec": 0.047
+            },
+            {
+              "name": "output_writable",
+              "passed": true,
+              "detail": "write+delete succeeded",
+              "warning": false,
+              "duration_sec": 0.0
+            }
+          ],
+          "failures": [],
+          "warnings": []
+        },
+        "watchdog": {
+          "ok": true,
+          "attempts": 1,
+          "reason": "completed",
+          "interrupted": false,
+          "prompt_id": "9469d246-5f39-4bde-bae9-3930e04b8965",
+          "detail": {}
+        },
+        "thermal_before": {
+          "waited_sec": 0.0,
+          "paused": false,
+          "status": "OK",
+          "temperature_celsius": null,
+          "temperature_supported": true
+        },
+        "thermal_after": {
+          "waited_sec": 0.0,
+          "paused": false,
+          "status": "OK",
+          "temperature_celsius": 48.0,
+          "temperature_supported": true
+        }
+      }
+    },
+    {
+      "pose_id": "walking",
+      "file": "02-walking.png",
+      "seed": 2026091902,
+      "provider": "comfyui:flux2-edit",
+      "source_hash": "784dceaadb85b4977a026993c084e381b66e127fa6cb56de26b9dc6a3409205c",
+      "output_hash": "7f57f5f378b20bc17e05a4ca07a70840fb6f01bc03ad773548e2069c22cc9300",
+      "metadata": {
+        "prompt_id": "6080958e-eaf5-49e7-89b8-0f646b9c5e2e",
+        "reference_asset_ids": [
+          "source:784dceaadb85"
+        ],
+        "reference_storage_keys": [
+          "characters/sera/flux-pose-set/source-784dceaadb85.png"
+        ],
+        "reference_content_hashes": [
+          "784dceaadb85b4977a026993c084e381b66e127fa6cb56de26b9dc6a3409205c"
+        ],
+        "pose_storage_key": null,
+        "pose_content_hash": null,
+        "character_lora": null,
+        "model_checkpoint": "flux-2-klein-4b-fp8.safetensors",
+        "workflow_version": null,
+        "workflow_hash": "12c12a0b4088531b438d17ec53d11a93ff79831c3e18638862775d4345e13698",
+        "output_content_hash": "7f57f5f378b20bc17e05a4ca07a70840fb6f01bc03ad773548e2069c22cc9300",
+        "prompt_hash": "25c3c916bdada44e63fb2741dc6a37d98e4c003bcde95c17914c45d09c1e7933",
+        "model_hashes": {
+          "diffusion_model": "97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6",
+          "text_encoder": "6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+          "vae": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
+          "face_detector": "717923c19b3f4bbf5250b728f1fa6b2cb72a33aed1d236ea9caf0e21ad943e5f",
+          "pose_detector": "c6fa93dd1ee4a2c18c900a45c1d864a1c6f7aba75d84f91648a30b7fb641d212"
+        },
+        "render_duration_sec": 25.17200000002049,
+        "peak_vram_mb": 7149.0,
+        "preflight": {
+          "ok": true,
+          "checks": [
+            {
+              "name": "comfyui_api",
+              "passed": true,
+              "detail": "status=200",
+              "warning": false,
+              "duration_sec": 0.031
+            },
+            {
+              "name": "node_classes",
+              "passed": true,
+              "detail": "all required node classes present",
+              "warning": false,
+              "duration_sec": 0.922
+            },
+            {
+              "name": "queue_api",
+              "passed": true,
+              "detail": "/queue status=200",
+              "warning": false,
+              "duration_sec": 0.016
+            },
+            {
+              "name": "model:diffusion_model:flux-2-klein-4b-fp8.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 9.765
+            },
+            {
+              "name": "model:text_encoder:qwen_3_4b.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 18.125
+            },
+            {
+              "name": "model:vae:flux2-vae.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.907
+            },
+            {
+              "name": "model:face_detector:face_yolov8m.pt",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.125
+            },
+            {
+              "name": "model:pose_detector:yolov8n-pose.pt",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.031
+            },
+            {
+              "name": "disk_free",
+              "passed": true,
+              "detail": "188.0 GB free (required 40.0 GB)",
+              "warning": false,
+              "duration_sec": 0.0
+            },
+            {
+              "name": "ram_free",
+              "passed": true,
+              "detail": "7.4 GB free (required 4.0 GB)",
+              "warning": false,
+              "duration_sec": 0.047
+            },
+            {
+              "name": "output_writable",
+              "passed": true,
+              "detail": "write+delete succeeded",
+              "warning": false,
+              "duration_sec": 0.0
+            }
+          ],
+          "failures": [],
+          "warnings": []
+        },
+        "watchdog": {
+          "ok": true,
+          "attempts": 1,
+          "reason": "completed",
+          "interrupted": false,
+          "prompt_id": "6080958e-eaf5-49e7-89b8-0f646b9c5e2e",
+          "detail": {}
+        },
+        "thermal_before": {
+          "waited_sec": 9.73,
+          "paused": false,
+          "status": "OK",
+          "temperature_celsius": null,
+          "temperature_supported": true
+        },
+        "thermal_after": {
+          "waited_sec": 0.0,
+          "paused": false,
+          "status": "OK",
+          "temperature_celsius": 51.0,
+          "temperature_supported": true
+        }
+      }
+    },
+    {
+      "pose_id": "investigative-crouch",
+      "file": "03-investigative-crouch.png",
+      "seed": 2026091903,
+      "provider": "comfyui:flux2-edit",
+      "source_hash": "784dceaadb85b4977a026993c084e381b66e127fa6cb56de26b9dc6a3409205c",
+      "output_hash": "1c65c28cbf2b7a086b119715e1d83558d40d9ee66f8c98d7817a2a0d99dc10ec",
+      "metadata": {
+        "prompt_id": "9b4aa425-33c1-4afc-acf8-8da911ce4419",
+        "reference_asset_ids": [
+          "source:784dceaadb85"
+        ],
+        "reference_storage_keys": [
+          "characters/sera/flux-pose-set/source-784dceaadb85.png"
+        ],
+        "reference_content_hashes": [
+          "784dceaadb85b4977a026993c084e381b66e127fa6cb56de26b9dc6a3409205c"
+        ],
+        "pose_storage_key": null,
+        "pose_content_hash": null,
+        "character_lora": null,
+        "model_checkpoint": "flux-2-klein-4b-fp8.safetensors",
+        "workflow_version": null,
+        "workflow_hash": "475951961990b54415ad3d7aeb9c3021666adbd9fc08c353c1c02519ddb6a1cd",
+        "output_content_hash": "1c65c28cbf2b7a086b119715e1d83558d40d9ee66f8c98d7817a2a0d99dc10ec",
+        "prompt_hash": "1864d1bb40999be3e4c754d02485346f106deb1c3ed80f9b55ae6ec651b3e43b",
+        "model_hashes": {
+          "diffusion_model": "97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6",
+          "text_encoder": "6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+          "vae": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
+          "face_detector": "717923c19b3f4bbf5250b728f1fa6b2cb72a33aed1d236ea9caf0e21ad943e5f",
+          "pose_detector": "c6fa93dd1ee4a2c18c900a45c1d864a1c6f7aba75d84f91648a30b7fb641d212"
+        },
+        "render_duration_sec": 24.406000000191852,
+        "peak_vram_mb": 7245.0,
+        "preflight": {
+          "ok": true,
+          "checks": [
+            {
+              "name": "comfyui_api",
+              "passed": true,
+              "detail": "status=200",
+              "warning": false,
+              "duration_sec": 0.031
+            },
+            {
+              "name": "node_classes",
+              "passed": true,
+              "detail": "all required node classes present",
+              "warning": false,
+              "duration_sec": 0.922
+            },
+            {
+              "name": "queue_api",
+              "passed": true,
+              "detail": "/queue status=200",
+              "warning": false,
+              "duration_sec": 0.016
+            },
+            {
+              "name": "model:diffusion_model:flux-2-klein-4b-fp8.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 9.765
+            },
+            {
+              "name": "model:text_encoder:qwen_3_4b.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 18.125
+            },
+            {
+              "name": "model:vae:flux2-vae.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.907
+            },
+            {
+              "name": "model:face_detector:face_yolov8m.pt",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.125
+            },
+            {
+              "name": "model:pose_detector:yolov8n-pose.pt",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.031
+            },
+            {
+              "name": "disk_free",
+              "passed": true,
+              "detail": "188.0 GB free (required 40.0 GB)",
+              "warning": false,
+              "duration_sec": 0.0
+            },
+            {
+              "name": "ram_free",
+              "passed": true,
+              "detail": "7.4 GB free (required 4.0 GB)",
+              "warning": false,
+              "duration_sec": 0.047
+            },
+            {
+              "name": "output_writable",
+              "passed": true,
+              "detail": "write+delete succeeded",
+              "warning": false,
+              "duration_sec": 0.0
+            }
+          ],
+          "failures": [],
+          "warnings": []
+        },
+        "watchdog": {
+          "ok": true,
+          "attempts": 1,
+          "reason": "completed",
+          "interrupted": false,
+          "prompt_id": "9b4aa425-33c1-4afc-acf8-8da911ce4419",
+          "detail": {}
+        },
+        "thermal_before": {
+          "waited_sec": 9.8,
+          "paused": false,
+          "status": "OK",
+          "temperature_celsius": null,
+          "temperature_supported": true
+        },
+        "thermal_after": {
+          "waited_sec": 0.0,
+          "paused": false,
+          "status": "OK",
+          "temperature_celsius": 53.0,
+          "temperature_supported": true
+        }
+      }
+    },
+    {
+      "pose_id": "defensive-guard",
+      "file": "04-defensive-guard.png",
+      "seed": 2026091904,
+      "provider": "comfyui:flux2-edit",
+      "source_hash": "784dceaadb85b4977a026993c084e381b66e127fa6cb56de26b9dc6a3409205c",
+      "output_hash": "868aa2f959e026a8b0a3eef7a9b559b121ef26f4ebb1d5116c4942c00564535a",
+      "metadata": {
+        "prompt_id": "4388df28-67d6-4fae-9b5b-f71b339f764a",
+        "reference_asset_ids": [
+          "source:784dceaadb85"
+        ],
+        "reference_storage_keys": [
+          "characters/sera/flux-pose-set/source-784dceaadb85.png"
+        ],
+        "reference_content_hashes": [
+          "784dceaadb85b4977a026993c084e381b66e127fa6cb56de26b9dc6a3409205c"
+        ],
+        "pose_storage_key": null,
+        "pose_content_hash": null,
+        "character_lora": null,
+        "model_checkpoint": "flux-2-klein-4b-fp8.safetensors",
+        "workflow_version": null,
+        "workflow_hash": "72507a1085c452f3cf414edc81015231629a0cba5bdce88b1ecfbdab0bad2a14",
+        "output_content_hash": "868aa2f959e026a8b0a3eef7a9b559b121ef26f4ebb1d5116c4942c00564535a",
+        "prompt_hash": "5b4c9c146101dddf4d2ea34bbc444aafab78f72c2bee5d813f78c7a01f774f36",
+        "model_hashes": {
+          "diffusion_model": "97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6",
+          "text_encoder": "6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+          "vae": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
+          "face_detector": "717923c19b3f4bbf5250b728f1fa6b2cb72a33aed1d236ea9caf0e21ad943e5f",
+          "pose_detector": "c6fa93dd1ee4a2c18c900a45c1d864a1c6f7aba75d84f91648a30b7fb641d212"
+        },
+        "render_duration_sec": 23.983999999938533,
+        "peak_vram_mb": 7213.0,
+        "preflight": {
+          "ok": true,
+          "checks": [
+            {
+              "name": "comfyui_api",
+              "passed": true,
+              "detail": "status=200",
+              "warning": false,
+              "duration_sec": 0.031
+            },
+            {
+              "name": "node_classes",
+              "passed": true,
+              "detail": "all required node classes present",
+              "warning": false,
+              "duration_sec": 0.922
+            },
+            {
+              "name": "queue_api",
+              "passed": true,
+              "detail": "/queue status=200",
+              "warning": false,
+              "duration_sec": 0.016
+            },
+            {
+              "name": "model:diffusion_model:flux-2-klein-4b-fp8.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 9.765
+            },
+            {
+              "name": "model:text_encoder:qwen_3_4b.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 18.125
+            },
+            {
+              "name": "model:vae:flux2-vae.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.907
+            },
+            {
+              "name": "model:face_detector:face_yolov8m.pt",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.125
+            },
+            {
+              "name": "model:pose_detector:yolov8n-pose.pt",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.031
+            },
+            {
+              "name": "disk_free",
+              "passed": true,
+              "detail": "188.0 GB free (required 40.0 GB)",
+              "warning": false,
+              "duration_sec": 0.0
+            },
+            {
+              "name": "ram_free",
+              "passed": true,
+              "detail": "7.4 GB free (required 4.0 GB)",
+              "warning": false,
+              "duration_sec": 0.047
+            },
+            {
+              "name": "output_writable",
+              "passed": true,
+              "detail": "write+delete succeeded",
+              "warning": false,
+              "duration_sec": 0.0
+            }
+          ],
+          "failures": [],
+          "warnings": []
+        },
+        "watchdog": {
+          "ok": true,
+          "attempts": 1,
+          "reason": "completed",
+          "interrupted": false,
+          "prompt_id": "4388df28-67d6-4fae-9b5b-f71b339f764a",
+          "detail": {}
+        },
+        "thermal_before": {
+          "waited_sec": 9.8,
+          "paused": false,
+          "status": "OK",
+          "temperature_celsius": null,
+          "temperature_supported": true
+        },
+        "thermal_after": {
+          "waited_sec": 0.0,
+          "paused": false,
+          "status": "OK",
+          "temperature_celsius": 54.0,
+          "temperature_supported": true
+        }
+      }
+    },
+    {
+      "pose_id": "kneeling-ready",
+      "file": "05-kneeling-ready.png",
+      "seed": 2026091905,
+      "provider": "comfyui:flux2-edit",
+      "source_hash": "784dceaadb85b4977a026993c084e381b66e127fa6cb56de26b9dc6a3409205c",
+      "output_hash": "850b3053ddea652398809e3730b9efc0b7d0a7f239bc838f0c552afdc99e1ede",
+      "metadata": {
+        "prompt_id": "ad36a7c9-b348-4f6b-83b2-ac38a522cfff",
+        "reference_asset_ids": [
+          "source:784dceaadb85"
+        ],
+        "reference_storage_keys": [
+          "characters/sera/flux-pose-set/source-784dceaadb85.png"
+        ],
+        "reference_content_hashes": [
+          "784dceaadb85b4977a026993c084e381b66e127fa6cb56de26b9dc6a3409205c"
+        ],
+        "pose_storage_key": null,
+        "pose_content_hash": null,
+        "character_lora": null,
+        "model_checkpoint": "flux-2-klein-4b-fp8.safetensors",
+        "workflow_version": null,
+        "workflow_hash": "607a75c4d8778391e49177bf50164b3e04ac4c02b5f64be4f4748c8599687ec9",
+        "output_content_hash": "850b3053ddea652398809e3730b9efc0b7d0a7f239bc838f0c552afdc99e1ede",
+        "prompt_hash": "22beaac19ca8923e545addd534d3d6d3b76367be04d6f6515de07655afc58e28",
+        "model_hashes": {
+          "diffusion_model": "97ed34fe0567e436200f2faee3939b88f2b5d99f8af2a4dc16532c4245c0ccb6",
+          "text_encoder": "6c671498573ac2f7a5501502ccce8d2b08ea6ca2f661c458e708f36b36edfc5a",
+          "vae": "868fe7b343cc8f3a19dbcfcafbc3d5f888802be3f89bd81b65b3621a066ce8f3",
+          "face_detector": "717923c19b3f4bbf5250b728f1fa6b2cb72a33aed1d236ea9caf0e21ad943e5f",
+          "pose_detector": "c6fa93dd1ee4a2c18c900a45c1d864a1c6f7aba75d84f91648a30b7fb641d212"
+        },
+        "render_duration_sec": 24.563000000081956,
+        "peak_vram_mb": 7309.0,
+        "preflight": {
+          "ok": true,
+          "checks": [
+            {
+              "name": "comfyui_api",
+              "passed": true,
+              "detail": "status=200",
+              "warning": false,
+              "duration_sec": 0.031
+            },
+            {
+              "name": "node_classes",
+              "passed": true,
+              "detail": "all required node classes present",
+              "warning": false,
+              "duration_sec": 0.922
+            },
+            {
+              "name": "queue_api",
+              "passed": true,
+              "detail": "/queue status=200",
+              "warning": false,
+              "duration_sec": 0.016
+            },
+            {
+              "name": "model:diffusion_model:flux-2-klein-4b-fp8.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 9.765
+            },
+            {
+              "name": "model:text_encoder:qwen_3_4b.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 18.125
+            },
+            {
+              "name": "model:vae:flux2-vae.safetensors",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.907
+            },
+            {
+              "name": "model:face_detector:face_yolov8m.pt",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.125
+            },
+            {
+              "name": "model:pose_detector:yolov8n-pose.pt",
+              "passed": true,
+              "detail": "sha256 verified",
+              "warning": false,
+              "duration_sec": 0.031
+            },
+            {
+              "name": "disk_free",
+              "passed": true,
+              "detail": "188.0 GB free (required 40.0 GB)",
+              "warning": false,
+              "duration_sec": 0.0
+            },
+            {
+              "name": "ram_free",
+              "passed": true,
+              "detail": "7.4 GB free (required 4.0 GB)",
+              "warning": false,
+              "duration_sec": 0.047
+            },
+            {
+              "name": "output_writable",
+              "passed": true,
+              "detail": "write+delete succeeded",
+              "warning": false,
+              "duration_sec": 0.0
+            }
+          ],
+          "failures": [],
+          "warnings": []
+        },
+        "watchdog": {
+          "ok": true,
+          "attempts": 1,
+          "reason": "completed",
+          "interrupted": false,
+          "prompt_id": "ad36a7c9-b348-4f6b-83b2-ac38a522cfff",
+          "detail": {}
+        },
+        "thermal_before": {
+          "waited_sec": 9.83,
+          "paused": false,
+          "status": "OK",
+          "temperature_celsius": null,
+          "temperature_supported": true
+        },
+        "thermal_after": {
+          "waited_sec": 0.0,
+          "paused": false,
+          "status": "OK",
+          "temperature_celsius": 54.0,
+          "temperature_supported": true
+        }
+      }
+    }
+  ]
+}

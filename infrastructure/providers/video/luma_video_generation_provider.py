@@ -45,7 +45,7 @@ class LumaVideoGenerationProvider(VideoGenerationPort):
                 headers=headers,
                 json=payload
             )
-            response.raise_from_status()
+            response.raise_for_status()
             job_data = response.json()
             generation_id = job_data["id"]
 
@@ -57,7 +57,7 @@ class LumaVideoGenerationProvider(VideoGenerationPort):
                     f"https://api.lumalabs.ai/dream-machine/v1/generations/{generation_id}",
                     headers=headers
                 )
-                poll_resp.raise_from_status()
+                poll_resp.raise_for_status()
                 status_data = poll_resp.json()
 
                 state = status_data.get("state")

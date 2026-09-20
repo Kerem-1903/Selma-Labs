@@ -1,11 +1,16 @@
 import json
 import logging
+from typing import cast
 
 import aiohttp
 
 from core.domain.exceptions import ProviderError
 from core.domain.ports.fact_check_port import FactCheckPort
-from core.domain.value_objects.fact_check_report import FactCheckReport
+from core.domain.value_objects.fact_check_report import (
+    FactCheckReport,
+    FactClaim,
+    FactVerdict,
+)
 from core.domain.value_objects.fact_source import FactSource
 
 logger = logging.getLogger(__name__)
@@ -28,21 +33,22 @@ class SelmaGPTFactCheckProvider(FactCheckPort):
         logger.info("Verifying facts via SelmaGPT...")
 
         system_prompt = (
-            "You are a rigorous professional fact-checker. Evaluate the provided text for factual accuracy. "
-            "Identify any factual errors, false claims, or highly misleading statements. "
+            "You are a rigorous professional fact-checker. Use only the supplied source extracts. "
+            "Identify every externally verifiable factual claim in the text. "
             "IMPORTANT: Your response MUST be valid JSON matching this schema exactly:\n"
             "{\n"
-            '  "is_accurate": true,\n'
-
-            '  "identified_errors": ["Error 1 description if any", "Error 2 description if any"],\n'
-            '  "suggestions": ["Suggestion 1", "Suggestion 2"]\n'
+            '  "claims": [{"claim": "atomic claim", "verdict": "supported|contradicted|uncertain", '
+            '"explanation": "reason", "source_urls": ["allowed URL"], '
+            '"evidence_quote": "short verbatim source quote"}]\n'
             "}\n"
-            "Set is_accurate to false ONLY if there are blatant, objective falsehoods. "
+            "Use uncertain unless a supplied extract directly supports or contradicts the claim. "
             "Only output the JSON object, nothing else."
         )
 
         user_content = f"Text to verify:\n\n{script_text}"
-        context = '\n'.join([s.content for s in sources])
+        context = "\n".join(
+            f"SOURCE {source.url}\n{source.extract}" for source in sources
+        )
         if context:
             user_content += f"\n\nContext to consider:\n{context}"
 
@@ -80,11 +86,53 @@ class SelmaGPTFactCheckProvider(FactCheckPort):
 
                         parsed_json = json.loads(content)
 
-                        return FactCheckReport(
-                            is_accurate=parsed_json.get("is_accurate", True),
-                            identified_errors=parsed_json.get("identified_errors", []),
-                            suggestions=parsed_json.get("suggestions", []),
-                            confidence_score=float(parsed_json.get("confidence_score", 1.0)),
+                        allowed_urls = {source.url for source in sources}
+                        claims: list[FactClaim] = []
+                        for raw_claim in parsed_json.get("claims", []):
+                            if not isinstance(raw_claim, dict):
+                                continue
+                            verdict = str(
+                                raw_claim.get("verdict") or "uncertain"
+                            ).strip().lower()
+                            if verdict not in {
+                                "supported",
+                                "contradicted",
+                                "uncertain",
+                            }:
+                                verdict = "uncertain"
+                            source_urls = [
+                                str(url)
+                                for url in raw_claim.get("source_urls", [])
+                                if str(url) in allowed_urls
+                            ]
+                            evidence_quote = str(
+                                raw_claim.get("evidence_quote") or ""
+                            ).strip()
+                            if verdict == "supported" and (
+                                not source_urls or not evidence_quote
+                            ):
+                                verdict = "uncertain"
+                            claim_text = str(raw_claim.get("claim") or "").strip()
+                            if claim_text:
+                                claims.append(
+                                    FactClaim(
+                                        claim=claim_text,
+                                        verdict=cast(FactVerdict, verdict),
+                                        explanation=str(
+                                            raw_claim.get("explanation") or ""
+                                        ).strip(),
+                                        source_urls=source_urls,
+                                        evidence_quote=evidence_quote,
+                                    )
+                                )
+                        if not claims:
+                            raise ProviderError(
+                                "SelmaGPT fact-check response contained no usable claims."
+                            )
+                        return FactCheckReport.create(
+                            claims=claims,
+                            sources=sources,
+                            provider_used=self.provider_identity,
                         )
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse SelmaGPT JSON response: {e}")
@@ -96,3 +144,4 @@ class SelmaGPTFactCheckProvider(FactCheckPort):
                 retries += 1
                 if retries > self.max_retries:
                     raise ProviderError(f"SelmaGPT fact checking failed after {self.max_retries} retries: {e}") from e
+        raise ProviderError("SelmaGPT fact checking exhausted its retry budget.")

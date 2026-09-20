@@ -171,7 +171,9 @@ class CharacterPosePackService:
         self._generator = generator
         self._storage = storage
         self._prompt_service = prompt_service or CharacterIdentityPromptService()
-        self._quality_gate = quality_gate
+        self._quality_gate: CharacterViewQualityGate | _OfflinePoseQualityGate | None = (
+            quality_gate
+        )
         if quality_gate is None and generator.name.startswith("fake:"):
             self._quality_gate = _OfflinePoseQualityGate()
         self._max_attempts = max_attempts
@@ -209,6 +211,9 @@ class CharacterPosePackService:
     ) -> CharacterPosePackManifest:
         """Generate a resumable pack from an approved character and style lock."""
         self._validate_approval(brief, approval)
+        face_anchor = approval.face_anchor
+        fullbody_anchor = approval.fullbody_anchor
+        assert face_anchor is not None and fullbody_anchor is not None
         selected_mode = mode or self._default_mode
         if selected_mode not in {"DISCOVERY", "PRODUCTION"}:
             raise ValueError("Pose-pack mode must be DISCOVERY or PRODUCTION.")
@@ -250,6 +255,7 @@ class CharacterPosePackService:
                 if (
                     self._style_lock_resolver is None
                     or self._active_series_path is None
+                    or self._production_workflow_path is None
                 ):
                     raise ValueError(
                         "Production pose-packs require an active series style lock."
@@ -407,9 +413,9 @@ class CharacterPosePackService:
                             # not through a third conditioning slot. Evidence
                             # must name the same references the request declares.
                             metadata.get("reference_content_hashes")
-                            or tuple(
-                                approval.face_anchor.content_hash,
-                                approval.fullbody_anchor.content_hash,
+                            or (
+                                face_anchor.content_hash,
+                                fullbody_anchor.content_hash,
                             )
                         )
                     ),

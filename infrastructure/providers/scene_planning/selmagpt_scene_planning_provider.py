@@ -85,7 +85,7 @@ class SelmaGPTScenePlanningProvider(ScenePlanningPort):
 
                     parsed_json = json.loads(content)
 
-                    scenes = []
+                    scenes: list[Scene] = []
                     for item in parsed_json:
                         scene = Scene(
                             index=item.get("index", len(scenes) + 1),

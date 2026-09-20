@@ -24,7 +24,7 @@ class AssetSelectionService:
 
     def select_for_timeline(self, timeline_candidates: Sequence[tuple[Scene, list[ScoredAsset]]]) -> list[tuple[Scene, list[AdjustedAssetScore]]]:
         context = SelectionContext()
-        result = []
+        result: list[tuple[Scene, list[AdjustedAssetScore]]] = []
 
         for scene, candidates in timeline_candidates:
             if not candidates:

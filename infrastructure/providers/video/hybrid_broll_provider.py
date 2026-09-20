@@ -3,6 +3,7 @@ import random
 
 from core.domain.entities.media_asset import MediaAsset
 from core.domain.ports.video_source_port import VideoSourcePort
+from core.domain.value_objects.video_generation_request import VideoGenerationRequest
 from infrastructure.providers.video.comfyui_video_provider import ComfyUIVideoProvider
 from infrastructure.providers.video.pexels_provider import PexelsProvider
 
@@ -50,7 +51,13 @@ class HybridBRollProvider(VideoSourcePort):
                 # In real scenario, it would trigger a queue and wait.
                 # To satisfy VideoSourcePort, we generate 1 asset based on the query.
                 # Since Comfy generation is slow, we might return a mock asset for testing unless strictly required.
-                asset = await self.ai.generate_video(prompt=query)
+                asset = await self.ai.generate_video(
+                    VideoGenerationRequest(
+                        shot_contract_id="hybrid-broll",
+                        target_duration_seconds=5.0,
+                        generation_constraints={"prompt": query},
+                    )
+                )
                 results.append(asset)
             except Exception as e:
                  logger.error(f"AI Generation failed: {e}")

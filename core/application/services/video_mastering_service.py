@@ -1,7 +1,9 @@
 import asyncio
 import logging
 import os
+import signal
 import uuid
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -59,26 +61,30 @@ class VideoMasteringService:
             output_video_path
         ])
 
-        kwargs = {}
-        if os.name == "posix":
-            kwargs["start_new_session"] = True
-
         logger.info(f"Applying Cinematic Mastering to {input_video_path}...")
 
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            **kwargs
-        )
+        if os.name == "posix":
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                start_new_session=True,
+            )
+        else:
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
 
         try:
             stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=300)
         except asyncio.TimeoutError:
             if os.name == "posix":
-                import signal
                 try:
-                    os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                    posix_os = cast(Any, os)
+                    posix_signal = cast(Any, signal)
+                    posix_os.killpg(posix_os.getpgid(process.pid), posix_signal.SIGKILL)
                 except ProcessLookupError:
                     pass
             else:

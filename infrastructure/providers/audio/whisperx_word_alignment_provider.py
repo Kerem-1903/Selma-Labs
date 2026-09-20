@@ -151,6 +151,7 @@ class WhisperXWordAlignmentProvider(WordAlignmentPort):
                         )
                 audio = whisperx.load_audio(audio_asset.local_path)
                 if requires_transcription:
+                    assert self._transcription_model is not None
                     transcribe_options: dict[str, Any] = {
                         "batch_size": self._batch_size
                     }

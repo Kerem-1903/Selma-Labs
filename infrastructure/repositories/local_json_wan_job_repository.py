@@ -10,6 +10,7 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Any, cast
 from weakref import WeakValueDictionary
 
 from core.domain.entities.wan_render_job import WanRenderJob, WanRenderJobStatus
@@ -396,7 +397,7 @@ class LocalJsonWanJobRepository(WanJobRepositoryPort, WanCheckpointStorePort):
                 os.fsync(handle.fileno())
             os.replace(temporary, path)
             if os.name != "nt":
-                descriptor = os.open(path.parent, os.O_DIRECTORY)
+                descriptor = os.open(path.parent, cast(Any, os).O_DIRECTORY)
                 try:
                     os.fsync(descriptor)
                 finally:

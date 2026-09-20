@@ -276,7 +276,7 @@ class NarrativeQualityService:
             "definition": "definition or identity",
             "identity": "identity",
             "time": "time or sequence",
-        }.get(question_type, "central claim with concrete evidence")
+        }.get(question_type or "", "central claim with concrete evidence")
         override = None
         if not 18 <= script.target_duration_seconds <= 25:
             override = (

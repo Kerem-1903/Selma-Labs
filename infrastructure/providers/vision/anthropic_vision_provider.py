@@ -1,5 +1,6 @@
 import base64
 import json
+from typing import Any, cast
 
 import anthropic
 
@@ -66,7 +67,7 @@ class AnthropicVisionProvider(VisionAnalysisPort):
         content.append({"type": "text", "text": prompt})
 
         try:
-            response = await self._client.messages.create(
+            response = await cast(Any, self._client).messages.create(
                 model=self._model_name,
                 max_tokens=1024,
                 messages=[{"role": "user", "content": content}],

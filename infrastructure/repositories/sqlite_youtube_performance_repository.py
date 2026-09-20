@@ -1,5 +1,6 @@
 import json
 import sqlite3
+from asyncio import Lock
 from pathlib import Path
 
 from core.domain.ports.youtube_performance_repository_port import YoutubePerformanceRepositoryPort
@@ -9,8 +10,8 @@ from core.domain.value_objects.youtube_performance import YoutubePerformanceReco
 class SQLiteYoutubePerformanceRepository(YoutubePerformanceRepositoryPort):
     """SQLite implementation for YouTube performance records handling concurrency."""
 
-    _mem_locks = {}
-    _mem_conns = {}
+    _mem_locks: dict[str, Lock] = {}
+    _mem_conns: dict[str, sqlite3.Connection] = {}
 
     def __init__(self, db_path: str | Path):
         self._is_memory = str(db_path) == ":memory:" or str(db_path).startswith("file:memdb_")

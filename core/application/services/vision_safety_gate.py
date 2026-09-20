@@ -24,10 +24,11 @@ class VisionSafetyGate:
         # Determine if we are scoring a Scene or a VisualIntent depending on the stage of the pipeline
         if hasattr(self.vision_scoring_service, 'score_visual_intent') and hasattr(scene_or_intent, 'primary_keyword'):
             # Fake a ScoredAsset list
-            from core.domain.value_objects.asset_score import AssetScore, ScoredAsset
+            from core.domain.value_objects.asset_score import AssetScore
+            from core.domain.value_objects.scored_asset import ScoredAsset
             fake_scored = [ScoredAsset(asset=asset, score=AssetScore(final_score=0.5))]
             res = await self.vision_scoring_service.score_visual_intent(scene_or_intent, fake_scored)
-            score = res[0].adjusted_score
+            score = res[0].score.final_score
         else:
             score = await self.vision_scoring_service.score_asset(
                 asset=asset,
